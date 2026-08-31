@@ -1,0 +1,61 @@
+# 줄바꿈·병합 규칙을 개인 git 설정이 아니라 저장소 안에 둔다.
+# 각자의 core.autocrlf 가 무엇이든 저장소 안은 항상 LF로 통일된다.
+# 이게 없으면 설정이 다른 사람이 커밋했을 때 "내용은 그대로인데 전 줄이 바뀐"
+# diff가 생기고, 씬 파일에서 그러면 충돌 해결이 불가능해진다.
+
+# ── 기본 ───────────────────────────────────────────────────────
+* text=auto
+
+# ── Unity YAML ─────────────────────────────────────────────────
+# 씬·프리팹·에셋·메타는 전부 텍스트다. 병합 도구가 붙을 수 있게 LF로 고정한다.
+*.unity        text eol=lf
+*.prefab       text eol=lf
+*.asset        text eol=lf
+*.meta         text eol=lf
+*.mat          text eol=lf
+*.anim         text eol=lf
+*.controller   text eol=lf
+*.physicMaterial text eol=lf
+*.shadergraph  text eol=lf
+*.shadersubgraph text eol=lf
+
+# ── 코드 · 설정 ────────────────────────────────────────────────
+# diff=csharp 는 diff 헤더에 "어느 메서드 안인지"를 띄워준다.
+*.cs           text diff=csharp
+*.shader       text
+*.json         text
+*.md           text
+*.txt          text
+*.inputactions text eol=lf
+
+# ── 바이너리 ───────────────────────────────────────────────────
+# diff를 시도하면 깨진 바이트를 터미널에 쏟는다. 명시적으로 막는다.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.psd  binary
+*.tga  binary
+*.tif  binary
+*.fbx  binary
+*.obj  binary
+*.blend binary
+*.wav  binary
+*.mp3  binary
+*.ogg  binary
+*.ttf  binary
+*.otf  binary
+*.dll  binary
+*.unitypackage binary
+
+# ── Unity YAML 병합 도구 (쓰려면 각자 설정이 필요하다) ─────────
+# 씬·프리팹 충돌을 Unity가 구조 단위로 병합해준다. 줄 단위 병합보다 훨씬 낫다.
+# 쓰려면 각자 한 번 설정해야 하고, 설정 안 한 사람이 있으면 동작이 갈리므로
+# 팀에서 같이 켜기로 정한 다음 주석을 벗긴다.
+#
+#   git config merge.unityyamlmerge.name "Unity SmartMerge"
+#   git config merge.unityyamlmerge.driver '"C:/Program Files/Unity/Hub/Editor/6000.3.6f1/Editor/Data/Tools/UnityYAMLMerge.exe" merge -p %O %B %A %A'
+#
+# *.unity   merge=unityyamlmerge
+# *.prefab  merge=unityyamlmerge
+# *.asset   merge=unityyamlmerge
