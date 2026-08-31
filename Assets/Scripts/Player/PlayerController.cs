@@ -1,7 +1,6 @@
 using Marea.Core;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.InputSystem;
 
 namespace Marea.Player
 {
@@ -12,6 +11,7 @@ namespace Marea.Player
     /// B 코드가 안 깨지게 하려는 것이다.
     /// </summary>
     [RequireComponent(typeof(NavMeshAgent))]
+    [RequireComponent(typeof(PlayerInputReader))]
     public class PlayerController : MonoBehaviour, IInteractor
     {
         private enum State { Idle, Moving, Interacting }
@@ -29,6 +29,7 @@ namespace Marea.Player
         [SerializeField] private Warehouse warehouse;
 
         private NavMeshAgent _agent;
+        private PlayerInputReader _input;
         private State _state = State.Idle;
         private IInteractable _pending;
         private bool _busyHeld;
@@ -47,6 +48,7 @@ namespace Marea.Player
         {
             _agent = GetComponent<NavMeshAgent>();
             _agent.speed = moveSpeed;
+            _input = GetComponent<PlayerInputReader>();
         }
 
         private void Update()
@@ -58,7 +60,7 @@ namespace Marea.Player
 
             if (_busyHeld) return;   // 미니게임 등이 진행 중
 
-            Vector2 axis = ReadMoveAxis();
+            Vector2 axis = _input.MoveAxis;
             if (axis.sqrMagnitude > 0.01f)
             {
                 CancelPendingMove();
@@ -130,18 +132,5 @@ namespace Marea.Player
             return (forward * axis.y + right * axis.x).normalized;
         }
 
-        /// <summary>
-        /// 이 프로젝트는 Input System Package 전용이라 레거시 Input을 못 쓴다.
-        /// 나중에 InputSystem_Actions 에셋으로 옮기려면 이 메서드만 갈아끼우면 된다.
-        /// </summary>
-        private static Vector2 ReadMoveAxis()
-        {
-            var kb = Keyboard.current;
-            if (kb == null) return Vector2.zero;
-
-            float x = (kb.dKey.isPressed ? 1f : 0f) - (kb.aKey.isPressed ? 1f : 0f);
-            float y = (kb.wKey.isPressed ? 1f : 0f) - (kb.sKey.isPressed ? 1f : 0f);
-            return new Vector2(x, y);
-        }
     }
 }
