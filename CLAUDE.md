@@ -56,12 +56,13 @@ Assets/Scripts/
 | `IngredientData` · `MenuData` | 같이 만든다 |
 | `IInteractable` · `IInteractor` · `Warehouse` | A → B |
 | `DayPhase` · `GameManager` | B → A |
-| `IServeBoard` · `ServeTask` | B → A |
+| `ServeBoard` · `ServeTask` | A → B |
 
 계약 밖(`InteractableBase` 내부, `AgentMover`, `PlayerController` private 부분)은
 협의 없이 고쳐도 된다.
 
 **서빙 직원(`ServingStaff`)에 `IInteractor`를 구현시키지 마라.** 이유는 설계 결정 10.
+`ServeBoard` 는 인터페이스가 아니라 A 소유 구체 클래스다 — B는 `Post()` 만 부른다 (설계 결정 9).
 직원은 클릭 경로를 안 탄다 — `AgentMover` 만 플레이어와 공유한다.
 
 ---
