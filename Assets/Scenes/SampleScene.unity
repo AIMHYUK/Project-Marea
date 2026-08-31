@@ -161,7 +161,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 269654541}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 07ba541d0486b084ba2b811a25e9b804, type: 3}
   m_Name: 
@@ -182,7 +182,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -717,6 +717,8 @@ GameObject:
   - component: {fileID: 862067461}
   - component: {fileID: 862067460}
   - component: {fileID: 862067463}
+  - component: {fileID: 862067464}
+  - component: {fileID: 862067465}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -736,9 +738,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ff8ec9d3e272215458ec382ec256c6c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Player.PlayerController
-  moveSpeed: 4
   cameraBasis: {fileID: 330585546}
-  arriveThreshold: 0.15
   warehouse: {fileID: 0}
 --- !u!195 &862067461
 NavMeshAgent:
@@ -792,10 +792,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Player.ClickSelector
   cam: {fileID: 330585545}
   player: {fileID: 862067460}
+  input: {fileID: 0}
   interactableMask:
     serializedVersion: 2
     m_Bits: 4294967295
   maxDistance: 100
+--- !u!114 &862067464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 862067459}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0087161d73c4f824cb6a3cee1b2bc15f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Player.PlayerInputReader
+--- !u!114 &862067465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 862067459}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e37b7bb1caa49d44d9a6d27a377d8fac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Core.AgentMover
+  moveSpeed: 4
+  arriveThreshold: 0.15
 --- !u!1 &1963989596
 GameObject:
   m_ObjectHideFlags: 0

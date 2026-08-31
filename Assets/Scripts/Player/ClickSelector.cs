@@ -1,7 +1,6 @@
 using Marea.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 
 namespace Marea.Player
 {
@@ -14,6 +13,9 @@ namespace Marea.Player
         [SerializeField] private Camera cam;
         [SerializeField] private PlayerController player;
 
+        [Tooltip("비워두면 같은 오브젝트에서 찾는다.")]
+        [SerializeField] private PlayerInputReader input;
+
         [Tooltip("상호작용 오브젝트가 있는 레이어만 켜두면 레이캐스트가 싸진다.")]
         [SerializeField] private LayerMask interactableMask = ~0;
 
@@ -24,12 +26,12 @@ namespace Marea.Player
         private void Awake()
         {
             if (cam == null) cam = Camera.main;
+            if (input == null) input = GetComponent<PlayerInputReader>();
         }
 
         private void Update()
         {
-            var mouse = Mouse.current;
-            if (mouse == null || cam == null || player == null) return;
+            if (input == null || cam == null || player == null) return;
 
             // UI 위에 있으면 씬을 건드리지 않는다.
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
@@ -38,10 +40,10 @@ namespace Marea.Player
                 return;
             }
 
-            InteractableBase found = RaycastInteractable(mouse.position.ReadValue());
+            InteractableBase found = RaycastInteractable(input.PointerPosition);
             SetHovered(found);
 
-            if (found != null && mouse.leftButton.wasPressedThisFrame)
+            if (found != null && input.ClickPressed)
                 player.GoInteract(found);
         }
 
