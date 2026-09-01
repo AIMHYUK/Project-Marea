@@ -44,21 +44,26 @@ public static class WaterSceneSetup
     //  2. 두 파의 방향이 직교하면 다이아몬드 격자가 생긴다. 실제 바다는
     //     한 방향 스웰에 약간의 산포다. 사이각 30도쯤으로 좁힌다.
     //  3. 높이가 비슷하면 둘이 대등하게 싸운다. 주 스웰 / 잔물결로 나눈다.
+    //  4. 비율보다 먼저 절대 파장을 본다. 화면에 보이는 물이 30~40유닛인데
+    //     파장이 2.7 이면 마루가 12~15개 들어와서 바다가 아니라 골판지가 된다.
+    //     쿼터뷰에서 바다로 읽히려면 화면에 마루가 3~4개다.
+    //  5. 사이각은 55~70도. 135도면 다이아몬드 격자, 30도면 평행한 골이 된다.
+    //     둘 다 "균일하다"로 보인다.
     //
     // 그래도 2개로는 격자를 완전히 못 없앤다. 나머지는 노멀맵이 깨야 한다
     // (_Normal_Strength / _Normal_Scale — 이건 스크립트가 안 건드린다).
 
-    const float Wave1Height = 0.09f;    // 주 스웰. 데모 기본은 0.01(1cm)이라 쿼터뷰에선 안 보인다
-    const float Wave1Length = 2.7f;
-    const float Wave1Speed  = 1.0f;
-    const float Wave1Sharp  = 0.5f;     // 마루가 뾰족
-    static readonly Vector4 Wave1Dir = new(1f, 0f, 0.15f, 0f);
+    const float Wave1Height = 0.12f;    // 주 스웰. 데모 기본은 0.01(1cm)이라 쿼터뷰에선 안 보인다
+    const float Wave1Length = 13f;      // 화면에 보이는 물이 30~40유닛이라 마루가 3~4개 들어온다
+    const float Wave1Speed  = 0.9f;
+    const float Wave1Sharp  = 0.4f;
+    static readonly Vector4 Wave1Dir = new(1f, 0f, 0.25f, 0f);
 
-    const float Wave2Height = 0.035f;   // 잔물결
-    const float Wave2Length = 7.3f;     // 2.7 과 비가 2.70 — 반복 주기가 화면 밖으로 나간다
-    const float Wave2Speed  = 0.62f;    // 1.0 과 비가 1.61
-    const float Wave2Sharp  = 0.15f;    // 둥글게. 1st 와 성격을 다르게
-    static readonly Vector4 Wave2Dir = new(0.8f, 0f, -0.35f, 0f);
+    const float Wave2Height = 0.05f;    // 잔물결. 1st 와 2.4:1
+    const float Wave2Length = 7.4f;     // 13 과 비가 1.76
+    const float Wave2Speed  = 1.45f;    // 0.9 와 비가 1.61
+    const float Wave2Sharp  = 0.2f;     // 1st 보다 둥글게. 성격을 다르게
+    static readonly Vector4 Wave2Dir = new(0.75f, 0f, -0.66f, 0f);
     // 얕은색 → 깊은색이 완전히 벌어지는 수심. 여기 최대 수심이 0.6 이라 거기 맞춘다.
     // _WorldSpaceDepth 토글이 켜져 있어서(기본 1) 이 값은 월드 유닛이다.
     //
