@@ -30,6 +30,7 @@ Material:
   - _ENABLEPLANERREFLECTION
   - _ENABLEREFRACTION
   - _ENABLESHORELINE
+  - _ENABLEWAVE
   m_InvalidKeywords: []
   m_LightmapFlags: 2
   m_EnableInstancingVariants: 0
@@ -241,7 +242,7 @@ Material:
     - _ENABLESHORELINE: 1
     - _ENABLESURFACEFOAM: 0
     - _ENABLEUNDERWATERLAYER: 0
-    - _ENABLEWAVE: 0
+    - _ENABLEWAVE: 1
     - _ENABLE_UNDERWATERLAYER: 0
     - _ENVIRONMENTREFLECTIONS_OFF: 1
     - _Enable_Intersection: 1
@@ -381,7 +382,7 @@ Material:
     - _Underwater_Fade: 15
     - _WORLDSPACEDEPTH: 1
     - _WaterDepth: 0.3
-    - _Water_Depth: 0.3
+    - _Water_Depth: 0.6
     - _WaveHeight: 0.01
     - _WaveHeight2nd: 0.01
     - _WaveLength: 10

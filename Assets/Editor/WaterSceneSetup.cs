@@ -31,10 +31,34 @@ public static class WaterSceneSetup
     //    높이만 올리고 토글을 안 켜면 아무 일도 안 일어난다.
     const bool  EnableWave  = true;
 
-    // 데모는 100유닛짜리 벌판을 멀리서 보는 기준이라 파도가 1cm(0.01)다.
-    // 쿼터뷰 카메라(거리 14, 55도)에서는 안 보여서 키운다.
-    const float Wave1Height = 0.07f;
-    const float Wave2Height = 0.05f;
+    // 인스펙터에서 직접 값을 맞추기 시작했으면 이걸 false 로 내려라.
+    // 그러면 메뉴를 다시 눌러도 씬 오브젝트만 다시 만들고 머티리얼은 안 건드린다.
+    // 안 그러면 손으로 맞춘 파도 값이 아래 상수로 매번 되돌아간다.
+    const bool  TuneMaterial = true;
+
+    // ── 파도 ──────────────────────────────────────────────────────
+    // 정점 파도가 둘뿐이라 값을 잘못 주면 바로 격자가 보인다. 세 가지를 지킨다.
+    //
+    //  1. 파장 비가 떨어지면 안 된다. 3 과 5 는 최소공배수가 15 라
+    //     15유닛마다 똑같은 무늬가 반복된다. 70x80 판에 4~5번 들어와서 눈에 띈다.
+    //  2. 두 파의 방향이 직교하면 다이아몬드 격자가 생긴다. 실제 바다는
+    //     한 방향 스웰에 약간의 산포다. 사이각 30도쯤으로 좁힌다.
+    //  3. 높이가 비슷하면 둘이 대등하게 싸운다. 주 스웰 / 잔물결로 나눈다.
+    //
+    // 그래도 2개로는 격자를 완전히 못 없앤다. 나머지는 노멀맵이 깨야 한다
+    // (_Normal_Strength / _Normal_Scale — 이건 스크립트가 안 건드린다).
+
+    const float Wave1Height = 0.09f;    // 주 스웰. 데모 기본은 0.01(1cm)이라 쿼터뷰에선 안 보인다
+    const float Wave1Length = 2.7f;
+    const float Wave1Speed  = 1.0f;
+    const float Wave1Sharp  = 0.5f;     // 마루가 뾰족
+    static readonly Vector4 Wave1Dir = new(1f, 0f, 0.15f, 0f);
+
+    const float Wave2Height = 0.035f;   // 잔물결
+    const float Wave2Length = 7.3f;     // 2.7 과 비가 2.70 — 반복 주기가 화면 밖으로 나간다
+    const float Wave2Speed  = 0.62f;    // 1.0 과 비가 1.61
+    const float Wave2Sharp  = 0.15f;    // 둥글게. 1st 와 성격을 다르게
+    static readonly Vector4 Wave2Dir = new(0.8f, 0f, -0.35f, 0f);
     // 얕은색 → 깊은색이 완전히 벌어지는 수심. 여기 최대 수심이 0.6 이라 거기 맞춘다.
     // _WorldSpaceDepth 토글이 켜져 있어서(기본 1) 이 값은 월드 유닛이다.
     //
@@ -179,10 +203,22 @@ public static class WaterSceneSetup
 
         if (existing == null) return null;
 
+        if (!TuneMaterial) return existing;   // 인스펙터에서 직접 맞추는 중이면 손대지 않는다
+
         SetToggle(existing, "_ENABLEWAVE", EnableWave);
-        SetIfHas(existing, "_1st_Wave_Height", Wave1Height);
-        SetIfHas(existing, "_2nd_Wave_Height", Wave2Height);
-        SetIfHas(existing, "_Water_Depth",     WaterDepth);
+        SetIfHas(existing, "_Water_Depth", WaterDepth);
+
+        SetIfHas(existing, "_1st_Wave_Height",    Wave1Height);
+        SetIfHas(existing, "_1st_Wave_Length",    Wave1Length);
+        SetIfHas(existing, "_1st_Wave_Speed",     Wave1Speed);
+        SetIfHas(existing, "_1st_Wave_Sharpness", Wave1Sharp);
+        SetVectorIfHas(existing, "_1st_Wave_Direction", Wave1Dir);
+
+        SetIfHas(existing, "_2nd_Wave_Height",    Wave2Height);
+        SetIfHas(existing, "_2nd_Wave_Length",    Wave2Length);
+        SetIfHas(existing, "_2nd_Wave_Speed",     Wave2Speed);
+        SetIfHas(existing, "_2nd_Wave_Sharpness", Wave2Sharp);
+        SetVectorIfHas(existing, "_2nd_Wave_Direction", Wave2Dir);
         EditorUtility.SetDirty(existing);
         AssetDatabase.SaveAssets();
         return existing;
@@ -205,6 +241,8 @@ public static class WaterSceneSetup
             mat = new Material(shader);
             AssetDatabase.CreateAsset(mat, SeabedMat);
         }
+
+        if (!TuneMaterial) return mat;   // 물 머티리얼과 같은 규칙
 
         var albedo = AssetDatabase.LoadAssetAtPath<Texture2D>(SandAlbedo);
         var normal = AssetDatabase.LoadAssetAtPath<Texture2D>(SandNormal);
@@ -238,6 +276,12 @@ public static class WaterSceneSetup
     /// float 값만 바꾸면 인스펙터 체크박스만 움직이고 셰이더는 그대로다 —
     /// 키워드를 같이 켜야 그 분기가 컴파일에 들어간다.
     /// </summary>
+    static void SetVectorIfHas(Material m, string prop, Vector4 v)
+    {
+        if (m.HasProperty(prop)) m.SetVector(prop, v);
+        else Debug.LogWarning($"[물세팅] 셰이더가 {prop} 를 노출하지 않는다.");
+    }
+
     static void SetToggle(Material m, string keyword, bool on)
     {
         if (m.HasProperty(keyword)) m.SetFloat(keyword, on ? 1f : 0f);
