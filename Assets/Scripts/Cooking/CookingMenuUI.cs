@@ -45,6 +45,9 @@ namespace Marea.Cooking
         [SerializeField] private Button btnBackToCategory;
         [SerializeField] private Button btnStartCooking;
 
+        [Header("미니게임 UI 연동")]
+        [SerializeField] private SkewerMinigameUI skewerMinigameUI;
+
         [Header("데이터 등록")]
         [SerializeField] private List<CookingCategoryGroup> categoryDataList;
 
@@ -199,7 +202,36 @@ namespace Marea.Cooking
                 rootPanel.SetActive(false);
             }
 
-            // TODO: 선택된 _selectedType과 _selectedMenu를 넘겨 해당 미니게임 매니저 실행
+            switch (_selectedType)
+            {
+                case CookingType.Skewer:
+                    if (skewerMinigameUI != null)
+                    {
+                        skewerMinigameUI.StartGame(_selectedMenu, OnMinigameFinished);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[CookingMenuUI] SkewerMinigameUI가 연결되지 않았습니다.");
+                        Close();
+                    }
+                    break;
+
+                case CookingType.Stew:
+                case CookingType.Steak:
+                    Debug.Log($"[CookingMenuUI] {_selectedType} 미니게임은 아직 구현 준비 중입니다.");
+                    Close();
+                    break;
+            }
+        }
+
+        private void OnMinigameFinished(CookingResult result)
+        {
+            Debug.Log($"[CookingMenuUI] 요리 완료 결과: 성공여부={result.isSuccess}, 최종가격={result.finalPrice}G, 판정={result.bestGrade}");
+
+            // TODO: 결과 팝업 표시 또는 인벤토리/수익 데이터 반영
+
+            // 플레이어 조작 잠금 해제
+            Close();
         }
     }
 }
