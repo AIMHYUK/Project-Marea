@@ -25,10 +25,12 @@ namespace Marea.Data
 
         [Tooltip("요리 판정 배율을 여기에 곱한다.")]
         [SerializeField, Min(0)] private int basePrice;
-
+        // 메뉴 아이콘 이미지
+        [SerializeField] private Sprite icon;
         public int Id => id;
         public string DisplayName => displayName;
         public IReadOnlyList<RecipeEntry> Recipe => recipe;
         public int BasePrice => basePrice;
+        public Sprite Icon => icon;
     }
 }
