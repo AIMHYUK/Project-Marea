@@ -25,11 +25,23 @@ public static class WaterSceneSetup
     static readonly Vector3 WaterCenter = new(42f, WaterY, 6f);
     static readonly Vector2 WaterSize   = new(70f, 80f);    // 월드 기준 가로x세로. 메시 크기를 재서 맞춘다
 
+    // ⚠️ 템플릿 8개 중 Wavy / Wavy 2 만 정점 파도(_ENABLEWAVE)가 켜져 있다.
+    //    나머지(Tropical 포함)는 파도를 끄고 노멀맵으로만 표면을 만든다.
+    //    토글이 꺼져 있으면 셰이더가 그 분기를 컴파일에서 아예 빼기 때문에,
+    //    높이만 올리고 토글을 안 켜면 아무 일도 안 일어난다.
+    const bool  EnableWave  = true;
+
     // 데모는 100유닛짜리 벌판을 멀리서 보는 기준이라 파도가 1cm(0.01)다.
     // 쿼터뷰 카메라(거리 14, 55도)에서는 안 보여서 키운다.
     const float Wave1Height = 0.07f;
     const float Wave2Height = 0.05f;
-    const float DepthDistance = 0.9f;   // 얕은색→깊은색 전환 거리. 여기 최대 수심이 0.6~1.0 이다
+    // 얕은색 → 깊은색이 완전히 벌어지는 수심. 여기 최대 수심이 0.6 이라 거기 맞춘다.
+    // _WorldSpaceDepth 토글이 켜져 있어서(기본 1) 이 값은 월드 유닛이다.
+    //
+    // ⚠️ 템플릿 머티리얼에 있는 _Depth_Distance 는 죽은 키다. 셰이더가 노출하지 않는다.
+    //    셰이더그래프에서 이름이 바뀌었는데 Unity 가 m_Floats 의 고아 항목을 안 지운다.
+    //    인스펙터에도 안 보이니 그 값을 만지려 하지 마라 — 아무 일도 안 일어난다.
+    const float WaterDepth = 0.6f;
 
     const string AssetRoot   = "Assets/Shaders/Uber Stylized Water";
     const string SourceMat   = AssetRoot + "/Template Materials/UWa-Template-Tropical.mat";
@@ -167,9 +179,10 @@ public static class WaterSceneSetup
 
         if (existing == null) return null;
 
+        SetToggle(existing, "_ENABLEWAVE", EnableWave);
         SetIfHas(existing, "_1st_Wave_Height", Wave1Height);
         SetIfHas(existing, "_2nd_Wave_Height", Wave2Height);
-        SetIfHas(existing, "_Depth_Distance",  DepthDistance);
+        SetIfHas(existing, "_Water_Depth",     WaterDepth);
         EditorUtility.SetDirty(existing);
         AssetDatabase.SaveAssets();
         return existing;
@@ -220,10 +233,23 @@ public static class WaterSceneSetup
             AssetDatabase.CreateFolder("Assets", "Materials");
     }
 
+    /// <summary>
+    /// [Toggle(_XXX)] 로 선언된 기능 토글을 켠다.
+    /// float 값만 바꾸면 인스펙터 체크박스만 움직이고 셰이더는 그대로다 —
+    /// 키워드를 같이 켜야 그 분기가 컴파일에 들어간다.
+    /// </summary>
+    static void SetToggle(Material m, string keyword, bool on)
+    {
+        if (m.HasProperty(keyword)) m.SetFloat(keyword, on ? 1f : 0f);
+        if (on) m.EnableKeyword(keyword);
+        else    m.DisableKeyword(keyword);
+    }
+
     static void SetIfHas(Material m, string prop, float v)
     {
         if (m.HasProperty(prop)) m.SetFloat(prop, v);
-        else Debug.LogWarning($"[물세팅] 머티리얼에 {prop} 가 없다. 셰이더 버전이 다를 수 있다.");
+        else Debug.LogWarning($"[물세팅] 셰이더가 {prop} 를 노출하지 않는다. " +
+                              "머티리얼 파일에 값이 보여도 죽은 키일 수 있다 — .shader 의 Properties 블록을 봐라.");
     }
 
     /// <summary>해변 윗면이 수면과 만나는 x. 보고용이라 대략치면 된다.</summary>
