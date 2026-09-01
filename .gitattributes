@@ -48,6 +48,12 @@
 *.dll  binary
 *.unitypackage binary
 
+# 물 에셋이 들고 온 것들 (+9/1). exr/hdr 은 * text=auto 에 걸리면 위험하다.
+*.exr  binary
+*.hdr  binary
+*.cubemap binary
+*.mp4  binary
+
 # ── Unity YAML 병합 도구 (쓰려면 각자 설정이 필요하다) ─────────
 # 씬·프리팹 충돌을 Unity가 구조 단위로 병합해준다. 줄 단위 병합보다 훨씬 낫다.
 # 쓰려면 각자 한 번 설정해야 하고, 설정 안 한 사람이 있으면 동작이 갈리므로
