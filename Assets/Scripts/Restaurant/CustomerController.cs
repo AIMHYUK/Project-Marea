@@ -5,40 +5,44 @@ namespace Marea.Restaurant
 {
     public enum CustomerState
     {
-        WaitingOrder, // À½½Ä ´ë±â Áß
-        Eating,       // ½Ä»ç Áß
-        Finished      // ÅğÀå
+        WaitingOrder, // ìŒì‹ ëŒ€ê¸° ì¤‘
+        Eating,       // ì‹ì‚¬ ì¤‘
+        Finished      // í‡´ì¥
     }
 
     public class CustomerController : MonoBehaviour
     {
-        [Header("½Ä»ç ¼³Á¤")]
-        [SerializeField] private float eatingDuration = 5.0f; // ¼­ºù ÈÄ ÅğÀå±îÁö °É¸®´Â ½Ã°£
+        [Header("ì‹ì‚¬ ì„¤ì •")]
+        [SerializeField] private float eatingDuration = 5.0f; // ì„œë¹™ í›„ í‡´ì¥ê¹Œì§€ ê±¸ë¦¬ëŠ” ì‹œê°„
 
         private Seat _assignedSeat;
         private CustomerState _state = CustomerState.WaitingOrder;
 
         public CustomerState State => _state;
 
+        /// <summary>ì´ ì†ë‹˜ì´ ì•‰ì€ ì‹œê°. ì„œë¹™ ìˆœì„œë¥¼ ì •í•˜ëŠ” ë° ì“´ë‹¤. (+9/3)</summary>
+        public float WaitingSince { get; private set; }
+
         public void Initialize(Seat seat)
         {
             _assignedSeat = seat;
             _assignedSeat.AssignCustomer(this);
 
-            // ÁÂ¼® À§Ä¡ ¹× È¸Àü°ªÀ¸·Î ½º³À ÀÌµ¿
+            // ì¢Œì„ ìœ„ì¹˜ ë° íšŒì „ê°’ìœ¼ë¡œ ìŠ¤ëƒ… ì´ë™
             transform.position = seat.SitPoint.position;
             transform.rotation = seat.SitPoint.rotation;
 
             _state = CustomerState.WaitingOrder;
+            WaitingSince = Time.time;   // (+9/3)
         }
 
-        // ÇÃ·¹ÀÌ¾î »óÈ£ÀÛ¿ëÀ¸·Î È£ÃâµÇ´Â ¼­ºù ¸Ş¼­µå
+        // í”Œë ˆì´ì–´ ìƒí˜¸ì‘ìš©ìœ¼ë¡œ í˜¸ì¶œë˜ëŠ” ì„œë¹™ ë©”ì„œë“œ
         public void ServeFood()
         {
             if (_state != CustomerState.WaitingOrder) return;
 
             _state = CustomerState.Eating;
-            Debug.Log("[Customer] À½½ÄÀ» ¹Ş¾Ò½À´Ï´Ù. ½Ä»ç¸¦ ½ÃÀÛÇÕ´Ï´Ù.");
+            Debug.Log("[Customer] ìŒì‹ì„ ë°›ì•˜ìŠµë‹ˆë‹¤. ì‹ì‚¬ë¥¼ ì‹œì‘í•©ë‹ˆë‹¤.");
 
             StartCoroutine(EatAndLeaveRoutine());
         }
@@ -48,7 +52,7 @@ namespace Marea.Restaurant
             yield return new WaitForSeconds(eatingDuration);
 
             _state = CustomerState.Finished;
-            Debug.Log("[Customer] ½Ä»ç¸¦ ¸¶Ä¡°í ÅğÀåÇÕ´Ï´Ù.");
+            Debug.Log("[Customer] ì‹ì‚¬ë¥¼ ë§ˆì¹˜ê³  í‡´ì¥í•©ë‹ˆë‹¤.");
 
             if (_assignedSeat != null)
             {

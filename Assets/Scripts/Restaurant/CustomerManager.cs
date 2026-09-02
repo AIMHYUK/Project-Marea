@@ -8,21 +8,21 @@ namespace Marea.Restaurant
     {
         private bool _isSpawningPaused;
 
-        [Header("ÁÂ¼® ¸ñ·Ï")]
+        [Header("ì¢Œì„ ëª©ë¡")]
         [SerializeField] private List<Seat> seatList = new();
 
-        [Header("¼Õ´Ô ÇÁ¸®ÆÕ")]
+        [Header("ì†ë‹˜ í”„ë¦¬íŒ¹")]
         [SerializeField] private GameObject customerPrefab;
 
-        [Header("½ºÆù ¼³Á¤")]
-        [SerializeField] private float spawnInterval = 5.0f; // ½ºÆù Ã¼Å© ÁÖ±â
+        [Header("ìŠ¤í° ì„¤ì •")]
+        [SerializeField] private float spawnInterval = 5.0f; // ìŠ¤í° ì²´í¬ ì£¼ê¸°
         [SerializeField] private bool autoSpawn = true;
 
         private Coroutine _spawnRoutine;
 
         private void Awake()
         {
-            // ÁÂ¼® ¸®½ºÆ®°¡ ºñ¾îÀÖ´Ù¸é ¾À ³» ÁÂ¼® ÄÄÆ÷³ÍÆ® ÀÚµ¿ Å½»ö
+            // ì¢Œì„ ë¦¬ìŠ¤íŠ¸ê°€ ë¹„ì–´ìˆë‹¤ë©´ ì”¬ ë‚´ ì¢Œì„ ì»´í¬ë„ŒíŠ¸ ìë™ íƒìƒ‰
             if (seatList == null || seatList.Count == 0)
             {
                 seatList = new List<Seat>(FindObjectsOfType<Seat>());
@@ -55,7 +55,29 @@ namespace Marea.Restaurant
         public void PauseSpawning(bool pause)
         {
             _isSpawningPaused = pause;
-            Debug.Log($"[CustomerManager] ¼Õ´Ô ½ºÆù ÀÏ½ÃÁ¤Áö »óÅÂ: {pause}");
+            Debug.Log($"[CustomerManager] ì†ë‹˜ ìŠ¤í° ì¼ì‹œì •ì§€ ìƒíƒœ: {pause}");
+        }
+
+        /// <summary>
+        /// ì•„ì§ ìŒì‹ì„ ëª» ë°›ì€ ì†ë‹˜ë“¤. ì˜¤ë˜ ê¸°ë‹¤ë¦° ìˆœ. (+9/3)
+        ///
+        /// ìŠ¤í° ëª©ë¡ì„ ë”°ë¡œ ì•ˆ ë“¤ê³  ì”¬ì„ ë’¤ì§€ëŠ” ì´ìœ ëŠ”, ì†ë‹˜ì´ ì‹ì‚¬ë¥¼ ëë‚´ë©´
+        /// ìŠ¤ìŠ¤ë¡œ Destroyë˜ê¸° ë•Œë¬¸ì´ë‹¤. ëª©ë¡ì„ ë“¤ë©´ ì£½ì€ ì°¸ì¡°ë¥¼ ì§€ìš°ëŠ” ì¼ì´ ë˜ ìƒê¸´ë‹¤.
+        /// </summary>
+        public List<CustomerController> GetWaitingCustomers()
+        {
+            List<CustomerController> waiting = new List<CustomerController>();
+
+            foreach (CustomerController c in FindObjectsByType<CustomerController>(FindObjectsSortMode.None))
+            {
+                if (c != null && c.State == CustomerState.WaitingOrder)
+                {
+                    waiting.Add(c);
+                }
+            }
+
+            waiting.Sort((a, b) => a.WaitingSince.CompareTo(b.WaitingSince));
+            return waiting;
         }
 
         private IEnumerator SpawnRoutine()
@@ -64,7 +86,7 @@ namespace Marea.Restaurant
             {
                 yield return new WaitForSeconds(spawnInterval);
 
-                // ¹Ì´Ï°ÔÀÓ ÁøÇà µîÀ¸·Î ÀÏ½ÃÁ¤Áö ÁßÀÌ¸é ½ºÆù °Ç³Ê¶Ù±â
+                // ë¯¸ë‹ˆê²Œì„ ì§„í–‰ ë“±ìœ¼ë¡œ ì¼ì‹œì •ì§€ ì¤‘ì´ë©´ ìŠ¤í° ê±´ë„ˆë›°ê¸°
                 if (_isSpawningPaused)
                 {
                     continue;
@@ -77,7 +99,7 @@ namespace Marea.Restaurant
                 }
                 else
                 {
-                    Debug.Log("[CustomerManager] ºó ÁÂ¼®ÀÌ ¾ø°Å³ª ÇÁ¸®ÆÕÀÌ ¼³Á¤µÇÁö ¾Ê¾Æ ½ºÆùÀ» ´ë±âÇÕ´Ï´Ù.");
+                    Debug.Log("[CustomerManager] ë¹ˆ ì¢Œì„ì´ ì—†ê±°ë‚˜ í”„ë¦¬íŒ¹ì´ ì„¤ì •ë˜ì§€ ì•Šì•„ ìŠ¤í°ì„ ëŒ€ê¸°í•©ë‹ˆë‹¤.");
                 }
             }
         }
@@ -95,14 +117,14 @@ namespace Marea.Restaurant
         {
             if (targetSeat == null || targetSeat.SitPoint == null) return;
 
-            // »ı¼ºÇÒ ¶§ºÎÅÍ ÁÂ¼®ÀÇ ¿ùµå À§Ä¡¿Í È¸Àü°ªÀ¸·Î »ı¼º
+            // ìƒì„±í•  ë•Œë¶€í„° ì¢Œì„ì˜ ì›”ë“œ ìœ„ì¹˜ì™€ íšŒì „ê°’ìœ¼ë¡œ ìƒì„±
             GameObject customerObj = Instantiate(customerPrefab, targetSeat.SitPoint.position, targetSeat.SitPoint.rotation);
             CustomerController customer = customerObj.GetComponent<CustomerController>();
 
             if (customer != null)
             {
                 customer.Initialize(targetSeat);
-                Debug.Log($"[CustomerManager] ÁÂ¼®({targetSeat.name})¿¡ ¼Õ´ÔÀÌ Âø¼®Çß½À´Ï´Ù.");
+                Debug.Log($"[CustomerManager] ì¢Œì„({targetSeat.name})ì— ì†ë‹˜ì´ ì°©ì„í–ˆìŠµë‹ˆë‹¤.");
             }
         }
     }

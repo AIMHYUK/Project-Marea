@@ -1,12 +1,13 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Marea.Field;
 
 namespace Marea.Restaurant
 {
     [RequireComponent(typeof(CustomerController))]
     public class CustomerInteractable : MonoBehaviour
     {
-        [Header("»óÈ£ÀÛ¿ë Å°")]
+        [Header("ìƒí˜¸ì‘ìš© í‚¤")]
         [SerializeField] private Key interactKey = Key.E;
 
         private CustomerController _customer;
@@ -20,20 +21,31 @@ namespace Marea.Restaurant
 
         private void OnTriggerEnter(Collider other)
         {
-            Debug.Log($"[CustomerInteractable] Ãæµ¹ °¨ÁöµÈ ¿ÀºêÁ§Æ®: {other.name}");
+            // ì§ì›ì´ ë‚´ ìŒì‹ì„ ë“¤ê³  ì™”ë‚˜. (+9/3)
+            //
+            // ì—¬ê¸°ì„œ ServeFoodë¥¼ ì§ì ‘ ë¶€ë¥´ì§€ ì•ŠëŠ”ë‹¤. ìˆ˜ë ¹ í†µë³´ëŠ” ServeBoardì˜ ì™„ë£Œ
+            // ì½œë°±ì´ í•œë‹¤ - ì§ì› ìª½ì—ëŠ” íŠ¸ë¦¬ê±°ê°€ ì•ˆ ì¡í ë•Œ ì“°ëŠ” ê±°ë¦¬ íŒì • ê²½ë¡œê°€
+            // í•˜ë‚˜ ë” ìˆì–´ì„œ, ì–‘ìª½ì´ ê°ì ë¶€ë¥´ë©´ ì–´ëŠ ìª½ìœ¼ë¡œ ëë‚¬ëŠ”ì§€ê°€ íë ¤ì§„ë‹¤.
+            ServingStaff staff = other.GetComponentInParent<ServingStaff>();
+            if (staff != null && staff.TryHandOff(gameObject))
+            {
+                return;
+            }
+
+            Debug.Log($"[CustomerInteractable] ì¶©ëŒ ê°ì§€ëœ ì˜¤ë¸Œì íŠ¸: {other.name}");
 
             if (other.CompareTag("Player") || (other.transform.root != null && other.transform.root.CompareTag("Player")))
             {
                 _isPlayerInRange = true;
 
-                // ºÎ¸ğ»Ó ¾Æ´Ï¶ó ·çÆ® ÀüÃ¼¿¡¼­ °Ë»öÇÏµµ·Ï º¸°­
+                // ë¶€ëª¨ë¿ ì•„ë‹ˆë¼ ë£¨íŠ¸ ì „ì²´ì—ì„œ ê²€ìƒ‰í•˜ë„ë¡ ë³´ê°•
                 _playerServing = other.GetComponentInParent<PlayerServingController>();
                 if (_playerServing == null && other.transform.root != null)
                 {
                     _playerServing = other.transform.root.GetComponentInChildren<PlayerServingController>();
                 }
 
-                Debug.Log($"[CustomerInteractable] ÇÃ·¹ÀÌ¾î ÀÎ½Ä ¼º°ø! PlayerServingController Ã£À½ ¿©ºÎ: {_playerServing != null}");
+                Debug.Log($"[CustomerInteractable] í”Œë ˆì´ì–´ ì¸ì‹ ì„±ê³µ! PlayerServingController ì°¾ìŒ ì—¬ë¶€: {_playerServing != null}");
             }
         }
 
@@ -43,7 +55,7 @@ namespace Marea.Restaurant
 
             if (Keyboard.current != null && Keyboard.current[interactKey].wasPressedThisFrame)
             {
-                Debug.Log($"[CustomerInteractable] EÅ° ÀÔ·Â °¨ÁöµÊ! ÇöÀç ¼Õ´Ô »óÅÂ: {_customer.State}, ÇÃ·¹ÀÌ¾î À½½Ä ¼ÒÁö ¿©ºÎ: {_playerServing.IsHoldingFood}");
+                Debug.Log($"[CustomerInteractable] Eí‚¤ ì…ë ¥ ê°ì§€ë¨! í˜„ì¬ ì†ë‹˜ ìƒíƒœ: {_customer.State}, í”Œë ˆì´ì–´ ìŒì‹ ì†Œì§€ ì—¬ë¶€: {_playerServing.IsHoldingFood}");
 
                 if (_customer.State == CustomerState.WaitingOrder && _playerServing.IsHoldingFood)
                 {
