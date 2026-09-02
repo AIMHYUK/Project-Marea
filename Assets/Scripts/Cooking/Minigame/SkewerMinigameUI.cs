@@ -184,7 +184,21 @@ namespace Marea.Cooking
                 {
                     playerServing.PickUpFood();
                 }
+                else
+                {
+                    // 혹시 비활성화된 오브젝트까지 포함하여 검색
+                    playerServing = FindFirstObjectByType<PlayerServingController>(FindObjectsInactive.Include);
+                    if (playerServing != null)
+                    {
+                        playerServing.PickUpFood();
+                    }
+                    else
+                    {
+                        Debug.LogError("[SkewerMinigameUI] 씬에서 PlayerServingController를 찾을 수 없습니다!");
+                    }
+                }
             }
+
 
             if (gameRoot != null) gameRoot.SetActive(false);
             if (ingredientController != null) ingredientController.HideAll();
