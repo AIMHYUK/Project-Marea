@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Marea.Core;
 using Marea.Data;
+using Marea.Restaurant;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -94,6 +95,13 @@ namespace Marea.Cooking
         {
             _currentActor = actor;
 
+            // 메뉴 선택 중 손님 생성 일시정지
+            CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
+            if (customerManager != null)
+            {
+                customerManager.PauseSpawning(true);
+            }
+
             if (rootPanel != null)
             {
                 rootPanel.SetActive(true);
@@ -104,6 +112,13 @@ namespace Marea.Cooking
 
         public void Close()
         {
+            // 메뉴 닫기(취소 또는 요리 미시작) 시 손님 생성 재개
+            CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
+            if (customerManager != null)
+            {
+                customerManager.PauseSpawning(false);
+            }
+
             if (rootPanel != null)
             {
                 rootPanel.SetActive(false);

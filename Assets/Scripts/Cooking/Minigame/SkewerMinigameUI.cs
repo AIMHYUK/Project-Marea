@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Marea.Data;
+using Marea.Restaurant;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -31,7 +32,6 @@ namespace Marea.Cooking
 
         private Vector3 _originalCamPos;
         private Quaternion _originalCamRot;
-        private Transform _originalCamParent;
 
         public void StartGame(MenuData menu, Action<CookingResult> onComplete)
         {
@@ -40,13 +40,19 @@ namespace Marea.Cooking
                 targetCamera = Camera.main;
             }
 
+            // 미니게임 시작 시 손님 스폰 일시정지
+            CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
+            if (customerManager != null)
+            {
+                customerManager.PauseSpawning(true);
+            }
+
             _currentMenu = menu;
             _onCompleteCallback = onComplete;
             _currentIngredientIndex = 0;
             _hitHistory.Clear();
             _isPlaying = true;
 
-            // 카메라 먼저 전환
             SwitchToMinigameCamera();
 
             if (gameRoot != null) gameRoot.SetActive(true);
@@ -60,27 +66,32 @@ namespace Marea.Cooking
 
         private void SwitchToMinigameCamera()
         {
+            if (targetCamera == null)
+            {
+                targetCamera = Camera.main;
+            }
+
             if (targetCamera == null || ingredientController == null || ingredientController.MinigameCameraViewPoint == null)
             {
                 Debug.LogWarning("[SkewerMinigameUI] 카메라 전환 실패: 타깃 카메라 또는 MinigameCameraViewPoint가 없습니다.");
                 return;
             }
 
-            _originalCamParent = targetCamera.transform.parent;
+            // 기존 월드 위치 및 회전 백업 (부모 계층을 변경하지 않아 렌더링 꺼짐 방지)
             _originalCamPos = targetCamera.transform.position;
             _originalCamRot = targetCamera.transform.rotation;
 
             Transform viewPoint = ingredientController.MinigameCameraViewPoint;
-            targetCamera.transform.SetParent(viewPoint);
-            targetCamera.transform.localPosition = Vector3.zero;
-            targetCamera.transform.localRotation = Quaternion.identity;
+            viewPoint.gameObject.SetActive(true);
+
+            targetCamera.transform.position = viewPoint.position;
+            targetCamera.transform.rotation = viewPoint.rotation;
         }
 
         private void RestoreCamera()
         {
             if (targetCamera == null) return;
 
-            targetCamera.transform.SetParent(_originalCamParent);
             targetCamera.transform.position = _originalCamPos;
             targetCamera.transform.rotation = _originalCamRot;
         }
@@ -145,6 +156,13 @@ namespace Marea.Cooking
 
             RestoreCamera();
 
+            // 미니게임 종료 시 손님 스폰 재개
+            CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
+            if (customerManager != null)
+            {
+                customerManager.PauseSpawning(false);
+            }
+
             float multiplier = 1.0f;
             if (_hitHistory.Contains(HitGrade.Perfect)) multiplier += 0.1f;
             if (!isSuccess) multiplier -= 0.2f;
@@ -157,6 +175,16 @@ namespace Marea.Cooking
                 finalPrice = finalPrice,
                 bestGrade = _hitHistory.Contains(HitGrade.Perfect) ? HitGrade.Perfect : HitGrade.Good
             };
+
+            // 요리 성공 시 플레이어 손에 음식 지급
+            if (isSuccess)
+            {
+                PlayerServingController playerServing = FindFirstObjectByType<PlayerServingController>();
+                if (playerServing != null)
+                {
+                    playerServing.PickUpFood();
+                }
+            }
 
             if (gameRoot != null) gameRoot.SetActive(false);
             if (ingredientController != null) ingredientController.HideAll();
