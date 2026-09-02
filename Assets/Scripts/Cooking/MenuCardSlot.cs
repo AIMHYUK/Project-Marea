@@ -9,6 +9,7 @@ namespace Marea.Cooking
     public class MenuCardSlot : MonoBehaviour
     {
         [Header("UI 바인딩")]
+        [SerializeField] private Image imgIcon; // 메뉴 이미지 컴포넌트
         [SerializeField] private TextMeshProUGUI txtDisplayName;
         [SerializeField] private TextMeshProUGUI txtBasePrice;
         [SerializeField] private GameObject selectHighlight;
@@ -31,6 +32,12 @@ namespace Marea.Cooking
         {
             _menuData = menuData;
             _onClickCallback = onClickCallback;
+
+            if (imgIcon != null)
+            {
+                imgIcon.sprite = menuData.Icon;
+                imgIcon.gameObject.SetActive(menuData.Icon != null);
+            }
 
             if (txtDisplayName != null)
             {
