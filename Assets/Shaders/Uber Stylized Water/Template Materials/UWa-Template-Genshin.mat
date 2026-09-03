@@ -66,7 +66,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _InterSec_Foam_Mask:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: 8b1921426bea3084d8a8008c48e9b6ce, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _IntersectionFoam:
@@ -142,7 +142,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SurfFoam_Map:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: 57096ddb09de959428aa1a0ad0fb48c2, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SurfFoam_Mask:
@@ -154,7 +154,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SurfaceDistortion_Map:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: db0ab741d2715f74ebb7fff35e6d5008, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SurfaceFoam:
@@ -244,8 +244,8 @@ Material:
     - _ENABLEWAVE: 0
     - _ENABLE_UNDERWATERLAYER: 0
     - _ENVIRONMENTREFLECTIONS_OFF: 1
-    - _Enable_Intersection: 0
-    - _Enable_SurfaceFoam: 0
+    - _Enable_Intersection: 1
+    - _Enable_SurfaceFoam: 1
     - _FarColorDistance: 20
     - _FarColorMaskHardness: 10
     - _FarColorStartOffset: 0.08
@@ -266,15 +266,15 @@ Material:
     - _FresnelStrength: 0
     - _Fresnel_Opacity: 1
     - _Fresnel_Power: 10
-    - _InterSec_Dissolve: 1.6
+    - _InterSec_Dissolve: 1.59
     - _InterSec_Edge_Dissolve: 1
-    - _InterSec_Edge_Fade: 0
-    - _InterSec_Foam_Distortion: 3
+    - _InterSec_Edge_Fade: 0.624
+    - _InterSec_Foam_Distortion: 3.84
     - _InterSec_Foam_Invert: 0
-    - _InterSec_Foam_Scale: 4
-    - _InterSec_Foam_Smooth: 0.01
-    - _InterSec_GradientDissolve: 0
-    - _InterSec_Width: 0.5
+    - _InterSec_Foam_Scale: 0.31
+    - _InterSec_Foam_Smooth: 0.41
+    - _InterSec_GradientDissolve: 1
+    - _InterSec_Width: 1.13
     - _IntersectionDistanceCutoff: 2.5
     - _IntersectionDistanceDepth: 0.5
     - _IntersectionFoamCutoff: 1
@@ -356,14 +356,14 @@ Material:
     - _Specular_Strength: 20
     - _SrcBlend: 5
     - _SurfFoam_AlphaBlend: 0
-    - _SurfFoam_Edge: 0.1
-    - _SurfFoam_EdgeSmooth: 0.2
+    - _SurfFoam_Edge: 0
+    - _SurfFoam_EdgeSmooth: 0.772
     - _SurfFoam_Scale: 3
     - _Surface: 1
     - _SurfaceDistortionScale: 1.48
     - _SurfaceDistortionStrength: 0.01
     - _SurfaceDistortion_Scale: 1
-    - _SurfaceDistortion_Strength: 0.03
+    - _SurfaceDistortion_Strength: 0.16
     - _SurfaceFoamDistortion: 0.1
     - _SurfaceFoamScale: 2
     - _SurfaceFomShaodwDepth: 24.99
@@ -380,7 +380,7 @@ Material:
     - _Underwater_Fade: 15
     - _WORLDSPACEDEPTH: 1
     - _WaterDepth: 0.4
-    - _Water_Depth: 0.3
+    - _Water_Depth: 0.9
     - _WaveHeight: 0.01
     - _WaveHeight2nd: 0.01
     - _WaveLength: 10
@@ -418,7 +418,7 @@ Material:
     m_Colors:
     - _1st_Wave_Direction: {r: 1, g: 0, b: 0, a: 0}
     - _2nd_Wave_Direction: {r: -1, g: 0, b: 1, a: 0}
-    - _Color_Deep: {r: 0, g: 0.52707064, b: 0.65199995, a: 0.78039217}
+    - _Color_Deep: {r: 0, g: 0.6509804, b: 0.6325827, a: 0.78039217}
     - _Color_Shallow: {r: 0, g: 0.695, b: 0.3670224, a: 0.09803922}
     - _Deep_Color: {r: 0.020447353, g: 0.2658158, b: 0.518, a: 1}
     - _DistanceColor: {r: 1, g: 1, b: 1, a: 1}
@@ -426,7 +426,7 @@ Material:
     - _FoamDistortionSpeed: {r: 0.1, g: 0.1, b: 0, a: 0}
     - _FresnelColor: {r: 0.2647297, g: 0.116945416, b: 0.82641506, a: 1}
     - _InterSec_Color: {r: 1, g: 1, b: 1, a: 1}
-    - _InterSec_Foam_Pan: {r: 0, g: 0, b: 0, a: 0}
+    - _InterSec_Foam_Pan: {r: 0, g: 1, b: 0, a: 0}
     - _InterSec_Foam_Tile: {r: 1, g: 1, b: 0, a: 0}
     - _IntersectionDistanceTile: {r: 1, g: 1, b: 0, a: 0}
     - _IntersectionFoamColor: {r: 1, g: 1, b: 1, a: 1}
