@@ -1,0 +1,26 @@
+# 저장 인코딩을 개인 에디터 설정이 아니라 저장소 안에 둔다.
+#
+# 왜 필요한가 — 한국어 Windows의 Visual Studio는 기본 저장 인코딩이 cp949(ANSI)다.
+# 그렇게 저장된 .cs 는 파일 자체는 멀쩡하고 Unity도 잘 읽지만,
+# git·GitHub·PR 리뷰가 전부 UTF-8을 가정하기 때문에 diff에서 한글 주석이 깨져 보인다.
+# 코드 리뷰가 안 되는 게 진짜 손해다. (+9/3)
+#
+# Rider · Visual Studio · VS Code 가 모두 이 파일을 읽고 저장 인코딩을 맞춘다.
+
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.cs]
+charset = utf-8
+indent_style = space
+indent_size = 4
+
+# Unity가 생성하는 YAML(씬·프리팹·메타)은 건드리지 않는다.
+# 공백을 다듬으면 Unity가 다시 쓸 때마다 diff가 튄다.
+[*.{unity,prefab,asset,meta,mat,anim,controller}]
+trim_trailing_whitespace = false
+insert_final_newline = false
