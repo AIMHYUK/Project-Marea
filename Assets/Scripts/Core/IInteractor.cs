@@ -9,7 +9,11 @@ namespace Marea.Core
     public interface IInteractor
     {
         Transform Transform { get; }
-        Warehouse Warehouse { get; }
+
+        // Warehouse를 여기서 뺐다 (+9/9). 창고는 행위자 것이 아니라 가게 것이다 —
+        // 기획 「자원 관리」가 "플레이어가 식재료를 직접 들고 이동하지 않는다"와
+        // "요리 시스템에서도 동일한 식재료 보유 데이터를 참조한다"를 못박았다.
+        // 창고가 필요하면 Warehouse.Instance를 쓴다. 설계 결정 10이 예고한 작업이다.
 
         /// <summary>
         /// 상호작용이 여러 프레임 이어질 때(미니게임 등) 감싼다.

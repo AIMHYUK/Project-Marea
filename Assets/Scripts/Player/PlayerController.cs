@@ -22,38 +22,13 @@ namespace Marea.Player
         [Tooltip("WASD 방향의 기준. 비워두면 Camera.main을 쓴다.")]
         [SerializeField] private Transform cameraBasis;
 
-        [Header("참조")]
-        [Tooltip("B에게 넘길 창고. 자동으로 못 찾는다 — 비운 채로 B가 읽으면 그때 에러를 낸다. "
-               + "창고를 쓰는 상호작용(밭·요리대)이 있는 씬이면 넣을 것. (+9/8)")]
-        [SerializeField] private Warehouse warehouse;
-
         private AgentMover _mover;
         private PlayerInputReader _input;
         private State _state = State.Idle;
         private bool _busyHeld;
-        private bool _warehouseWarned;
 
         // IInteractor
         public Transform Transform => transform;
-
-        /// <summary>
-        /// 비어 있는 채로 B가 읽으면 에러를 낸다. Awake가 아니라 여기서 보는 이유는,
-        /// 창고를 안 쓰는 씬(서빙 테스트 등)에서까지 에러가 뜨면 진짜 문제를 덮기 때문이다.
-        /// 한 번만 찍는다 — 매 프레임 읽는 코드가 나와도 콘솔이 안 묻힌다. (+9/8)
-        /// </summary>
-        public Warehouse Warehouse
-        {
-            get
-            {
-                if (warehouse == null && !_warehouseWarned)
-                {
-                    _warehouseWarned = true;
-                    Debug.LogError($"{name}: PlayerController.warehouse가 비어 있는데 읽혔다. "
-                                 + "인스펙터에 Warehouse를 넣을 것. 재료 넣고 빼기가 전부 실패한다.", this);
-                }
-                return warehouse;
-            }
-        }
 
         public void BeginBusy() => _busyHeld = true;
         public void EndBusy() => _busyHeld = false;
