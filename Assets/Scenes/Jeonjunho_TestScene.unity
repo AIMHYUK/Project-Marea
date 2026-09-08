@@ -281,7 +281,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 28e6c7b7f55d5a44ea54ec29621d0e3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Player.ClickSelector
-  cam: {fileID: 0}
+  cam: {fileID: 348481998}
   player: {fileID: 29223239}
   input: {fileID: 0}
   interactableMask:
@@ -300,7 +300,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ff8ec9d3e272215458ec382ec256c6c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Player.PlayerController
-  cameraBasis: {fileID: 0}
+  cameraBasis: {fileID: 348481999}
   warehouse: {fileID: 0}
 --- !u!195 &29223240
 NavMeshAgent:
@@ -3787,6 +3787,7 @@ MonoBehaviour:
   txtFeedback: {fileID: 1103804143}
   ingredientController: {fileID: 1539713610}
   targetCamera: {fileID: 348481998}
+  cameraFollow: {fileID: 0}
   totalIngredients: 4
 --- !u!114 &706606358
 MonoBehaviour:

@@ -61,6 +61,15 @@ namespace Marea.Restaurant
                 {
                     if (_playerServing.DeliverFood())
                     {
+                        // 정산 매니저에 판매 내역 등록
+                        if (BusinessManager.Instance != null)
+                        {
+                            BusinessManager.Instance.RecordServedDish(
+                                _playerServing.LastCookingResult.bestGrade,
+                                _playerServing.LastCookingResult.finalPrice
+                            );
+                        }
+
                         _customer.ServeFood();
                     }
                 }
