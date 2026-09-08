@@ -288,7 +288,11 @@ MonoBehaviour:
   interactableMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 64
   maxDistance: 100
+  navSampleRadius: 1.5
 --- !u!114 &29223239
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2409,7 +2413,7 @@ GameObject:
   - component: {fileID: 406572669}
   - component: {fileID: 406572668}
   - component: {fileID: 406572667}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Plane
   m_TagString: Untagged
   m_Icon: {fileID: 0}

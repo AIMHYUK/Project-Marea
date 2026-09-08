@@ -18,6 +18,8 @@ namespace Marea.Field
     {
         private enum State { Idle, ToPickup, ToTarget }
 
+        [Tooltip("작업을 받아올 게시판. 자동으로 못 찾으니 반드시 넣어야 한다 — "
+               + "비면 OnEnable에서 에러를 내고 이 직원은 서빙을 하지 않는다. (+9/8)")]
         [SerializeField] private ServeBoard board;
 
         [Tooltip("들고 있는 음식 그림. 비워둬도 동작한다.")]
