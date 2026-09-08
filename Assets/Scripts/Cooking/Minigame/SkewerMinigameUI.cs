@@ -267,7 +267,11 @@ namespace Marea.Cooking
             // 요리 성공 시 플레이어 손에 음식 지급
             if (isSuccess)
             {
-                DispatchCookedFood();
+                PlayerServingController playerServing = FindFirstObjectByType<PlayerServingController>();
+                if (playerServing != null)
+                {
+                    playerServing.PickUpFood(result); // result 객체 함께 전달
+                }
             }
 
             if (gameRoot != null) gameRoot.SetActive(false);
@@ -283,7 +287,7 @@ namespace Marea.Cooking
         /// 대기 중인 손님에게 간다. 하나라도 없으면 예전처럼 플레이어 손에 들린다.
         /// 그래서 직원 오브젝트를 끄면 이전 동작으로 그대로 돌아간다.
         /// </summary>
-        private void DispatchCookedFood()
+        private void DispatchCookedFood(CookingResult result)
         {
             Sprite icon = _currentMenu != null ? _currentMenu.Icon : null;
 
@@ -292,7 +296,7 @@ namespace Marea.Cooking
 
             if (board == null || staffs.Length == 0)
             {
-                GiveFoodToPlayer();
+                GiveFoodToPlayer(result);
                 return;
             }
 
@@ -349,7 +353,7 @@ namespace Marea.Cooking
             return null;
         }
 
-        private void GiveFoodToPlayer()
+        private void GiveFoodToPlayer(CookingResult result)
         {
             PlayerServingController playerServing = FindFirstObjectByType<PlayerServingController>();
 
@@ -361,7 +365,8 @@ namespace Marea.Cooking
 
             if (playerServing != null)
             {
-                playerServing.PickUpFood();
+                // 정산 집계를 위해 요리 결과(판정, 가격)를 함께 전달
+                playerServing.PickUpFood(result);
             }
             else
             {

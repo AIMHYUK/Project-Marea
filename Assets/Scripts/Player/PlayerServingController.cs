@@ -1,38 +1,42 @@
+using Marea.Cooking;
 using UnityEngine;
 
 namespace Marea.Restaurant
 {
     public class PlayerServingController : MonoBehaviour
     {
-        [Header("½Ã°¢ ¿¬Ãâ")]
-        [SerializeField] private GameObject heldFoodVisual; // ÇÃ·¹ÀÌ¾î ¼Õ¿¡ ºÙÀÎ ²¿Ä¡ 3D ¿ÀºêÁ§Æ®
+        [Header("ì‹œê° ì—°ì¶œ")]
+        [SerializeField] private GameObject heldFoodVisual; // í”Œë ˆì´ì–´ ì†ì— ë¶™ì¸ ê¼¬ì¹˜ 3D ì˜¤ë¸Œì íŠ¸
 
         private bool _isHoldingFood;
+        private CookingResult _lastCookingResult;
 
         public bool IsHoldingFood => _isHoldingFood;
+        public CookingResult LastCookingResult => _lastCookingResult;
 
         private void Awake()
         {
             SetFoodVisual(false);
         }
 
-        // ¹Ì´Ï°ÔÀÓ ¿Ï·á ½Ã È£Ãâ
-        public void PickUpFood()
+        // ë¯¸ë‹ˆê²Œì„ ì™„ë£Œ ì‹œ í˜¸ì¶œ
+        public void PickUpFood(CookingResult result)
         {
             _isHoldingFood = true;
+            _lastCookingResult = result;
             SetFoodVisual(true);
-            Debug.Log($"[PlayerServingController] PickUpFood È£ÃâµÊ! µé°í ÀÖ´Â »óÅÂ: {_isHoldingFood}, Visual À¯È¿ ¿©ºÎ: {heldFoodVisual != null}");
+            Debug.Log($"[PlayerServingController] PickUpFood í˜¸ì¶œë¨! ë“¤ê³  ìˆëŠ” ìƒíƒœ: {_isHoldingFood}, Visual ìœ íš¨ ì—¬ë¶€: {heldFoodVisual != null}");
         }
         
 
-        // ¼Õ´Ô¿¡°Ô ¼­ºù ¿Ï·á ½Ã È£Ãâ
+        // ì†ë‹˜ì—ê²Œ ì„œë¹™ ì™„ë£Œ ì‹œ í˜¸ì¶œ
         public bool DeliverFood()
         {
             if (!_isHoldingFood) return false;
 
             _isHoldingFood = false;
             SetFoodVisual(false);
-            Debug.Log("[PlayerServingController] ¼Õ´Ô¿¡°Ô ¿ä¸®¸¦ Àü´ŞÇß½À´Ï´Ù.");
+            Debug.Log("[PlayerServingController] ì†ë‹˜ì—ê²Œ ìš”ë¦¬ë¥¼ ì „ë‹¬í–ˆìŠµë‹ˆë‹¤.");
             return true;
         }
 
@@ -44,8 +48,17 @@ namespace Marea.Restaurant
             }
             else
             {
-                Debug.LogError("[PlayerServingController] heldFoodVisual ½½·ÔÀÌ ºñ¾îÀÖ½À´Ï´Ù! ÀÎ½ºÆåÅÍ¸¦ È®ÀÎÇÏ¼¼¿ä.");
+                Debug.LogError("[PlayerServingController] heldFoodVisual ìŠ¬ë¡¯ì´ ë¹„ì–´ìˆìŠµë‹ˆë‹¤! ì¸ìŠ¤í™í„°ë¥¼ í™•ì¸í•˜ì„¸ìš”.");
             }
+        }
+
+        // í”Œë ˆì´ì–´ê°€ ë“¤ê³  ìˆëŠ” ìŒì‹ì„ ë²„ë¦¬ê¸°
+        public void ClearHeldFood()
+        {
+            _isHoldingFood = false;
+            _lastCookingResult = default;
+            SetFoodVisual(false);
+            Debug.Log("[PlayerServingController] ë“¤ê³  ìˆë˜ ìŒì‹ì´ ì´ˆê¸°í™”(íê¸°)ë˜ì—ˆìŠµë‹ˆë‹¤.");
         }
     }
 }

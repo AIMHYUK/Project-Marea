@@ -54,6 +54,13 @@ namespace Marea.Restaurant
 
         public void PauseSpawning(bool pause)
         {
+            // 영업 중이 아닐 때는 외부(UI 등)에서 스폰을 켜려고(false) 해도 무시
+            if (!pause && BusinessManager.Instance != null && BusinessManager.Instance.CurrentState != BusinessState.Open)
+            {
+                _isSpawningPaused = true;
+                return;
+            }
+
             _isSpawningPaused = pause;
             Debug.Log($"[CustomerManager] 손님 스폰 일시정지 상태: {pause}");
         }
@@ -86,11 +93,17 @@ namespace Marea.Restaurant
             {
                 yield return new WaitForSeconds(spawnInterval);
 
-                // 미니게임 진행 등으로 일시정지 중이면 스폰 건너뛰기
-                if (_isSpawningPaused)
+                // 영업 상태 매니저가 존재한다면 영업 중 상태가 아닐 때 스폰 스킵
+                if (BusinessManager.Instance != null && BusinessManager.Instance.CurrentState != BusinessState.Open)
                 {
                     continue;
                 }
+
+                //// 미니게임 진행 등으로 일시정지 중이면 스폰 건너뛰기
+                //if (_isSpawningPaused)
+                //{
+                //    continue;
+                //}
 
                 Seat emptySeat = GetRandomEmptySeat();
                 if (emptySeat != null && customerPrefab != null)
@@ -126,6 +139,30 @@ namespace Marea.Restaurant
                 customer.Initialize(targetSeat);
                 Debug.Log($"[CustomerManager] 좌석({targetSeat.name})에 손님이 착석했습니다.");
             }
+        }
+
+        public void ClearAllCustomers()
+        {
+            CustomerController[] activeCustomers = FindObjectsByType<CustomerController>(FindObjectsSortMode.None);
+            foreach (var customer in activeCustomers)
+            {
+                if (customer != null)
+                {
+                    Destroy(customer.gameObject);
+                }
+            }
+
+            // 모든 좌석 점유 해제
+            Seat[] allSeats = FindObjectsByType<Seat>(FindObjectsSortMode.None);
+            foreach (var seat in allSeats)
+            {
+                if (seat != null)
+                {
+                    seat.ReleaseSeat();
+                }
+            }
+
+            Debug.Log("[CustomerManager] 영업 종료로 인해 모든 손님이 퇴장하고 좌석이 초기화되었습니다.");
         }
     }
 }

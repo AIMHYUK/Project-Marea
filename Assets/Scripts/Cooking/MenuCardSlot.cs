@@ -8,12 +8,17 @@ namespace Marea.Cooking
 {
     public class MenuCardSlot : MonoBehaviour
     {
-        [Header("UI ���ε�")]
-        [SerializeField] private Image imgIcon; // �޴� �̹��� ������Ʈ
+        [Header("UI 바인딩")]
+        [SerializeField] private Image imgIcon; // 메뉴 이미지 컴포넌트
         [SerializeField] private TextMeshProUGUI txtDisplayName;
         [SerializeField] private TextMeshProUGUI txtBasePrice;
         [SerializeField] private GameObject selectHighlight;
         [SerializeField] private Button btnSelect;
+
+        [Header("선택 시각 피드백")]
+        [SerializeField] private Image cardBackground; // 슬롯 배경 이미지 (선택 시 색상 강조)
+        [SerializeField] private Color normalColor = Color.white;
+        [SerializeField] private Color selectedColor = new Color(1f, 0.92f, 0.6f); // 연한 골드/노랑
 
         private MenuData _menuData;
         private Action<MenuData> _onClickCallback;
@@ -54,10 +59,20 @@ namespace Marea.Cooking
 
         public void SetSelected(bool selected)
         {
+            // 하이라이트 오브젝트 켜기/끄기
             if (selectHighlight != null)
             {
                 selectHighlight.SetActive(selected);
             }
+
+            // 카드 배경 색상 전환 피드백
+            if (cardBackground != null)
+            {
+                cardBackground.color = selected ? selectedColor : normalColor;
+            }
+
+            // 선택된 카드는 살짝 커지게 하여 시각적 강조
+            transform.localScale = selected ? Vector3.one * 1.05f : Vector3.one;
         }
 
         private void OnClickSlot()
