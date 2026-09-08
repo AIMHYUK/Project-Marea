@@ -116,6 +116,11 @@ namespace Marea.Player
         ///
         /// 목적지가 NavMesh 위인지는 부르는 쪽이 이미 확인했다고 본다.
         /// 여기서 또 SamplePosition을 하면 보정 반경이 두 군데로 갈린다.
+        ///
+        /// 부분 경로를 허용한다 — 목적지까지 못 가면 갈 수 있는 데까지 간다.
+        /// 여기 목적지는 사용자가 찍은 한 점일 뿐이라 "못 가면 제자리"보다
+        /// "최대한 가까이"가 맞다. 상호작용(GoInteract)은 반대로 두는 게 맞아서
+        /// 여기만 켠다. (+9/8)
         /// </summary>
         public void GoTo(Vector3 destination)
         {
@@ -128,7 +133,9 @@ namespace Marea.Player
                 onArrived: () => _state = State.Idle,
 
                 // 여기서 Idle로 안 돌리면 IsBusy가 영영 true로 남아 B 쪽이 잠긴다.
-                onFailed: () => _state = State.Idle);
+                onFailed: () => _state = State.Idle,
+
+                allowPartialPath: true);
         }
 
         private Vector3 ToWorldDirection(Vector2 axis)
