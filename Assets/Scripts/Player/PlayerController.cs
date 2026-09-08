@@ -23,16 +23,37 @@ namespace Marea.Player
         [SerializeField] private Transform cameraBasis;
 
         [Header("참조")]
+        [Tooltip("B에게 넘길 창고. 자동으로 못 찾는다 — 비운 채로 B가 읽으면 그때 에러를 낸다. "
+               + "창고를 쓰는 상호작용(밭·요리대)이 있는 씬이면 넣을 것. (+9/8)")]
         [SerializeField] private Warehouse warehouse;
 
         private AgentMover _mover;
         private PlayerInputReader _input;
         private State _state = State.Idle;
         private bool _busyHeld;
+        private bool _warehouseWarned;
 
         // IInteractor
         public Transform Transform => transform;
-        public Warehouse Warehouse => warehouse;
+
+        /// <summary>
+        /// 비어 있는 채로 B가 읽으면 에러를 낸다. Awake가 아니라 여기서 보는 이유는,
+        /// 창고를 안 쓰는 씬(서빙 테스트 등)에서까지 에러가 뜨면 진짜 문제를 덮기 때문이다.
+        /// 한 번만 찍는다 — 매 프레임 읽는 코드가 나와도 콘솔이 안 묻힌다. (+9/8)
+        /// </summary>
+        public Warehouse Warehouse
+        {
+            get
+            {
+                if (warehouse == null && !_warehouseWarned)
+                {
+                    _warehouseWarned = true;
+                    Debug.LogError($"{name}: PlayerController.warehouse가 비어 있는데 읽혔다. "
+                                 + "인스펙터에 Warehouse를 넣을 것. 재료 넣고 빼기가 전부 실패한다.", this);
+                }
+                return warehouse;
+            }
+        }
 
         public void BeginBusy() => _busyHeld = true;
         public void EndBusy() => _busyHeld = false;
@@ -88,6 +109,33 @@ namespace Marea.Player
                     // 갈 수 없는 자리다. 그냥 풀어준다.
                     _state = State.Idle;
                 });
+        }
+
+        /// <summary>
+        /// ClickSelector가 부른다. 좌표까지 걸어간다. 도착해서 할 일은 없다. (+9/8)
+        ///
+        /// 목적지가 NavMesh 위인지는 부르는 쪽이 이미 확인했다고 본다.
+        /// 여기서 또 SamplePosition을 하면 보정 반경이 두 군데로 갈린다.
+        ///
+        /// 부분 경로를 허용한다 — 목적지까지 못 가면 갈 수 있는 데까지 간다.
+        /// 여기 목적지는 사용자가 찍은 한 점일 뿐이라 "못 가면 제자리"보다
+        /// "최대한 가까이"가 맞다. 상호작용(GoInteract)은 반대로 두는 게 맞아서
+        /// 여기만 켠다. (+9/8)
+        /// </summary>
+        public void GoTo(Vector3 destination)
+        {
+            if (_busyHeld) return;
+
+            // 이동 중에 다시 불러도 된다. AgentMover.GoTo가 먼저 Stop()을 부르므로
+            // 앞 목적지의 콜백은 버려지고 새 목적지로 갈아탄다.
+            _state = State.Moving;
+            _mover.GoTo(destination,
+                onArrived: () => _state = State.Idle,
+
+                // 여기서 Idle로 안 돌리면 IsBusy가 영영 true로 남아 B 쪽이 잠긴다.
+                onFailed: () => _state = State.Idle,
+
+                allowPartialPath: true);
         }
 
         private Vector3 ToWorldDirection(Vector2 axis)

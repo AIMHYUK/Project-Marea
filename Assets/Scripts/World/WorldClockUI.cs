@@ -14,6 +14,8 @@ namespace Marea.World
     public class WorldClockUI : MonoBehaviour
     {
         [Header("표시할 곳")]
+        [Tooltip("시각을 찍을 곳. 자동으로 못 찾으니 반드시 넣어야 한다 — "
+               + "비면 OnEnable에서 에러를 내고 시각이 표시되지 않는다. (+9/8)")]
         [SerializeField] private TextMeshProUGUI label;
 
         [Header("읽어올 시계")]
