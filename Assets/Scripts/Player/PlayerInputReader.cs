@@ -25,6 +25,9 @@ namespace Marea.Player
         /// <summary>이번 프레임에 좌클릭이 눌렸는가.</summary>
         public bool ClickPressed => _actions.Player.Click.WasPressedThisFrame();
 
+        /// <summary>이번 프레임에 창고 열기(Tab)가 눌렸는가. (+9/9)</summary>
+        public bool InventoryPressed => _actions.Player.Inventory.WasPressedThisFrame();
+
         private void Awake() => _actions = new PlayerInputAction();
 
         private void OnEnable() => _actions.Enable();
