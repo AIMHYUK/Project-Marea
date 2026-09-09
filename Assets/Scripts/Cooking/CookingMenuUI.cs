@@ -12,9 +12,9 @@ namespace Marea.Cooking
 {
     public enum CookingType
     {
-        Skewer,   // ²¿Ä¡ ¿ä¸®
-        Stew,     // ½ºÆ© ¿ä¸®
-        Steak     // ½ºÅ×ÀÌÅ© ¿ä¸®
+        Skewer,   // ê¼¬ì¹˜ ìš”ë¦¬
+        Stew,     // ìŠ¤íŠœ ìš”ë¦¬
+        Steak     // ìŠ¤í…Œì´í¬ ìš”ë¦¬
     }
 
     [Serializable]
@@ -28,17 +28,17 @@ namespace Marea.Cooking
     {
         private enum MenuStep { Category, SubMenu }
 
-        [Header("ÀüÃ¼ ÆĞ³Î")]
+        [Header("ì „ì²´ íŒ¨ë„")]
         [SerializeField] private GameObject rootPanel;
         [SerializeField] private Button btnClose;
 
-        [Header("1´Ü°è: Ä«Å×°í¸® ÆĞ³Î (²¿Ä¡ / ½ºÆ© / ½ºÅ×ÀÌÅ©)")]
+        [Header("1ë‹¨ê³„: ì¹´í…Œê³ ë¦¬ íŒ¨ë„ (ê¼¬ì¹˜ / ìŠ¤íŠœ / ìŠ¤í…Œì´í¬)")]
         [SerializeField] private GameObject categoryPanel;
         [SerializeField] private Button btnSkewer;
         [SerializeField] private Button btnStew;
         [SerializeField] private Button btnSteak;
 
-        [Header("2´Ü°è: ¼¼ºÎ ¸Ş´º ÆĞ³Î")]
+        [Header("2ë‹¨ê³„: ì„¸ë¶€ ë©”ë‰´ íŒ¨ë„")]
         [SerializeField] private GameObject subMenuPanel;
         [SerializeField] private Transform cardContainer;
         [SerializeField] private MenuCardSlot cardPrefab;
@@ -46,10 +46,11 @@ namespace Marea.Cooking
         [SerializeField] private Button btnBackToCategory;
         [SerializeField] private Button btnStartCooking;
 
-        [Header("¹Ì´Ï°ÔÀÓ UI ¿¬µ¿")]
-        [SerializeField] private SkewerMinigameUI skewerMinigameUI;
+        [Header("ë¯¸ë‹ˆê²Œì„ ì—°ë™")]
+        [SerializeField] private SkewerMinigameController skewerMinigameController; // SkewerMinigameControllerë¡œ êµì²´
+        [SerializeField] private StewMinigameController stewMinigameController;
 
-        [Header("µ¥ÀÌÅÍ µî·Ï")]
+        [Header("ë°ì´í„° ë“±ë¡")]
         [SerializeField] private List<CookingCategoryGroup> categoryDataList;
 
         private readonly List<MenuCardSlot> _activeSlots = new();
@@ -95,7 +96,7 @@ namespace Marea.Cooking
         {
             _currentActor = actor;
 
-            // ¸Ş´º ¼±ÅÃ Áß ¼Õ´Ô »ı¼º ÀÏ½ÃÁ¤Áö
+            // ë©”ë‰´ ì„ íƒ ì¤‘ ì†ë‹˜ ìƒì„± ì¼ì‹œì •ì§€
             CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
             if (customerManager != null)
             {
@@ -112,7 +113,7 @@ namespace Marea.Cooking
 
         public void Close()
         {
-            // ¸Ş´º ´İ±â(Ãë¼Ò ¶Ç´Â ¿ä¸® ¹Ì½ÃÀÛ) ½Ã ¼Õ´Ô »ı¼º Àç°³
+            // ë©”ë‰´ ë‹«ê¸° ì‹œ ì†ë‹˜ ìƒì„± ì¬ê°œ (ë‹¨, ì˜ì—… ì¤‘ì¼ ë•Œë§Œ ì—´ë¦¬ë„ë¡ ë‚´ë¶€ ë³´ê°•ë¨)
             CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
             if (customerManager != null)
             {
@@ -153,10 +154,10 @@ namespace Marea.Cooking
             {
                 txtCategoryTitle.text = type switch
                 {
-                    CookingType.Skewer => "²¿Ä¡ ¿ä¸® ¼±ÅÃ",
-                    CookingType.Stew => "½ºÆ© ¿ä¸® ¼±ÅÃ",
-                    CookingType.Steak => "½ºÅ×ÀÌÅ© ¿ä¸® ¼±ÅÃ",
-                    _ => "¸Ş´º ¼±ÅÃ"
+                    CookingType.Skewer => "ê¼¬ì¹˜ ìš”ë¦¬ ì„ íƒ",
+                    CookingType.Stew => "ìŠ¤íŠœ ìš”ë¦¬ ì„ íƒ",
+                    CookingType.Steak => "ìŠ¤í…Œì´í¬ ìš”ë¦¬ ì„ íƒ",
+                    _ => "ë©”ë‰´ ì„ íƒ"
                 };
             }
 
@@ -210,8 +211,9 @@ namespace Marea.Cooking
         {
             if (_selectedMenu == null) return;
 
-            Debug.Log($"[CookingMenuUI] ¿ä¸® ½ÃÀÛ -> Ä«Å×°í¸®: {_selectedType}, ¼±ÅÃ ¸Ş´º: {_selectedMenu.DisplayName}");
+            Debug.Log($"[CookingMenuUI] ìš”ë¦¬ ì‹œì‘ -> ì¹´í…Œê³ ë¦¬: {_selectedType}, ì„ íƒ ë©”ë‰´: {_selectedMenu.DisplayName}");
 
+            // ë©”ë‰´ ì„ íƒ ì°½ ë‹«ê¸° (í”Œë ˆì´ì–´ Actor ìƒíƒœëŠ” ë¯¸ë‹ˆê²Œì„ ì¤‘ ê³„ì† Busy ìœ ì§€)
             if (rootPanel != null)
             {
                 rootPanel.SetActive(false);
@@ -220,20 +222,31 @@ namespace Marea.Cooking
             switch (_selectedType)
             {
                 case CookingType.Skewer:
-                    if (skewerMinigameUI != null)
+                    if (skewerMinigameController != null)
                     {
-                        skewerMinigameUI.StartGame(_selectedMenu, OnMinigameFinished);
+                        skewerMinigameController.StartMinigame(_selectedMenu, OnMinigameFinished);
                     }
                     else
                     {
-                        Debug.LogWarning("[CookingMenuUI] SkewerMinigameUI°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+                        Debug.LogWarning("[CookingMenuUI] SkewerMinigameControllerê°€ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
                         Close();
                     }
                     break;
 
                 case CookingType.Stew:
+                    if (stewMinigameController != null)
+                    {
+                        stewMinigameController.StartMinigame(_selectedMenu, OnMinigameFinished);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[CookingMenuUI] StewMinigameControllerê°€ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
+                        Close();
+                    }
+                    break;
+
                 case CookingType.Steak:
-                    Debug.Log($"[CookingMenuUI] {_selectedType} ¹Ì´Ï°ÔÀÓÀº ¾ÆÁ÷ ±¸Çö ÁØºñ ÁßÀÔ´Ï´Ù.");
+                    Debug.Log($"[CookingMenuUI] {_selectedType} ë¯¸ë‹ˆê²Œì„ì€ ì•„ì§ êµ¬í˜„ ì¤€ë¹„ ì¤‘ì…ë‹ˆë‹¤.");
                     Close();
                     break;
             }
@@ -241,11 +254,19 @@ namespace Marea.Cooking
 
         private void OnMinigameFinished(CookingResult result)
         {
-            Debug.Log($"[CookingMenuUI] ¿ä¸® ¿Ï·á °á°ú: ¼º°ø¿©ºÎ={result.isSuccess}, ÃÖÁ¾°¡°İ={result.finalPrice}G, ÆÇÁ¤={result.bestGrade}");
+            Debug.Log($"[CookingMenuUI] ìš”ë¦¬ ì™„ë£Œ ê²°ê³¼: ì„±ê³µì—¬ë¶€={result.isSuccess}, ìµœì¢…ê°€ê²©={result.finalPrice}G, íŒì •={result.bestGrade}");
 
-            // TODO: °á°ú ÆË¾÷ Ç¥½Ã ¶Ç´Â ÀÎº¥Åä¸®/¼öÀÍ µ¥ÀÌÅÍ ¹İ¿µ
+            // ìš”ë¦¬ ì„±ê³µ ì‹œ í”Œë ˆì´ì–´ ì†ì— ìŒì‹ ì§€ê¸‰
+            if (result.isSuccess)
+            {
+                PlayerServingController playerServing = FindFirstObjectByType<PlayerServingController>();
+                if (playerServing != null)
+                {
+                    playerServing.PickUpFood(result);
+                }
+            }
 
-            // ÇÃ·¹ÀÌ¾î Á¶ÀÛ Àá±İ ÇØÁ¦
+            // í”Œë ˆì´ì–´ ì¡°ì‘ ì ê¸ˆ í•´ì œ ë° UI ì •ë¦¬
             Close();
         }
     }

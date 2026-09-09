@@ -5,22 +5,17 @@ namespace Marea.Cooking
 {
     public class IngredientController : MonoBehaviour
     {
-        [Header("Ä«¸Ş¶ó ¿¬Ãâ")]
-        [SerializeField] private Transform minigameCameraViewPoint; // ¹Ì´Ï°ÔÀÓ ½ÃÁ¡ Æ®·£½ºÆû
-
-        [Header("3D ¿ÀºêÁ§Æ® ¼³Á¤")]
+        [Header("3D ì˜¤ë¸Œì íŠ¸ ì„¤ì •")]
         [SerializeField] private Transform movingIngredientTransform;
         [SerializeField] private Transform stickTransform;
 
-        [Header("Àç·á°¡ ²ÈÈú 3D À§Ä¡ ½½·Ôµé")]
+        [Header("ì¬ë£Œê°€ ê½‚í 3D ìœ„ì¹˜ ìŠ¬ë¡¯ë“¤")]
         [SerializeField] private List<Transform> attachPoints;
         [SerializeField] private List<GameObject> placedIngredientModels;
 
-        [Header("ÁÂ¿ì ¿Õº¹ ÀÌµ¿ ¼³Á¤")]
+        [Header("ì¢Œìš° ì™•ë³µ ì´ë™ ì„¤ì •")]
         [SerializeField] private float moveDistance = 0.5f;
         [SerializeField] private float moveSpeed = 2.0f;
-
-        public Transform MinigameCameraViewPoint => minigameCameraViewPoint;
 
         private Vector3 _startLocalPos;
         private int _direction = 1;
@@ -91,7 +86,12 @@ namespace Marea.Cooking
         public void HideAll()
         {
             _isMoving = false;
-            if (movingIngredientTransform != null) movingIngredientTransform.gameObject.SetActive(false);
+
+            if (movingIngredientTransform != null)
+            {
+                movingIngredientTransform.gameObject.SetActive(false);
+            }
+
             foreach (var model in placedIngredientModels)
             {
                 if (model != null) model.SetActive(false);
