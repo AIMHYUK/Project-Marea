@@ -1,11 +1,13 @@
+using Marea.Data; // MenuData 彀胳“ 於旉皜
+
 namespace Marea.Cooking
 {
     public enum HitGrade
     {
-        Miss,       // 角菩
-        Bad,        // 唱惠 (-10%)
-        Good,       // 老馆 己傍 (+0%)
-        Perfect     // 肯寒 己傍 (+10%)
+        Miss,       // 鞁ろ尐
+        Bad,        // 雮橃仺 (-10%)
+        Good,       // 鞚茧皹 靹标车 (+0%)
+        Perfect     // 鞕勲步 靹标车 (+10%)
     }
 
     public struct CookingResult
@@ -13,5 +15,6 @@ namespace Marea.Cooking
         public bool isSuccess;
         public int finalPrice;
         public HitGrade bestGrade;
+        public MenuData menuData; // 於旉皜
     }
 }

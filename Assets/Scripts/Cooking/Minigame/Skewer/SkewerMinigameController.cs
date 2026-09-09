@@ -146,7 +146,8 @@ namespace Marea.Cooking
             {
                 isSuccess = isSuccess,
                 finalPrice = finalPrice,
-                bestGrade = _hitHistory.Contains(HitGrade.Perfect) ? HitGrade.Perfect : HitGrade.Good
+                bestGrade = _hitHistory.Contains(HitGrade.Perfect) ? HitGrade.Perfect : HitGrade.Good,
+                menuData = _currentMenu
             };
 
             StartCoroutine(FinishRoutine(result));
