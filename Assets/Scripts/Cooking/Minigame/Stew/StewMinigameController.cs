@@ -1,6 +1,9 @@
+using Marea.Core;
+using Marea.Data;
+using Marea.Field;
+using Marea.Restaurant;
 using System;
 using System.Collections;
-using Marea.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -103,6 +106,12 @@ namespace Marea.Cooking
         public void StartMinigame(MenuData menu, Action<CookingResult> onComplete)
         {
             EnsureDependencies();
+
+            CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
+            if (customerManager != null)
+            {
+                customerManager.PauseSpawning(true);
+            }
 
             _targetMenu = menu;
             _onCompleteCallback = onComplete;
@@ -269,6 +278,12 @@ namespace Marea.Cooking
         {
             _isPlaying = false;
 
+            CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
+            if (customerManager != null)
+            {
+                customerManager.PauseSpawning(false);
+            }
+
             float ratio = Mathf.Clamp01(_safeZoneStayDuration / gameDuration);
             HitGrade grade;
             float multiplier;
@@ -334,7 +349,63 @@ namespace Marea.Cooking
                 stewPot.ResetPosition();
             }
 
+            if (result.isSuccess)
+            {
+                DispatchCookedFood(result);
+            }
+
             _onCompleteCallback?.Invoke(result);
+        }
+
+        private void DispatchCookedFood(CookingResult result)
+        {
+            Sprite icon = _targetMenu != null ? _targetMenu.Icon : null;
+            ServeBoard board = FindFirstObjectByType<ServeBoard>();
+            ServingStaff[] staffs = FindObjectsByType<ServingStaff>(FindObjectsSortMode.None);
+
+            if (board == null || staffs.Length == 0)
+            {
+                GiveFoodToPlayer(result);
+                return;
+            }
+
+            CustomerController target = PickTarget(board, staffs);
+            if (target == null)
+            {
+                GiveFoodToPlayer(result);
+                return;
+            }
+
+            board.Post(target.transform, icon, () =>
+            {
+                if (target != null) target.ServeFood();
+            });
+        }
+
+        private CustomerController PickTarget(ServeBoard board, ServingStaff[] staffs)
+        {
+            CustomerManager manager = FindFirstObjectByType<CustomerManager>();
+            if (manager == null) return null;
+
+            foreach (CustomerController c in manager.GetWaitingCustomers())
+            {
+                if (board.IsTargeted(c.transform)) continue;
+
+                bool taken = false;
+                foreach (ServingStaff s in staffs)
+                {
+                    if (s.DeliverTarget == c.transform) { taken = true; break; }
+                }
+
+                if (!taken) return c;
+            }
+
+            return null;
+        }
+
+        private void GiveFoodToPlayer(CookingResult result)
+        {
+            // 플레이어 손에 직접 넣지 않고 CookingMenuUI의 _onCompleteCallback으로 넘겨 조리대에 거치하도록 위임합니다.
         }
     }
 }

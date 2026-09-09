@@ -32,5 +32,10 @@ namespace Marea.Data
         public IReadOnlyList<RecipeEntry> Recipe => recipe;
         public int BasePrice => basePrice;
         public Sprite Icon => icon;
+
+        [Header("비주얼 에셋")]
+        [SerializeField] private GameObject servingPrefab; // 조리대/플레이어 손에 생성될 3D 모델 프리팹
+
+        public GameObject ServingPrefab => servingPrefab;
     }
 }

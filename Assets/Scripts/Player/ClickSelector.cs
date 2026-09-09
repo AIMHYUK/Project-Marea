@@ -111,7 +111,7 @@ namespace Marea.Player
         /// <summary>바닥을 클릭했으면 그 지점으로 보낸다. 바닥이 아니면 아무 일도 안 한다. (+9/8)</summary>
         private void TryMoveToGround(RaycastHit hit)
         {
-            Debug.Log($"[ClickSelector Hit] 맞은 오브젝트: {hit.collider.gameObject.name}, 레이어: {LayerMask.LayerToName(hit.collider.gameObject.layer)}");
+            //Debug.Log($"[ClickSelector Hit] 맞은 오브젝트: {hit.collider.gameObject.name}, 레이어: {LayerMask.LayerToName(hit.collider.gameObject.layer)}");
             if ((groundMask.value & (1 << hit.collider.gameObject.layer)) == 0) return;
 
             // hit.point는 콜라이더 표면 좌표라 NavMesh 위라는 보장이 없다 — 벽 윗면, 경사면, 메시 바깥.

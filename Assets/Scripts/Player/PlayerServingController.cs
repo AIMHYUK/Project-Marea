@@ -6,10 +6,13 @@ namespace Marea.Restaurant
     public class PlayerServingController : MonoBehaviour
     {
         [Header("시각 연출")]
-        [SerializeField] private GameObject heldFoodVisual; // 플레이어 손에 붙인 꼬치 3D 오브젝트
+        [SerializeField] private Transform holdPoint; // 음식을 쥐어줄 플레이어 손 위치 트랜스폼
+        [SerializeField] private GameObject defaultHandFoodPrefab; // 메뉴 전용 프리팹이 없을 때 쓸 기본 비주얼 프리팹
+        [SerializeField] private GameObject heldFoodVisual; // 기존 고정 꼬치 오브젝트 (하위 호환 유지)
 
         private bool _isHoldingFood;
         private CookingResult _lastCookingResult;
+        private GameObject _currentHoldingVisual; // 실시간 생성된 음식 오브젝트 인스턴스
 
         public bool IsHoldingFood => _isHoldingFood;
         public CookingResult LastCookingResult => _lastCookingResult;
@@ -22,10 +25,36 @@ namespace Marea.Restaurant
         // 미니게임 완료 시 호출
         public void PickUpFood(CookingResult result)
         {
-            _isHoldingFood = true;
             _lastCookingResult = result;
-            SetFoodVisual(true);
-            Debug.Log($"[PlayerServingController] PickUpFood 호출됨! 들고 있는 상태: {_isHoldingFood}, Visual 유효 여부: {heldFoodVisual != null}");
+            _isHoldingFood = true;
+
+            // 기존에 들려있던 오브젝트가 있다면 제거
+            if (_currentHoldingVisual != null)
+            {
+                Destroy(_currentHoldingVisual);
+            }
+
+            // 메뉴 전용 프리팹이 있으면 손에 생성
+            GameObject prefabToSpawn = (result.menuData != null && result.menuData.ServingPrefab != null)
+                ? result.menuData.ServingPrefab
+                : defaultHandFoodPrefab;
+
+            if (prefabToSpawn != null && holdPoint != null)
+            {
+                _currentHoldingVisual = Instantiate(prefabToSpawn, holdPoint.position, holdPoint.rotation, holdPoint);
+                _currentHoldingVisual.SetActive(true);
+
+                // 손에 든 오브젝트의 콜라이더 비활성화
+                Collider col = _currentHoldingVisual.GetComponentInChildren<Collider>();
+                if (col != null) col.enabled = false;
+            }
+            else
+            {
+                // holdPoint가 없는 경우 기존 정적 비주얼 켜기
+                SetFoodVisual(true);
+            }
+
+            Debug.Log($"[PlayerServing] 음식을 들었습니다: {result.menuData?.DisplayName}");
         }
 
         // 손님에게 서빙 시도 (주문 일치 검증 및 결과와 무관하게 손 비우기)
@@ -64,9 +93,11 @@ namespace Marea.Restaurant
             {
                 heldFoodVisual.SetActive(active);
             }
-            else
+
+            if (!active && _currentHoldingVisual != null)
             {
-                Debug.LogError("[PlayerServingController] heldFoodVisual 슬롯이 비어있습니다! 인스펙터를 확인하세요.");
+                Destroy(_currentHoldingVisual);
+                _currentHoldingVisual = null;
             }
         }
 

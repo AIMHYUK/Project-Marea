@@ -263,11 +263,7 @@ namespace Marea.Cooking
 
         private void GiveFoodToPlayer(CookingResult result)
         {
-            PlayerServingController playerServing = FindFirstObjectByType<PlayerServingController>(FindObjectsInactive.Include);
-            if (playerServing != null)
-            {
-                playerServing.PickUpFood(result);
-            }
+            // 플레이어 손에 직접 넣지 않고 CookingMenuUI의 _onCompleteCallback으로 넘겨 조리대에 거치하도록 위임
         }
     }
 }

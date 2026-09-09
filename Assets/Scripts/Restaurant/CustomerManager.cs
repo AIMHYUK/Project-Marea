@@ -62,7 +62,7 @@ namespace Marea.Restaurant
             }
 
             _isSpawningPaused = pause;
-            Debug.Log($"[CustomerManager] 손님 스폰 일시정지 상태: {pause}");
+            //Debug.Log($"[CustomerManager] 손님 스폰 일시정지 상태: {pause}");
         }
 
         /// <summary>

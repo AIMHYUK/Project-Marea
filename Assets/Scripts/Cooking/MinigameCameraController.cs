@@ -44,7 +44,7 @@ namespace Marea.Cooking
             if (_cameraFollow != null)
             {
                 _cameraFollow.enabled = false;
-                Debug.Log("[MinigameCameraController] CameraFollow 컴포넌트 비활성화 완료");
+                //Debug.Log("[MinigameCameraController] CameraFollow 컴포넌트 비활성화 완료");
             }
 
             if (_moveRoutine != null)
@@ -55,7 +55,7 @@ namespace Marea.Cooking
             _originalPosition = _cam.transform.position;
             _originalRotation = _cam.transform.rotation;
 
-            Debug.Log($"[MinigameCameraController] 목표 위치로 이동 시작: {targetViewPoint.position}");
+            //Debug.Log($"[MinigameCameraController] 목표 위치로 이동 시작: {targetViewPoint.position}");
             _moveRoutine = StartCoroutine(TransitionRoutine(targetViewPoint.position, targetViewPoint.rotation));
         }
 
@@ -68,7 +68,7 @@ namespace Marea.Cooking
                 StopCoroutine(_moveRoutine);
             }
 
-            Debug.Log("[MinigameCameraController] 원래 카메라 위치로 복귀 시작");
+            //Debug.Log("[MinigameCameraController] 원래 카메라 위치로 복귀 시작");
             _moveRoutine = StartCoroutine(ReturnRoutine(_originalPosition, _originalRotation));
         }
 
@@ -100,7 +100,7 @@ namespace Marea.Cooking
             if (_cameraFollow != null)
             {
                 _cameraFollow.enabled = true;
-                Debug.Log("[MinigameCameraController] CameraFollow 컴포넌트 다시 활성화됨");
+                //Debug.Log("[MinigameCameraController] CameraFollow 컴포넌트 다시 활성화됨");
             }
         }
     }

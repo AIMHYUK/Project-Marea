@@ -51,6 +51,9 @@ namespace Marea.Cooking
         [SerializeField] private StewMinigameController stewMinigameController;
         [SerializeField] private FishGrillMinigameController fishGrillMinigameController;
 
+        [Header("조리대 연동")]
+        [SerializeField] private CookingCounter cookingCounter;
+
         [Header("데이터 등록")]
         [SerializeField] private List<CookingCategoryGroup> categoryDataList;
 
@@ -210,7 +213,13 @@ namespace Marea.Cooking
         {
             if (_selectedMenu == null) return;
 
-            Debug.Log($"[CookingMenuUI] 요리 시작 -> 카테고리: {_selectedType}, 선택 메뉴: {_selectedMenu.DisplayName}");
+            if (cookingCounter != null && cookingCounter.IsFull)
+            {
+                Debug.LogWarning("[CookingMenuUI] 조리대가 가득 차서 더 이상 요리할 수 없습니다.");
+                return;
+            }
+
+            //Debug.Log($"[CookingMenuUI] 요리 시작 -> 카테고리: {_selectedType}, 선택 메뉴: {_selectedMenu.DisplayName}");
 
             if (rootPanel != null)
             {
@@ -263,10 +272,17 @@ namespace Marea.Cooking
 
             if (result.isSuccess)
             {
-                PlayerServingController playerServing = FindFirstObjectByType<PlayerServingController>();
-                if (playerServing != null)
+                if (cookingCounter != null)
                 {
-                    playerServing.PickUpFood(result);
+                    cookingCounter.TryPlaceFood(result);
+                }
+                else
+                {
+                    PlayerServingController playerServing = FindFirstObjectByType<PlayerServingController>();
+                    if (playerServing != null)
+                    {
+                        playerServing.PickUpFood(result);
+                    }
                 }
             }
 
