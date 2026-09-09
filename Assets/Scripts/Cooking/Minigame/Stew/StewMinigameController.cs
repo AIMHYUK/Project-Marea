@@ -303,7 +303,8 @@ namespace Marea.Cooking
             {
                 isSuccess = (grade != HitGrade.Miss),
                 finalPrice = finalCalculatedPrice,
-                bestGrade = grade
+                bestGrade = grade,
+                menuData = _targetMenu
             };
 
             StartCoroutine(ShowResultRoutine(result));

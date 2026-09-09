@@ -176,7 +176,8 @@ namespace Marea.Cooking
             {
                 isSuccess = (grade != HitGrade.Miss),
                 finalPrice = finalPrice,
-                bestGrade = grade
+                bestGrade = grade,
+                menuData = _currentMenu
             };
 
             StartCoroutine(FinishRoutine(result));

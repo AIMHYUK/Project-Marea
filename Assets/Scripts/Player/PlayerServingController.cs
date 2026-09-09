@@ -27,7 +27,25 @@ namespace Marea.Restaurant
             SetFoodVisual(true);
             Debug.Log($"[PlayerServingController] PickUpFood 호출됨! 들고 있는 상태: {_isHoldingFood}, Visual 유효 여부: {heldFoodVisual != null}");
         }
-        
+
+        // 손님에게 서빙 시도 (주문 일치 검증 및 결과와 무관하게 손 비우기)
+        public bool TryServeToCustomer(CustomerController targetCustomer)
+        {
+            if (!_isHoldingFood || targetCustomer == null) return false;
+
+            CookingResult food = _lastCookingResult;
+
+            // 서빙을 시도하면 성공하든 실패(오배송)하든 플레이어 손의 음식은 소모/폐기
+            ClearHeldFood();
+
+            bool isMatched = targetCustomer.TryReceiveFood(food);
+            if (!isMatched)
+            {
+                Debug.LogWarning("[PlayerServingController] 주문과 다른 요리이므로 음식이 폐기되었습니다.");
+            }
+
+            return isMatched;
+        }
 
         // 손님에게 서빙 완료 시 호출
         public bool DeliverFood()

@@ -59,18 +59,22 @@ namespace Marea.Restaurant
 
                 if (_customer.State == CustomerState.WaitingOrder && _playerServing.IsHoldingFood)
                 {
-                    if (_playerServing.DeliverFood())
+                    // 정산에 필요한 요리 정보 임시 캐싱
+                    var cookingResult = _playerServing.LastCookingResult;
+
+                    // 서빙 시도: 주문 일치 여부 검사, 손 비우기 및 손님 반응 처리 일괄 수행
+                    bool isMatched = _playerServing.TryServeToCustomer(_customer);
+
+                    // 정상 주문인 경우에만 매출 정산 등록
+                    if (isMatched)
                     {
-                        // 정산 매니저에 판매 내역 등록
                         if (BusinessManager.Instance != null)
                         {
                             BusinessManager.Instance.RecordServedDish(
-                                _playerServing.LastCookingResult.bestGrade,
-                                _playerServing.LastCookingResult.finalPrice
+                                cookingResult.bestGrade,
+                                cookingResult.finalPrice
                             );
                         }
-
-                        _customer.ServeFood();
                     }
                 }
             }
