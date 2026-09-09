@@ -14,7 +14,7 @@ namespace Marea.Cooking
     {
         Skewer,   // 꼬치 요리
         Stew,     // 스튜 요리
-        Steak     // 스테이크 요리
+        FishGrill     // 생선 구이 (또는 스테이크) 요리
     }
 
     [Serializable]
@@ -32,11 +32,11 @@ namespace Marea.Cooking
         [SerializeField] private GameObject rootPanel;
         [SerializeField] private Button btnClose;
 
-        [Header("1단계: 카테고리 패널 (꼬치 / 스튜 / 스테이크)")]
+        [Header("1단계: 카테고리 패널 (꼬치 / 스튜 / 생선구이)")]
         [SerializeField] private GameObject categoryPanel;
         [SerializeField] private Button btnSkewer;
         [SerializeField] private Button btnStew;
-        [SerializeField] private Button btnSteak;
+        [SerializeField] private Button btnFishGrill;
 
         [Header("2단계: 세부 메뉴 패널")]
         [SerializeField] private GameObject subMenuPanel;
@@ -47,8 +47,9 @@ namespace Marea.Cooking
         [SerializeField] private Button btnStartCooking;
 
         [Header("미니게임 연동")]
-        [SerializeField] private SkewerMinigameController skewerMinigameController; // SkewerMinigameController로 교체
+        [SerializeField] private SkewerMinigameController skewerMinigameController;
         [SerializeField] private StewMinigameController stewMinigameController;
+        [SerializeField] private FishGrillMinigameController fishGrillMinigameController;
 
         [Header("데이터 등록")]
         [SerializeField] private List<CookingCategoryGroup> categoryDataList;
@@ -67,7 +68,7 @@ namespace Marea.Cooking
 
             if (btnSkewer != null) btnSkewer.onClick.AddListener(() => OnSelectCategory(CookingType.Skewer));
             if (btnStew != null) btnStew.onClick.AddListener(() => OnSelectCategory(CookingType.Stew));
-            if (btnSteak != null) btnSteak.onClick.AddListener(() => OnSelectCategory(CookingType.Steak));
+            if (btnFishGrill != null) btnFishGrill.onClick.AddListener(() => OnSelectCategory(CookingType.FishGrill));
 
             if (rootPanel != null)
             {
@@ -96,7 +97,6 @@ namespace Marea.Cooking
         {
             _currentActor = actor;
 
-            // 메뉴 선택 중 손님 생성 일시정지
             CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
             if (customerManager != null)
             {
@@ -113,7 +113,6 @@ namespace Marea.Cooking
 
         public void Close()
         {
-            // 메뉴 닫기 시 손님 생성 재개 (단, 영업 중일 때만 열리도록 내부 보강됨)
             CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
             if (customerManager != null)
             {
@@ -156,7 +155,7 @@ namespace Marea.Cooking
                 {
                     CookingType.Skewer => "꼬치 요리 선택",
                     CookingType.Stew => "스튜 요리 선택",
-                    CookingType.Steak => "스테이크 요리 선택",
+                    CookingType.FishGrill => "생선 구이 선택",
                     _ => "메뉴 선택"
                 };
             }
@@ -213,7 +212,6 @@ namespace Marea.Cooking
 
             Debug.Log($"[CookingMenuUI] 요리 시작 -> 카테고리: {_selectedType}, 선택 메뉴: {_selectedMenu.DisplayName}");
 
-            // 메뉴 선택 창 닫기 (플레이어 Actor 상태는 미니게임 중 계속 Busy 유지)
             if (rootPanel != null)
             {
                 rootPanel.SetActive(false);
@@ -245,9 +243,16 @@ namespace Marea.Cooking
                     }
                     break;
 
-                case CookingType.Steak:
-                    Debug.Log($"[CookingMenuUI] {_selectedType} 미니게임은 아직 구현 준비 중입니다.");
-                    Close();
+                case CookingType.FishGrill:
+                    if (fishGrillMinigameController != null)
+                    {
+                        fishGrillMinigameController.StartMinigame(_selectedMenu, OnMinigameFinished);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[CookingMenuUI] FishGrillMinigameController가 연결되지 않았습니다.");
+                        Close();
+                    }
                     break;
             }
         }
@@ -256,7 +261,6 @@ namespace Marea.Cooking
         {
             Debug.Log($"[CookingMenuUI] 요리 완료 결과: 성공여부={result.isSuccess}, 최종가격={result.finalPrice}G, 판정={result.bestGrade}");
 
-            // 요리 성공 시 플레이어 손에 음식 지급
             if (result.isSuccess)
             {
                 PlayerServingController playerServing = FindFirstObjectByType<PlayerServingController>();
@@ -266,7 +270,8 @@ namespace Marea.Cooking
                 }
             }
 
-            // 플레이어 조작 잠금 해제 및 UI 정리
+            // TODO: 결과 팝업 표시 또는 인벤토리/수익 데이터 반영
+
             Close();
         }
     }
