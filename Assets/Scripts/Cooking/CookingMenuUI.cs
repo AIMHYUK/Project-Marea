@@ -61,6 +61,7 @@ namespace Marea.Cooking
         private MenuStep _currentStep = MenuStep.Category;
         private CookingType _selectedType;
         private MenuData _selectedMenu;
+        private MenuData _cookingMenu; // 진행 중인 미니게임의 메뉴 캐싱
         private IInteractor _currentActor;
 
         private void Awake()
@@ -200,12 +201,15 @@ namespace Marea.Cooking
                 if (slot != null)
                 {
                     slot.SetSelected(slot.MenuData == menu);
+                    slot.UpdateRecipeDisplay(); // 갱신
                 }
             }
 
             if (btnStartCooking != null)
             {
-                btnStartCooking.interactable = (_selectedMenu != null);
+                bool hasIngredients = (Warehouse.Instance == null || Warehouse.Instance.Has(_selectedMenu.Recipe));
+
+                btnStartCooking.interactable = (_selectedMenu != null && hasIngredients);
             }
         }
 
@@ -218,6 +222,15 @@ namespace Marea.Cooking
                 Debug.LogWarning("[CookingMenuUI] 조리대가 가득 차서 더 이상 요리할 수 없습니다.");
                 return;
             }
+
+            // 창고 재료 보유량 사전 검증
+            if (Warehouse.Instance != null && !Warehouse.Instance.Has(_selectedMenu.Recipe))
+            {
+                Debug.LogWarning($"[CookingMenuUI] 창고에 {_selectedMenu.DisplayName}에 필요한 재료가 부족합니다.");
+                return;
+            }
+
+            _cookingMenu = _selectedMenu;
 
             //Debug.Log($"[CookingMenuUI] 요리 시작 -> 카테고리: {_selectedType}, 선택 메뉴: {_selectedMenu.DisplayName}");
 
@@ -272,6 +285,21 @@ namespace Marea.Cooking
 
             if (result.isSuccess)
             {
+                // 미니게임 완료 시점에 창고 재료 일괄 차감
+                MenuData completedMenu = result.menuData != null ? result.menuData : _cookingMenu;
+                if (completedMenu != null && Warehouse.Instance != null)
+                {
+                    bool consumed = Warehouse.Instance.Consume(completedMenu.Recipe);
+                    if (consumed)
+                    {
+                        Debug.Log($"[CookingMenuUI] '{completedMenu.DisplayName}' 조리 완료로 창고 재료를 차감했습니다.");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[CookingMenuUI] '{completedMenu.DisplayName}' 조리 완료 후 재료 차감에 실패했습니다 (재료 부족).");
+                    }
+                }
+
                 if (cookingCounter != null)
                 {
                     cookingCounter.TryPlaceFood(result);
@@ -286,7 +314,7 @@ namespace Marea.Cooking
                 }
             }
 
-            // TODO: 결과 팝업 표시 또는 인벤토리/수익 데이터 반영
+            _cookingMenu = null;
 
             Close();
         }

@@ -14,7 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.MenuData
   id: 0
   displayName: "\uC740\uD589\uAF2C\uCE58"
-  recipe: []
+  recipe:
+  - ingredient: {fileID: 11400000, guid: 70d5fec2a4e446038e3e7dd0bc7e620e, type: 2}
+    count: 1
+  - ingredient: {fileID: 11400000, guid: df2846a9ba45b9e488a41ace90727dca, type: 2}
+    count: 1
   basePrice: 100
   icon: {fileID: 21300000, guid: 31aaeccb9d1f87041a491a1d0c5498dc, type: 3}
   servingPrefab: {fileID: 1236257643937427140, guid: 214213e0e13ff7f4f98145fd797dbdd3, type: 3}
