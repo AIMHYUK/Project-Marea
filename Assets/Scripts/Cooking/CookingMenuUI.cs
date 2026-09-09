@@ -270,6 +270,8 @@ namespace Marea.Cooking
                 }
             }
 
+            // TODO: 결과 팝업 표시 또는 인벤토리/수익 데이터 반영
+
             Close();
         }
     }
