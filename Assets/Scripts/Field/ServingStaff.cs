@@ -5,10 +5,20 @@ using UnityEngine.AI;
 namespace Marea.Field
 {
     /// <summary>
-    /// 서빙 직원. 유휴일 때 ServeBoard에서 작업을 하나 꺼내 픽업→배달을 왕복한다.
+    /// 서빙 직원. <see cref="ServeBoard"/> 가 배정해 주면 픽업→배달을 왕복한다.
     ///
-    /// 걷는 일은 AgentMover가 한다. 여기는 "무엇을 할지"만 정한다.
-    /// IInteractor를 구현하지 않는다 — 클릭 경로를 안 타기 때문이다(설계 결정 10).
+    /// 걷는 일은 <see cref="AgentMover"/> 가 한다. 여기는 "어디로 가서 누구에게 닿나" 만 안다.
+    /// <c>IInteractor</c> 를 구현하지 않는다 — 클릭 경로를 안 타기 때문이다(설계 결정 10).
+    ///
+    /// <b>배정을 직원이 하지 않는다 (+9/10).</b> 전에는 B의 미니게임 컨트롤러가
+    /// 대상을 골라 보드에 넣었고, 직원은 꺼내 갔다. 그러면 "이 손님 이미 누가 맡았나" 를
+    /// 알아야 해서 고르는 쪽이 직원 목록을 뒤져야 했다 — 직원 혼자서는 못 하는 판단이다.
+    /// 이제 보드가 정해서 <see cref="Assign"/> 으로 밀어준다. 직원이 둘이 되어도
+    /// 같은 손님이 두 번 배정되지 않는다.
+    ///
+    /// 음식과 손님은 보드가 다룬다. 여기서는 <c>CookingResult</c> 도 <c>CustomerController</c> 도
+    /// 모른다 — 꺼내기는 <see cref="ServeBoard.TryPickup"/>, 건네기는
+    /// <see cref="ServeBoard.Deliver"/> 가 한다.
     ///
     /// 배달 완료는 "목적지 도착"이 아니라 "대상에게 닿았다"로 본다. (+9/3)
     /// 손님은 의자 위에 앉아 있고 의자는 NavMesh 구멍이라, 손님 발밑까지는 애초에 못 간다.
@@ -18,11 +28,16 @@ namespace Marea.Field
     {
         private enum State { Idle, ToPickup, ToTarget }
 
-        [Tooltip("작업을 받아올 게시판. 자동으로 못 찾으니 반드시 넣어야 한다 — "
+        [Tooltip("배정을 받아올 게시판. 자동으로 못 찾으니 반드시 넣어야 한다 — "
                + "비면 OnEnable에서 에러를 내고 이 직원은 서빙을 하지 않는다. (+9/8)")]
         [SerializeField] private ServeBoard board;
 
-        [Tooltip("들고 있는 음식 그림. 비워둬도 동작한다.")]
+        [Tooltip("음식을 달아줄 손 위치. 조리대에 놓여 있던 실물이 여기로 옮겨온다 (+9/10). "
+               + "비면 그림(carriedIcon)으로 대신한다.")]
+        [SerializeField] private Transform holdPoint;
+
+        [Tooltip("들고 있는 음식 그림. 실물을 달 수 없을 때만 쓴다 — holdPoint가 비었거나 "
+               + "그 메뉴에 ServingPrefab이 없을 때. 비워둬도 동작한다.")]
         [SerializeField] private SpriteRenderer carriedIcon;
 
         [Header("배달 판정 (+9/3)")]
@@ -34,29 +49,22 @@ namespace Marea.Field
 
         private AgentMover _mover;
         private State _state = State.Idle;
-        private ServeTask _task;
+        private Transform _target;
+        private Sprite _icon;
 
         /// <summary>
-        /// 이 작업이 대상 배달인가. _task.DeliverTarget 은 대상이 Destroy되면 null이 되므로
-        /// "원래 대상이 있었나"를 이것으로 따로 기억한다. 안 그러면 손님이 사라진 것과
-        /// 처음부터 좌표 배달이었던 것을 구분할 수 없다.
+        /// 조리대에서 받아 온 실물. 파괴 책임이 여기로 넘어온다 (+9/10) —
+        /// 건네든 버리든 <see cref="ClearState"/> 에서 지운다.
         /// </summary>
-        private bool _expectTarget;
+        private GameObject _carried;
 
         public bool IsIdle => _state == State.Idle;
 
         /// <summary>음식을 들고 배달 중인가.</summary>
         public bool IsCarryingFood => _state == State.ToTarget;
 
-        /// <summary>
-        /// 지금 맡고 있는 배달 대상. 아무것도 안 들고 있으면 null.
-        ///
-        /// ⚠️ 픽업하러 가는 중(ToPickup)에도 반환해야 한다. B는 이것으로 "이 손님에게
-        /// 이미 음식이 가고 있나"를 판단하는데, 픽업 구간에 null을 주면 그 사이에
-        /// 같은 손님이 한 번 더 배정된다. 실제로 그렇게 짰다가 배달 하나를 날렸다.
-        /// 건네는 것 자체는 TryHandOff가 ToTarget으로 따로 막는다.
-        /// </summary>
-        public Transform DeliverTarget => _state == State.Idle ? null : _task.DeliverTarget;
+        /// <summary>지금 맡고 있는 배달 대상. 유휴면 null. 확인용.</summary>
+        public Transform DeliverTarget => _state == State.Idle ? null : _target;
 
         private void Awake()
         {
@@ -76,26 +84,53 @@ namespace Marea.Field
                 return;
             }
 
-            board.OnPosted += TryStartNext;
-
-            // 켜지기 전에 이미 쌓여 있을 수 있다.
-            TryStartNext();
+            board.Register(this);
         }
 
         private void OnDisable()
         {
-            if (board != null) board.OnPosted -= TryStartNext;
+            if (board != null) board.Unregister(this);
+
+            // 들고 있던 실물도 여기서 지운다 — 안 지우면 직원이 꺼진 뒤에도 손 위치에 남는다.
+            ClearState();
+        }
+
+        /// <summary>
+        /// 보드가 부른다. "이 사람에게 갖다줘라."
+        ///
+        /// 음식은 아직 안 들었다 — 픽업 지점에 도착해서 보드에 꺼내 달라고 한다.
+        /// 아이콘을 미리 받아두는 것은 꺼내고 나서 바로 켜기 위해서다.
+        /// </summary>
+        public void Assign(Transform target, Sprite icon)
+        {
+            if (_state != State.Idle)
+            {
+                Debug.LogError($"[ServingStaff] 이미 일하는 중인데 배정이 들어왔다 ({name}). "
+                             + "보드가 IsIdle을 안 보고 있다.", this);
+                return;
+            }
+
+            if (target == null)
+            {
+                Debug.LogError($"[ServingStaff] 배달 대상이 null이다 ({name}).", this);
+                return;
+            }
+
+            _target = target;
+            _icon = icon;
+            _state = State.ToPickup;
+
+            GoPickup();
         }
 
         private void Update()
         {
-            if (_state != State.ToTarget || !_expectTarget) return;
+            if (_state != State.ToTarget) return;
 
-            // 손님이 식사를 끝내고 Destroy됐다. 들고 있던 음식은 버린다.
-            if (_task.DeliverTarget == null)
+            // 손님이 식사를 끝내거나 거절하고 Destroy됐다.
+            if (_target == null)
             {
-                Debug.LogWarning("[ServingStaff] 배달 대상이 사라졌다 — 음식을 버리고 유휴로 돌아간다.", this);
-                DropTask();
+                Release("배달 대상이 사라졌다");
                 return;
             }
 
@@ -119,80 +154,75 @@ namespace Marea.Field
         public bool TryHandOff(GameObject receiver)
         {
             if (_state != State.ToTarget) return false;
-            if (receiver == null) return false;
-
-            Transform target = _task.DeliverTarget;
-            if (target == null) return false;
+            if (receiver == null || _target == null) return false;
 
             // 콜라이더가 자식에 달려 있을 수 있다.
             Transform t = receiver.transform;
-            if (t != target && !t.IsChildOf(target)) return false;
+            if (t != _target && !t.IsChildOf(_target)) return false;
 
             CompleteDelivery();
             return true;
         }
 
-        /// <summary>
-        /// 진입점은 둘이다.
-        ///   ① ServeBoard.OnPosted — 밖에서 깨워줄 때
-        ///   ② 배달을 끝낸 직후 — 스스로 확인할 때
-        ///
-        /// ②가 없으면 배달 중에 들어온 작업이 영영 안 나간다.
-        /// 알림은 그 순간 바쁜 구독자를 그냥 지나치기 때문이다.
-        /// </summary>
-        private void TryStartNext()
-        {
-            if (_state != State.Idle) return;
-            if (board == null) return;   // OnEnable에서 이미 에러를 냈다. 여기선 조용히 빠진다
-            if (!board.TryTake(out _task)) return;
-
-            _expectTarget = _task.DeliverTarget != null;
-            _state = State.ToPickup;
-            GoPickup();
-        }
-
         private void GoPickup()
         {
-            _mover.GoTo(_task.PickupPoint,
-                onArrived: () =>
-                {
-                    ShowIcon(_task.FoodIcon);
-                    _state = State.ToTarget;
+            // 보드가 "배정된 접시가 놓인 슬롯" 을 준다 (+9/10). 슬롯은 조리대 위라
+            // NavMesh 밖이므로 아래에서 바닥으로 당긴다.
+            _mover.GoTo(ResolveNavPoint(board.GetPickupTarget(this)),
+                onArrived: OnPickupArrived,
+                onFailed: () => Release("픽업 지점까지 경로를 못 만들었다"));
+        }
 
-                    // 콜백 안에서 다시 GoTo를 건다.
-                    // AgentMover.Fire()가 상태를 먼저 비우고 콜백을 부르기 때문에 가능하다.
-                    GoDeliver();
-                },
-                onFailed: OnPathFailed);
+        /// <summary>
+        /// 픽업 지점에 닿았다. 여기서 조리대의 음식이 아직 있는지 보드에 물어본다.
+        ///
+        /// 걸어오는 동안 플레이어가 같은 접시를 집어갔을 수 있다. 그러면 꺼내기가
+        /// 실패하고, 예약을 풀고 유휴로 돌아간다 — 음식이 조리대에 남아 있으면
+        /// 보드가 다음 프레임에 다시 배정한다.
+        /// </summary>
+        private void OnPickupArrived()
+        {
+            if (_state != State.ToPickup) return;
+
+            if (!board.TryPickup(this, out GameObject carried))
+            {
+                Release("픽업 실패 — 음식이 없다(플레이어가 먼저 집어갔거나 손님이 떠났다)");
+                return;
+            }
+
+            Carry(carried);
+            _state = State.ToTarget;
+
+            // 콜백 안에서 다시 GoTo를 건다.
+            // AgentMover.Fire()가 상태를 먼저 비우고 콜백을 부르기 때문에 가능하다.
+            GoDeliver();
         }
 
         private void GoDeliver()
         {
-            // 픽업하러 가는 동안 손님이 식사를 끝내고 나갔을 수 있다.
-            // 여기서 안 보면 사라진 손님의 옛 좌표까지 헛걸음을 한다.
-            if (_expectTarget && _task.DeliverTarget == null)
+            // 픽업하는 사이 손님이 나갔을 수 있다. 여기서 안 보면 사라진 손님의
+            // 옛 좌표까지 헛걸음을 한다.
+            if (_target == null)
             {
-                Debug.LogWarning("[ServingStaff] 픽업하는 사이 대상이 사라졌다 — 음식을 버린다.", this);
-                DropTask();
+                Release("픽업하는 사이 대상이 사라졌다");
                 return;
             }
 
-            _mover.GoTo(ResolveDeliverPoint(),
+            _mover.GoTo(ResolveNavPoint(_target.position),
                 onArrived: OnDeliverArrived,
-                onFailed: OnPathFailed);
+                onFailed: () => Release("배달 지점까지 경로를 못 만들었다"));
         }
 
         /// <summary>
-        /// 실제로 걸어갈 지점.
+        /// 실제로 걸어갈 지점. 픽업·배달 둘 다 이걸 쓴다 (+9/10).
         ///
-        /// 손님 발밑을 그대로 목적지로 주면 안 된다. 의자·책상을 Bake에 넣으면 그 자리는
-        /// NavMesh 구멍이라 경로가 안 생기거나 PathPartial이 되고, AgentMover는 그걸
-        /// 실패로 처리한다. 가장 가까운 NavMesh 점으로 당겨 오면 "갈 수 있는 데까지"가 된다.
+        /// 목표 지점을 그대로 목적지로 주면 안 된다. 손님은 의자 위에 앉아 있고 음식은
+        /// 조리대 위에 놓여 있는데, 가구를 Bake에 넣으면 그 자리는 NavMesh 구멍이라
+        /// 경로가 안 생기거나 PathPartial이 되고, AgentMover는 그걸 실패로 처리한다.
+        /// 가장 가까운 NavMesh 점으로 당겨 오면 "갈 수 있는 데까지"가 된다.
         /// </summary>
-        private Vector3 ResolveDeliverPoint()
+        private Vector3 ResolveNavPoint(Vector3 raw)
         {
-            Vector3 raw = _task.CurrentDeliverPoint;
-
             if (NavMesh.SamplePosition(raw, out NavMeshHit hit, navSampleRadius, NavMesh.AllAreas))
             {
                 return hit.position;
@@ -208,13 +238,6 @@ namespace Marea.Field
         {
             if (_state != State.ToTarget) return;
 
-            // 좌표 배달(ContextMenu 테스트)은 도착이 곧 완료다.
-            if (!_expectTarget)
-            {
-                CompleteDelivery();
-                return;
-            }
-
             // Update와 이 콜백의 실행 순서는 정해져 있지 않다. 여기서도 거리를 본다.
             if (WithinHandoff())
             {
@@ -222,71 +245,93 @@ namespace Marea.Field
                 return;
             }
 
-            Debug.LogWarning(
-                "[ServingStaff] 갈 수 있는 데까지 갔는데 대상이 아직 멀다 — 음식을 버린다. " +
-                $"handoffRadius({handoffRadius})를 늘리거나 좌석 주변까지 Bake할 것.", this);
-            DropTask();
+            Release($"갈 수 있는 데까지 갔는데 대상이 아직 멀다 — handoffRadius({handoffRadius})를 "
+                  + "늘리거나 좌석 주변까지 Bake할 것");
         }
 
         private bool WithinHandoff()
         {
-            Transform target = _task.DeliverTarget;
-            if (target == null) return false;
+            if (_target == null) return false;
 
-            return (target.position - transform.position).sqrMagnitude <= handoffRadius * handoffRadius;
+            return (_target.position - transform.position).sqrMagnitude <= handoffRadius * handoffRadius;
         }
 
         /// <summary>
-        /// 건넸다. 상태를 먼저 비우고 board.Complete를 부른다.
+        /// 건넸다. 상태를 먼저 비우고 <see cref="ServeBoard.Deliver"/> 를 부른다.
         ///
-        /// 순서가 중요하다 — Complete 안에서 B 콜백이 돌고, 그게 다시 Post를 부를 수도 있다.
-        /// 그때 이미 유휴여야 이어서 집어간다. Complete를 먼저 부르면 그 Post를 놓친다.
+        /// 순서가 중요하다 — Deliver 안에서 손님 코드가 돌고, 그게 다음 배정을 부를 수도
+        /// 있다. 그때 이미 유휴여야 이어서 받는다.
         /// </summary>
         private void CompleteDelivery()
         {
-            ServeTask done = _task;
-
-            _mover.Stop();
-            ShowIcon(null);
-            _task = default;
-            _expectTarget = false;
-            _state = State.Idle;
-
-            board.Complete(done);
-
-            TryStartNext();   // 큐에 남은 게 있으면 이어서
+            ClearState();
+            board.Deliver(this);
         }
 
         /// <summary>
-        /// 배달을 포기한다. 꺼내온 작업은 증발한다 — board에 되돌리는 함수가 없다.
-        /// 이슈 #5 미해결 그대로다.
-        /// </summary>
-        private void DropTask()
-        {
-            _mover.Stop();
-            ShowIcon(null);
-            _task = default;
-            _expectTarget = false;
-            _state = State.Idle;
-
-            TryStartNext();
-        }
-
-        /// <summary>
-        /// 경로를 못 만들었다. 대개 목적지가 NavMesh 밖이거나 가구 안쪽이다.
+        /// 배달을 포기한다. 예약을 보드에 되돌려 다시 배정되게 한다. (+9/10)
         ///
-        /// ⚠️ 꺼내온 작업이 여기서 증발한다. ServeBoard에 되돌리는 함수가 없다.
-        /// 1차에서는 씬을 제대로 만들면 안 나는 상황이라 로그만 남기고 넘어간다.
-        /// 실제로 자주 나면 Return(task)를 논의한다 — 이슈 #5 미해결.
+        /// 1차에서는 꺼내온 작업이 여기서 증발했다(이슈 #5 미해결). 이제 보드가
+        /// 예약을 들고 있으므로 되돌릴 자리가 있다.
         /// </summary>
-        private void OnPathFailed()
+        private void Release(string reason)
         {
-            Debug.LogWarning(
-                $"[ServingStaff] 경로 실패 — 작업을 버린다. " +
-                $"픽업 {_task.PickupPoint} / 배달 {_task.CurrentDeliverPoint}. " +
-                $"목적지가 NavMesh 위인지, 가구 안쪽이 아닌지 확인할 것.", this);
+            ClearState();
+            board.Abandon(this, reason);
+        }
 
-            DropTask();
+        /// <summary>
+        /// 조리대에서 받은 실물을 손에 단다. (+9/10)
+        ///
+        /// <c>worldPositionStays: true</c> 로 붙인 뒤 로컬 좌표를 0으로 민다.
+        /// 그냥 false 로 붙이면 손 오브젝트의 스케일이 음식에 곱해진다 — 조리대가
+        /// 거치할 때 부모를 안 달았던 이유와 같다(비균등 스케일 상속).
+        ///
+        /// 실물이 없으면(그 메뉴에 ServingPrefab이 없거나 holdPoint가 비었으면)
+        /// 그림으로 대신한다. 그림도 비어 있으면 빈손으로 걸어간다.
+        /// </summary>
+        private void Carry(GameObject visual)
+        {
+            _carried = visual;
+
+            if (visual == null)
+            {
+                ShowIcon(_icon);
+                return;
+            }
+
+            if (holdPoint == null)
+            {
+                // 달 곳이 없으면 실물을 들고 다닐 수 없다. 조리대에서 이미 꺼냈으므로
+                // 되돌릴 수도 없다 — 지우고 그림으로 대신한다.
+                Debug.LogWarning($"[ServingStaff] holdPoint가 비어 있어 음식 실물을 달 수 없다 ({name}). "
+                               + "인스펙터에 손 위치를 넣을 것. 지금은 그림으로 대신한다.", this);
+                Destroy(visual);
+                _carried = null;
+                ShowIcon(_icon);
+                return;
+            }
+
+            visual.transform.SetParent(holdPoint, true);
+            visual.transform.localPosition = Vector3.zero;
+            visual.transform.localRotation = Quaternion.identity;
+        }
+
+        private void ClearState()
+        {
+            _mover.Stop();
+            ShowIcon(null);
+
+            // 손님이 받았으면 먹는 연출은 손님 쪽 몫이다. 직원 손의 실물은 여기서 사라진다.
+            if (_carried != null)
+            {
+                Destroy(_carried);
+                _carried = null;
+            }
+
+            _target = null;
+            _icon = null;
+            _state = State.Idle;
         }
 
         private void ShowIcon(Sprite sprite)

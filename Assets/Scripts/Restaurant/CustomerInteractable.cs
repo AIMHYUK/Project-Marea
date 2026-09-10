@@ -23,8 +23,8 @@ namespace Marea.Restaurant
         {
             // 직원이 내 음식을 들고 왔나. (+9/3)
             //
-            // 여기서 ServeFood를 직접 부르지 않는다. 수령 통보는 ServeBoard의 완료
-            // 콜백이 한다 - 직원 쪽에는 트리거가 안 잡힐 때 쓰는 거리 판정 경로가
+            // 여기서 ServeFood를 직접 부르지 않는다. 수령 통보는 ServeBoard.Deliver 가
+            // 한다 (+9/10) - 직원 쪽에는 트리거가 안 잡힐 때 쓰는 거리 판정 경로가
             // 하나 더 있어서, 양쪽이 각자 부르면 어느 쪽으로 끝났는지가 흐려진다.
             ServingStaff staff = other.GetComponentInParent<ServingStaff>();
             if (staff != null && staff.TryHandOff(gameObject))
