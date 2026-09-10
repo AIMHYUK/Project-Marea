@@ -86,7 +86,7 @@ namespace Marea.Restaurant
 
             if (food.menuData != null && food.menuData == _orderedMenu)
             {
-                ServeFood();
+                ServeFood(food);
                 return true;
             }
             else
@@ -96,13 +96,26 @@ namespace Marea.Restaurant
             }
         }
 
-        // 플레이어 상호작용으로 호출되는 서빙 메서드
-        public void ServeFood()
+        /// <summary>
+        /// 손님이 음식을 받았다. 플레이어가 건네든 직원이 배달하든 두 경로가 여기로 모인다.
+        ///
+        /// 그래서 매출도 여기서 센다 (+9/10). 부르는 쪽에서 세면 경로마다 한 벌씩 생기고,
+        /// 실제로 그랬다 — 플레이어 경로(CustomerInteractable)에만 기록이 있어서
+        /// 직원이 배달한 매출은 하루 종일 0이었다.
+        ///
+        /// 가격을 인자로 받는 이유는 손님이 등급을 모르기 때문이다. 주문한 메뉴는 알지만
+        /// Perfect/Good 판정은 조리 쪽 결과라, 그걸 들고 오는 쪽이 넘겨야 한다.
+        /// </summary>
+        public void ServeFood(CookingResult food)
         {
             if (_state != CustomerState.WaitingOrder) return;
 
             _state = CustomerState.Eating;
             Debug.Log("[Customer] 음식을 받았습니다. 식사를 시작합니다.");
+
+            // 영업 중이 아니면 BusinessManager 쪽에서 알아서 무시한다.
+            if (BusinessManager.Instance != null)
+                BusinessManager.Instance.RecordServedDish(food.bestGrade, food.finalPrice);
 
             StartCoroutine(EatAndLeaveRoutine());
         }
