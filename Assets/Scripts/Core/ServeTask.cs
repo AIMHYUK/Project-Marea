@@ -36,7 +36,7 @@ namespace Marea.Core
         /// <summary>
         /// 배달이 끝났을 때 딱 한 번. (+9/3)
         ///
-        /// B가 넣는다 — 보통 () => customer.ServeFood() 다.
+        /// B가 넣는다 — 보통 () => customer.ServeFood(result) 다.
         /// 이게 있어서 Core(A)가 Restaurant(B) 타입을 참조하지 않아도 된다.
         /// </summary>
         public Action OnDelivered;

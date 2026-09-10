@@ -236,7 +236,7 @@ namespace Marea.Cooking
 
             board.Post(target.transform, icon, () =>
             {
-                if (target != null) target.ServeFood();
+                if (target != null) target.ServeFood(result);
             });
         }
 

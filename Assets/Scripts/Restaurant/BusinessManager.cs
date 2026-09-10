@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Marea.Cooking;
+using Marea.Economy;
 using UnityEngine;
 
 namespace Marea.Restaurant
@@ -139,6 +140,29 @@ namespace Marea.Restaurant
 
             // 열려 있는 요리 UI 및 미니게임 강제 닫기
             if (cookingMenuUI != null) cookingMenuUI.Close();
+
+            // 오늘 번 돈을 지갑에 넣는다. 여기가 정산이 확정되는 유일한 지점이라
+            // 계약 5의 "음식 하나 팔 때마다가 아니라 정산 확정 시 한 번"에 해당한다. (+9/10)
+            //
+            // ⚠️ A가 먼저 붙였다 (이슈 32). B가 정산에 Wallet.Add를 따로 넣으면
+            //    같은 매출이 두 번 들어온다 — 붙이기 전에 이 줄을 먼저 볼 것.
+            //
+            // OnBusinessEnded보다 앞에 둔다. 정산 팝업이 뜬 뒤에 넣으면
+            // 팝업에 적힌 매출과 그 순간 화면의 보유 골드가 한 프레임 어긋난다.
+            if (Wallet.Instance != null)
+            {
+                Wallet.Instance.Add(TodaySales.totalRevenue);
+
+                // 이 씬에는 골드를 보여주는 UI가 없다(UpgradeUI는 다른 씬). 잔액을 안 찍으면
+                // 입금이 됐는지 확인할 방법이 아예 없어서 여기서 한 줄 남긴다. (+9/10)
+                Debug.Log($"[BusinessManager] 지갑 입금: +{TodaySales.totalRevenue}G → 잔액 {Wallet.Instance.Gold}G");
+            }
+            else
+            {
+                // 조용히 넘어가면 증상이 "하루 종일 팔았는데 골드가 그대로"다.
+                Debug.LogError("[BusinessManager] 씬에 Wallet이 없다. "
+                             + $"오늘 매출 {TodaySales.totalRevenue}G가 지갑에 들어가지 못했다.", this);
+            }
 
             OnStateChanged?.Invoke(CurrentState);
             OnBusinessEnded?.Invoke(TodaySales);
