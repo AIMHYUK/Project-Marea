@@ -8,6 +8,9 @@ namespace Marea.Restaurant
     {
         private bool _isSpawningPaused;
 
+        [Header("스폰/출구 기준점")]
+        [SerializeField] private Transform spawnPoint; // 손님이 들어오고 나갈 입구 위치
+
         [Header("좌석 목록")]
         [SerializeField] private List<Seat> seatList = new();
 
@@ -99,11 +102,11 @@ namespace Marea.Restaurant
                     continue;
                 }
 
-                //// 미니게임 진행 등으로 일시정지 중이면 스폰 건너뛰기
-                //if (_isSpawningPaused)
-                //{
-                //    continue;
-                //}
+                // 미니게임 진행 등으로 일시정지 중이면 스폰 건너뛰기
+                if (_isSpawningPaused)
+                {
+                    continue;
+                }
 
                 Seat emptySeat = GetRandomEmptySeat();
                 if (emptySeat != null && customerPrefab != null)
@@ -130,14 +133,18 @@ namespace Marea.Restaurant
         {
             if (targetSeat == null || targetSeat.SitPoint == null) return;
 
-            // 생성할 때부터 좌석의 월드 위치와 회전값으로 생성
-            GameObject customerObj = Instantiate(customerPrefab, targetSeat.SitPoint.position, targetSeat.SitPoint.rotation);
+            // 입구(spawnPoint) 위치가 지정되어 있으면 입구에서 생성하고, 없으면 본체 위치 사용
+            Vector3 originPos = spawnPoint != null ? spawnPoint.position : transform.position;
+            Quaternion originRot = spawnPoint != null ? spawnPoint.rotation : transform.rotation;
+
+            GameObject customerObj = Instantiate(customerPrefab, originPos, originRot);
             CustomerController customer = customerObj.GetComponent<CustomerController>();
 
             if (customer != null)
             {
-                customer.Initialize(targetSeat);
-                Debug.Log($"[CustomerManager] 좌석({targetSeat.name})에 손님이 착석했습니다.");
+                // 입구 좌표를 함께 넘겨주어 좌석으로 걸어가고, 식사 후 다시 입구로 퇴장하도록 연동
+                customer.Initialize(targetSeat, originPos);
+                Debug.Log($"[CustomerManager] 손님이 입구에서 생성되어 좌석({targetSeat.name})으로 이동을 시작합니다.");
             }
         }
 

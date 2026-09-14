@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Marea.Cooking;
+using Marea.Core;
 using Marea.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,11 +10,14 @@ namespace Marea.Restaurant
 {
     public enum CustomerState
     {
-        WaitingOrder, // 음식 대기 중
-        Eating,       // 식사 중
-        Finished      // 퇴장
+        WalkingToSeat, // 좌석으로 이동 중
+        WaitingOrder,  // 음식 대기 중
+        Eating,        // 식사 중
+        Leaving,       // 퇴장 이동 중
+        Finished       // 퇴장
     }
 
+    [RequireComponent(typeof(AgentMover))]
     public class CustomerController : MonoBehaviour
     {
         [Header("식사 설정")]
@@ -27,8 +31,10 @@ namespace Marea.Restaurant
         [SerializeField] private Image imgHappyFeedback; // 만족/성공 피드백 이미지 아이콘
 
         private Seat _assignedSeat;
-        private CustomerState _state = CustomerState.WaitingOrder;
+        private CustomerState _state = CustomerState.WalkingToSeat;
         private MenuData _orderedMenu;
+        private AgentMover _mover;
+        private Vector3 _exitPoint;
 
         public CustomerState State => _state;
         public MenuData OrderedMenu => _orderedMenu;
@@ -36,19 +42,52 @@ namespace Marea.Restaurant
         /// <summary>이 손님이 앉은 시각. 서빙 순서를 정하는 데 쓴다. (+9/3)</summary>
         public float WaitingSince { get; private set; }
 
-        public void Initialize(Seat seat)
+        private void Awake()
+        {
+            _mover = GetComponent<AgentMover>();
+
+            if (orderBubble != null) orderBubble.SetActive(false);
+            if (imgAngryFeedback != null) imgAngryFeedback.gameObject.SetActive(false);
+            if (imgHappyFeedback != null) imgHappyFeedback.gameObject.SetActive(false);
+        }
+
+        public void Initialize(Seat seat, Vector3 exitPoint = default)
         {
             _assignedSeat = seat;
             _assignedSeat.AssignCustomer(this);
+            _exitPoint = exitPoint == default ? transform.position : exitPoint;
 
+            _state = CustomerState.WalkingToSeat;
+
+            if (_mover != null)
+            {
+                _mover.GoTo(seat.SitPoint.position, OnArrivedAtSeat, OnSeatPathFailed);
+            }
+            else
+            {
+                OnArrivedAtSeat();
+            }
+        }
+
+        private void OnArrivedAtSeat()
+        {
             // 좌석 위치 및 회전값으로 스냅 이동
-            transform.position = seat.SitPoint.position;
-            transform.rotation = seat.SitPoint.rotation;
+            if (_assignedSeat != null)
+            {
+                transform.position = _assignedSeat.SitPoint.position;
+                transform.rotation = _assignedSeat.SitPoint.rotation;
+            }
 
             _state = CustomerState.WaitingOrder;
             WaitingSince = Time.time;   // (+9/3)
 
             DecideOrder();
+        }
+
+        private void OnSeatPathFailed()
+        {
+            Debug.LogWarning("[CustomerController] 좌석 경로 탐색 실패로 강제 착석 처리합니다.");
+            OnArrivedAtSeat();
         }
 
         private void DecideOrder()
@@ -122,8 +161,6 @@ namespace Marea.Restaurant
 
         private IEnumerator RejectAndLeaveRoutine()
         {
-            _state = CustomerState.Finished;
-
             if (imgOrderIcon != null)
             {
                 imgOrderIcon.gameObject.SetActive(false);
@@ -143,12 +180,7 @@ namespace Marea.Restaurant
 
             yield return new WaitForSeconds(1.0f);
 
-            if (_assignedSeat != null)
-            {
-                _assignedSeat.ReleaseSeat();
-            }
-
-            Destroy(gameObject);
+            LeaveRestaurant();
         }
 
         private IEnumerator EatAndLeaveRoutine()
@@ -181,14 +213,39 @@ namespace Marea.Restaurant
             float remainingEatTime = Mathf.Max(0f, eatingDuration - 1.5f);
             yield return new WaitForSeconds(remainingEatTime);
 
-            _state = CustomerState.Finished;
             Debug.Log("[Customer] 식사를 마치고 퇴장합니다.");
+
+            LeaveRestaurant();
+        }
+
+        private void LeaveRestaurant()
+        {
+            _state = CustomerState.Leaving;
+
+            if (orderBubble != null)
+            {
+                orderBubble.SetActive(false);
+            }
 
             if (_assignedSeat != null)
             {
                 _assignedSeat.ReleaseSeat();
+                _assignedSeat = null;
             }
 
+            if (_mover != null)
+            {
+                _mover.GoTo(_exitPoint, FinishAndDestroy, FinishAndDestroy, allowPartialPath: true);
+            }
+            else
+            {
+                FinishAndDestroy();
+            }
+        }
+
+        private void FinishAndDestroy()
+        {
+            _state = CustomerState.Finished;
             Destroy(gameObject);
         }
     }
