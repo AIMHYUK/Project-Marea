@@ -319,7 +319,7 @@ public class PlanarReflectionManager : MonoBehaviour
     private Camera InitializeReflectionCamera(PlanarReflectionVolume volume)
     {
         var go = new GameObject("", typeof(Camera));
-        go.name = "Reflection Camera [" + go.GetInstanceID() + "]";
+        go.name = "Reflection Camera [" + go.GetEntityId() + "]";
         go.hideFlags = HideFlags.DontSave;
         
         var camData = go.AddComponent(typeof(UnityEngine.Rendering.Universal.UniversalAdditionalCameraData)) as UnityEngine.Rendering.Universal.UniversalAdditionalCameraData;
