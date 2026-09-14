@@ -41,28 +41,30 @@ git에는 133바이트짜리 포인터만 들어가고 실제 파일은 LFS 저�
 
 ### `art-test` 에서 작업하던 경우 — 한 번만
 
-`art-test` 의 커밋 4개(BO · 물 높이 · 식품 에셋 · 머티리얼 이름)를 **LFS로 옮겨
-`feature/art-lfs` 로 다시 올렸다** (#38). 파일 내용은 같다.
+`art-test` 의 커밋 4개(BO · 물 높이 · 식품 에셋 · 머티리얼 이름)는 **LFS로 옮겨서
+main에 머지됐다** (#38). 파일 내용은 같다.
 **`art-test` 에는 더 커밋하지 않는다** — 거기엔 텍스처 262MB가 일반 파일로 들어 있어서,
-이어서 쓰면 그게 그대로 main까지 따라온다.
+이어서 쓰면 그게 main까지 따라오고 텍스처·모델 80여 개가 전부 충돌한다.
+**`main` 에서 새 브랜치를 따서 이어간다.** (+9/15)
 
 ```bash
 git lfs install
 git fetch origin
 git status                    # 커밋 안 한 변경이 있는지 먼저 본다
-git switch feature/art-lfs    # 커밋 안 한 변경은 그대로 따라온다
-git lfs pull
+git switch main               # 커밋 안 한 변경은 그대로 따라온다
+git pull
+git switch -c feature/<이슈번호>-<짧은이름>
 ```
 
-GitHub Desktop이면 `Fetch origin` → `Current Branch` 에서 `feature/art-lfs` 선택 →
-변경이 있으면 **"Bring my changes to feature/art-lfs"** 를 고른다.
+GitHub Desktop이면 `Fetch origin` → `Current Branch` 에서 `main` 선택
+(변경이 있으면 **"Bring my changes to main"**) → `Pull origin` →
+`Current Branch` → `New Branch` 로 main 기준 새 브랜치.
 
 - ⚠️ **`art-test` 에 푸시 안 한 커밋이 있거나 switch가 거부되면 멈추고 A에게 말한다.**
   그대로 옮기면 텍스처가 일반 파일로 딸려온다
 - 옮긴 뒤 유니티로 열어 텍스처가 멀쩡한지 본다
 - 확인되면 로컬 옛 브랜치를 지운다: `git branch -D origin/feature/art-test`
   (이름이 잘못 만들어져 원격엔 `origin/origin/feature/art-test` 로 올라가 있다. 원격 쪽은 A가 지운다)
-- #38 이 머지된 뒤 새 작업은 `main` 에서 브랜치를 판다
 
 ## 문서부터 읽는다
 
