@@ -484,8 +484,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.StewMinigameController
   cameraController: {fileID: 0}
-  cameraViewPoint: {fileID: 628577500}
-  stewPot: {fileID: 1918895294}
+  cameraViewPoint: {fileID: 0}
+  stewPot: {fileID: 0}
+  soupTransform: {fileID: 0}
+  soupRotationSpeed: 80
   gameDuration: 10
   dragPower: 1
   gaugeDecaySpeed: 0.45
@@ -742,11 +744,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 118278570}
   m_CullTransparentMesh: 1
---- !u!4 &119547721 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 1328768748891539902, guid: 00b726013744a3745af9e008974daf53, type: 3}
-  m_PrefabInstance: {fileID: 931468581}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &125814329
 GameObject:
   m_ObjectHideFlags: 0
@@ -4163,11 +4160,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 609443657}
   m_CullTransparentMesh: 1
---- !u!4 &628577500 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 8420337587283199576, guid: 00b726013744a3745af9e008974daf53, type: 3}
-  m_PrefabInstance: {fileID: 931468581}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &630898520
 GameObject:
   m_ObjectHideFlags: 0
@@ -4966,10 +4958,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.SkewerMinigameController
   cameraController: {fileID: 348482002}
-  cameraViewPoint: {fileID: 860881331}
-  ingredientController: {fileID: 1030567374}
+  cameraViewPoint: {fileID: 0}
+  ingredientController: {fileID: 0}
   minigameUI: {fileID: 706606357}
-  totalIngredients: 4
 --- !u!1 &737941485
 GameObject:
   m_ObjectHideFlags: 0
@@ -5478,11 +5469,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!4 &860881331 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 3323802244683094746, guid: 00b726013744a3745af9e008974daf53, type: 3}
-  m_PrefabInstance: {fileID: 931468581}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &867226305
 GameObject:
   m_ObjectHideFlags: 0
@@ -5836,63 +5822,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 902799641}
   m_CullTransparentMesh: 1
---- !u!1001 &931468581
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 1143047527}
-    m_Modifications:
-    - target: {fileID: 2407342709542046144, guid: 00b726013744a3745af9e008974daf53, type: 3}
-      propertyPath: m_Name
-      value: CookingTable_MinigameView
-      objectReference: {fileID: 0}
-    - target: {fileID: 3392670179600932238, guid: 00b726013744a3745af9e008974daf53, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3392670179600932238, guid: 00b726013744a3745af9e008974daf53, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3392670179600932238, guid: 00b726013744a3745af9e008974daf53, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 49.95578
-      objectReference: {fileID: 0}
-    - target: {fileID: 3392670179600932238, guid: 00b726013744a3745af9e008974daf53, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3392670179600932238, guid: 00b726013744a3745af9e008974daf53, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3392670179600932238, guid: 00b726013744a3745af9e008974daf53, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3392670179600932238, guid: 00b726013744a3745af9e008974daf53, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3392670179600932238, guid: 00b726013744a3745af9e008974daf53, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3392670179600932238, guid: 00b726013744a3745af9e008974daf53, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3392670179600932238, guid: 00b726013744a3745af9e008974daf53, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 00b726013744a3745af9e008974daf53, type: 3}
 --- !u!1 &932935087
 GameObject:
   m_ObjectHideFlags: 0
@@ -6107,17 +6036,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2034592344}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1030567374 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2951037423870244819, guid: 00b726013744a3745af9e008974daf53, type: 3}
-  m_PrefabInstance: {fileID: 931468581}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8083d8de60496d64092cc5e80fb80650, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.IngredientController
 --- !u!1 &1034121894
 GameObject:
   m_ObjectHideFlags: 0
@@ -6866,8 +6784,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.FishGrillMinigameController
   cameraController: {fileID: 348482002}
-  cameraViewPoint: {fileID: 119547721}
-  fishVisual: {fileID: 1753672259}
+  cameraViewPoint: {fileID: 0}
+  fishVisual: {fileID: 0}
   minigameUI: {fileID: 1098396000}
   totalBakeDuration: 6.5
   perfectMin: 0.65
@@ -7107,6 +7025,63 @@ Transform:
   m_Children: []
   m_Father: {fileID: 851833102}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1112761758
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1143047527}
+    m_Modifications:
+    - target: {fileID: 6763454596524457324, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_Name
+      value: CookingTable_MinigameView 1 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7628637823069335808, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -9.14522
+      objectReference: {fileID: 0}
+    - target: {fileID: 7628637823069335808, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7628637823069335808, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 127.20399
+      objectReference: {fileID: 0}
+    - target: {fileID: 7628637823069335808, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7628637823069335808, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7628637823069335808, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7628637823069335808, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7628637823069335808, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7628637823069335808, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7628637823069335808, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
 --- !u!1 &1143047526
 GameObject:
   m_ObjectHideFlags: 0
@@ -7156,7 +7131,7 @@ Transform:
   - {fileID: 679060686}
   - {fileID: 1294391616}
   - {fileID: 1722185023}
-  - {fileID: 1613234982}
+  - {fileID: 2073969728}
   m_Father: {fileID: 2034592344}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1143881852
@@ -10076,11 +10051,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1610254597}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!4 &1613234982 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 3392670179600932238, guid: 00b726013744a3745af9e008974daf53, type: 3}
-  m_PrefabInstance: {fileID: 931468581}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1613482907
 GameObject:
   m_ObjectHideFlags: 0
@@ -10630,6 +10600,7 @@ MonoBehaviour:
   - cookingType: 0
     subMenus:
     - {fileID: 11400000, guid: e57e146bf75fd6740a034dad4f04ecc9, type: 2}
+    - {fileID: 11400000, guid: e2810b3f54ff68a469887c6e71ca9018, type: 2}
   - cookingType: 1
     subMenus:
     - {fileID: 11400000, guid: dee79e9f0e8d0c1449b59cc88cf8645f, type: 2}
@@ -11081,17 +11052,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1741248714}
   m_CullTransparentMesh: 1
---- !u!114 &1753672259 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3586324161093244804, guid: 00b726013744a3745af9e008974daf53, type: 3}
-  m_PrefabInstance: {fileID: 931468581}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aa3e3c8b03f0b854685ae2c02ba47eec, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.FishGrillVisual
 --- !u!1 &1762292101
 GameObject:
   m_ObjectHideFlags: 0
@@ -11811,17 +11771,6 @@ Transform:
   - {fileID: 241529749}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1918895294 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 9109445005247983090, guid: 00b726013744a3745af9e008974daf53, type: 3}
-  m_PrefabInstance: {fileID: 931468581}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2894fb3fa67892641a481fbac20ed928, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.StewPot
 --- !u!1 &1930169599
 GameObject:
   m_ObjectHideFlags: 0
@@ -12672,6 +12621,11 @@ MonoBehaviour:
   perfectZone: {fileID: 1059985717}
   goodZone: {fileID: 263330363}
   moveSpeed: 600
+--- !u!4 &2073969728 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7628637823069335808, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+  m_PrefabInstance: {fileID: 1112761758}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2090717809
 GameObject:
   m_ObjectHideFlags: 0
