@@ -53,7 +53,28 @@ namespace Marea.Cooking
 
             if (cameraViewPoint == null)
             {
+                // 씬 내 활성/비활성 오브젝트를 포함하여 이름으로 자동 탐색
                 GameObject viewPointObj = GameObject.Find("SkewerCameraViewPoint");
+                if (viewPointObj == null)
+                {
+                    viewPointObj = GameObject.Find("CameraViewPoint");
+                }
+
+                // 부모가 비활성화 상태여서 Find로 못 잡을 경우를 대비한 트랜스폼 전체 탐색
+                if (viewPointObj == null)
+                {
+                    Transform[] allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
+                    foreach (var t in allTransforms)
+                    {
+                        if (t.gameObject.scene.isLoaded &&
+                           (t.name == "Skewer_CameraTarget_Point"))
+                        {
+                            viewPointObj = t.gameObject;
+                            break;
+                        }
+                    }
+                }
+
                 if (viewPointObj != null)
                 {
                     cameraViewPoint = viewPointObj.transform;

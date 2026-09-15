@@ -97,6 +97,19 @@ namespace Marea.Cooking
             if (cameraViewPoint == null)
             {
                 GameObject viewPointObj = GameObject.Find("CameraViewPoint");
+                if (viewPointObj == null)
+                {
+                    Transform[] allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
+                    foreach (var t in allTransforms)
+                    {
+                        if (t.gameObject.scene.isLoaded && t.name == "Stew_CameraViewPoint")
+                        {
+                            viewPointObj = t.gameObject;
+                            break;
+                        }
+                    }
+                }
+
                 if (viewPointObj != null)
                 {
                     cameraViewPoint = viewPointObj.transform;
@@ -106,6 +119,42 @@ namespace Marea.Cooking
             if (minigameUI == null)
             {
                 minigameUI = FindFirstObjectByType<StewMinigameUI>(FindObjectsInactive.Include);
+            }
+
+            if (soupTransform == null)
+            {
+                // stewPot 하위 자식 계층에서 먼저 탐색
+                if (stewPot != null)
+                {
+                    Transform[] potChildren = stewPot.GetComponentsInChildren<Transform>(true);
+                    foreach (var child in potChildren)
+                    {
+                        string childName = child.name.ToLower();
+                        if (child != stewPot.transform && (childName.Contains("soup") || childName.Contains("국물")))
+                        {
+                            soupTransform = child;
+                            break;
+                        }
+                    }
+                }
+
+                // stewPot 하위에서 못 찾았을 경우 씬 전체 탐색
+                if (soupTransform == null)
+                {
+                    Transform[] allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
+                    foreach (var t in allTransforms)
+                    {
+                        if (t.gameObject.scene.isLoaded)
+                        {
+                            string tName = t.name.ToLower();
+                            if (tName.Contains("soup") || tName.Contains("국물"))
+                            {
+                                soupTransform = t;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
         }
 
