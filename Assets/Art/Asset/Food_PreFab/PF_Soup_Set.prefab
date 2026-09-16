@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3672585925272420569}
+  - component: {fileID: 4770869511934108283}
   m_Layer: 0
   m_Name: PF_Soup_Set
   m_TagString: Untagged
@@ -34,6 +35,23 @@ Transform:
   - {fileID: 8855317782309490339}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4770869511934108283
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6619620118006748885}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2894fb3fa67892641a481fbac20ed928, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.StewPot
+  ladlePivot: {fileID: 8855317782309490339}
+  stewLiquid: {fileID: 2054433828584099205}
+  ladleStirRadius: 0.25
+  stirSmoothSpeed: 10
+  liquidSpinSpeed: 120
 --- !u!1001 &1947923197453167214
 PrefabInstance:
   m_ObjectHideFlags: 0

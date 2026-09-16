@@ -27,8 +27,8 @@ namespace Marea.Cooking
         [SerializeField] private StewPot stewPot;
 
         [Header("국물 연출")]
-        [Tooltip("냄비 안에서 회전할 국물 오브젝트의 트랜스폼")]
-        [SerializeField] private Transform soupTransform;
+        // soupTransform을 지웠다 (#48). 국물은 StewPot이 프리팹 안에서 이미 알고 있다 —
+        // 컨트롤러가 이름으로 뒤질 이유가 없었고, 뒤져봤자 그 이름의 오브젝트가 없었다.
         [Tooltip("드래그 시 국물이 회전하는 속도/감도")]
         [SerializeField] private float soupRotationSpeed = 80f;
 
@@ -120,42 +120,6 @@ namespace Marea.Cooking
             {
                 minigameUI = FindFirstObjectByType<StewMinigameUI>(FindObjectsInactive.Include);
             }
-
-            if (soupTransform == null)
-            {
-                // stewPot 하위 자식 계층에서 먼저 탐색
-                if (stewPot != null)
-                {
-                    Transform[] potChildren = stewPot.GetComponentsInChildren<Transform>(true);
-                    foreach (var child in potChildren)
-                    {
-                        string childName = child.name.ToLower();
-                        if (child != stewPot.transform && (childName.Contains("soup") || childName.Contains("국물")))
-                        {
-                            soupTransform = child;
-                            break;
-                        }
-                    }
-                }
-
-                // stewPot 하위에서 못 찾았을 경우 씬 전체 탐색
-                if (soupTransform == null)
-                {
-                    Transform[] allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
-                    foreach (var t in allTransforms)
-                    {
-                        if (t.gameObject.scene.isLoaded)
-                        {
-                            string tName = t.name.ToLower();
-                            if (tName.Contains("soup") || tName.Contains("국물"))
-                            {
-                                soupTransform = t;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
         }
 
         public void StartMinigame(MenuData menu, Action<CookingResult> onComplete)
@@ -170,6 +134,12 @@ namespace Marea.Cooking
 
             _targetMenu = menu;
             _onCompleteCallback = onComplete;
+
+            // 국물을 도는 건 씬에 놓인 PF_Soup_Set 의 StewPot 이다. 없으면 RotateSoup 이
+            // 첫 줄에서 빠지는데, 그게 #48 전까지 아무도 모르던 실패 모양이었다.
+            if (stewPot == null)
+                Debug.LogError($"{name}: 씬에 StewPot이 없다. 국물이 돌지 않는다. "
+                             + "PF_Soup_Set을 씬에 놓을 것.", this);
 
             // 시작 즉시 세이프 존 중앙에서 시작 (초반 손실 방지)
             _currentGauge = (safeZoneMin + safeZoneMax) * 0.5f;
@@ -279,13 +249,13 @@ namespace Marea.Cooking
 
         private void RotateSoup(float dragMagnitude)
         {
-            if (soupTransform == null) return;
+            if (stewPot == null) return;
 
             // 좌/하 방향이면 반시계(-), 우/상 방향이면 시계(+) 방향 회전
             float directionSign = (_requiredDirection == StirDirection.Left || _requiredDirection == StirDirection.Down) ? -1f : 1f;
             float rotationAmount = (dragMagnitude / Screen.height) * soupRotationSpeed * directionSign;
 
-            soupTransform.Rotate(Vector3.up, rotationAmount, Space.Self);
+            stewPot.RotateLiquid(rotationAmount);
         }
 
         private void SimulateGaugeDecay()
