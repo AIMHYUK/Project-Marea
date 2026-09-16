@@ -16,8 +16,19 @@ namespace Marea.Cooking
         private Vector3 _targetLadleLocalPos;
         private Vector3 _initialLadleLocalPos;
 
+        /// <summary>국물이 연결돼 있는가. 컨트롤러가 연출을 맡기기 전에 본다. (#48)</summary>
+        public bool HasLiquid => stewLiquid != null;
+
         private void Awake()
         {
+            // 전에는 컨트롤러가 이 칸이 비면 이름으로 국물을 뒤졌다 — 그리고 그 이름을 가진
+            // 오브젝트가 없어서 조용히 실패했다. 폴백을 지웠으니 여기서 드러내야 한다. (#48)
+            if (stewLiquid == null)
+            {
+                Debug.LogError($"{name}: stewLiquid가 비어 있다. 국물이 돌지 않는다. "
+                             + "PF_Soup_Set 프리팹에서 SM_Soup_Pot_Inside를 연결할 것.", this);
+            }
+
             if (ladlePivot != null)
             {
                 _initialLadleLocalPos = ladlePivot.localPosition;
@@ -29,6 +40,19 @@ namespace Marea.Cooking
             {
                 stewLiquid.gameObject.SetActive(true);
             }
+        }
+
+        /// <summary>
+        /// 국물을 Y축으로 이만큼 돌린다. (#48)
+        ///
+        /// 전에는 StewMinigameController가 국물 Transform을 직접 들고 돌렸다. 냄비가 자기
+        /// 부품을 아는 게 맞고, 그래야 컨트롤러가 국물을 찾을 일 자체가 없어진다.
+        /// </summary>
+        public void RotateLiquid(float degrees)
+        {
+            if (stewLiquid == null) return;
+
+            stewLiquid.Rotate(Vector3.up, degrees, Space.Self);
         }
 
         public void ResetPosition()

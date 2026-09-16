@@ -514,6 +514,8 @@ MonoBehaviour:
   cameraController: {fileID: 0}
   cameraViewPoint: {fileID: 0}
   stewPot: {fileID: 0}
+  soupRotationSpeed: 80
+  potSpawnPoint: {fileID: 0}
   gameDuration: 10
   dragPower: 1
   gaugeDecaySpeed: 0.45
@@ -1364,16 +1366,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 191199262}
   m_CullTransparentMesh: 1
---- !u!1 &195675202 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 7225609104164841815, guid: 6f0e282f7e4b7c4469bf78b17ee655f4, type: 3}
-  m_PrefabInstance: {fileID: 1875475486}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &195675203 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 8002146250422137837, guid: 6f0e282f7e4b7c4469bf78b17ee655f4, type: 3}
-  m_PrefabInstance: {fileID: 1875475486}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &205999468
 GameObject:
   m_ObjectHideFlags: 0
@@ -2009,11 +2001,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 269047792}
   m_CullTransparentMesh: 1
---- !u!1 &271204130 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 5201656398074704870, guid: 6f0e282f7e4b7c4469bf78b17ee655f4, type: 3}
-  m_PrefabInstance: {fileID: 1875475486}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &271204131 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4856057166199597404, guid: 6f0e282f7e4b7c4469bf78b17ee655f4, type: 3}
@@ -4145,28 +4132,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!1 &483100522 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 8586838355154855991, guid: 6afb9fc3233c159458342abfb70eeed0, type: 3}
-  m_PrefabInstance: {fileID: 1118135593}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &483100524
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 483100522}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2894fb3fa67892641a481fbac20ed928, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.StewPot
-  ladlePivot: {fileID: 1739195798}
-  stewLiquid: {fileID: 0}
-  ladleStirRadius: 0.25
-  stirSmoothSpeed: 10
-  liquidSpinSpeed: 120
 --- !u!1 &497700980
 GameObject:
   m_ObjectHideFlags: 0
@@ -5821,16 +5786,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Restaurant.Seat
   sitPoint: {fileID: 513683658}
---- !u!1 &652485390 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2158335290553375756, guid: 6f0e282f7e4b7c4469bf78b17ee655f4, type: 3}
-  m_PrefabInstance: {fileID: 1875475486}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &652485391 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 1637096047411971766, guid: 6f0e282f7e4b7c4469bf78b17ee655f4, type: 3}
-  m_PrefabInstance: {fileID: 1875475486}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &679060685
 GameObject:
   m_ObjectHideFlags: 0
@@ -6343,7 +6298,6 @@ MonoBehaviour:
   cameraViewPoint: {fileID: 1874424572}
   ingredientController: {fileID: 1539713610}
   minigameUI: {fileID: 706606357}
-  totalIngredients: 4
 --- !u!1 &737941485
 GameObject:
   m_ObjectHideFlags: 0
@@ -6981,13 +6935,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Core.Warehouse
   startingStock:
   - ingredient: {fileID: 11400000, guid: df2846a9ba45b9e488a41ace90727dca, type: 2}
-    count: 999
+    requiredAmount: 999
+    inputOrder: 0
   - ingredient: {fileID: 11400000, guid: e6e82f0a043244799c31067b36197fc9, type: 2}
-    count: 999
+    requiredAmount: 999
+    inputOrder: 0
   - ingredient: {fileID: 11400000, guid: 70d5fec2a4e446038e3e7dd0bc7e620e, type: 2}
-    count: 999
+    requiredAmount: 999
+    inputOrder: 0
   - ingredient: {fileID: 11400000, guid: 048820df26c2493c926a99ee9485bdee, type: 2}
-    count: 999
+    requiredAmount: 999
+    inputOrder: 0
 --- !u!4 &855621700
 Transform:
   m_ObjectHideFlags: 0
@@ -9008,10 +8966,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 8586838355154855991, guid: 6afb9fc3233c159458342abfb70eeed0, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 483100524}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6afb9fc3233c159458342abfb70eeed0, type: 3}
 --- !u!1 &1143047526
 GameObject:
@@ -12055,15 +12010,11 @@ MonoBehaviour:
   movingIngredientTransform: {fileID: 271784601}
   stickTransform: {fileID: 1567236975}
   attachPoints:
-  - {fileID: 195675203}
-  - {fileID: 1865983107}
-  - {fileID: 652485391}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   - {fileID: 271204131}
-  placedIngredientModels:
-  - {fileID: 195675202}
-  - {fileID: 1865983106}
-  - {fileID: 652485390}
-  - {fileID: 271204130}
+  ingredientScaleMultiplier: 1
   moveDistance: 1
   moveSpeed: 3.25
 --- !u!4 &1539713611
@@ -13939,11 +13890,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 932935088}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!4 &1739195798 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 8855317782309490339, guid: 6afb9fc3233c159458342abfb70eeed0, type: 3}
-  m_PrefabInstance: {fileID: 1118135593}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1741248714
 GameObject:
   m_ObjectHideFlags: 0
@@ -15010,16 +14956,6 @@ MonoBehaviour:
   customerManager: {fileID: 1546823174}
   skewerMinigameUI: {fileID: 706606357}
   cookingMenuUI: {fileID: 1634890735}
---- !u!1 &1865983106 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6117257637547366671, guid: 6f0e282f7e4b7c4469bf78b17ee655f4, type: 3}
-  m_PrefabInstance: {fileID: 1875475486}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &1865983107 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6894744697495749557, guid: 6f0e282f7e4b7c4469bf78b17ee655f4, type: 3}
-  m_PrefabInstance: {fileID: 1875475486}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1874424571
 GameObject:
   m_ObjectHideFlags: 0
@@ -15656,7 +15592,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 30.289978, y: -35.81}
+  m_AnchoredPosition: {x: 30.29004, y: -35.809998}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 1, y: 1}
 --- !u!1 &1995336939
