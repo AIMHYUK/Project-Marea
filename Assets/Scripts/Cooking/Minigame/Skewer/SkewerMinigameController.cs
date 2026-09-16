@@ -1,12 +1,10 @@
 using Marea.Core;
 using Marea.Data;
 using Marea.Field;
-using Marea.Player;
 using Marea.Restaurant;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Marea.Cooking
@@ -21,17 +19,15 @@ namespace Marea.Cooking
         [SerializeField] private IngredientController ingredientController;
         [SerializeField] private SkewerMinigameUI minigameUI;
 
-        [Header("꼬치 게임 설정")]
-        [Range(1, 6)]
-        [SerializeField] private int totalIngredients = 4;
-
         private MenuData _currentMenu;
         private Action<CookingResult> _onCompleteCallback;
         private int _currentIngredientIndex;
         private readonly List<HitGrade> _hitHistory = new();
+        private readonly List<IngredientData> _targetIngredients = new();
         private bool _isPlaying;
 
-        public int TotalIngredients => totalIngredients;
+        // 메뉴 레시피에 정의된 총 개수를 반환
+        public int TotalIngredients => _targetIngredients.Count;
 
         private void Awake()
         {
@@ -57,7 +53,28 @@ namespace Marea.Cooking
 
             if (cameraViewPoint == null)
             {
+                // 씬 내 활성/비활성 오브젝트를 포함하여 이름으로 자동 탐색
                 GameObject viewPointObj = GameObject.Find("SkewerCameraViewPoint");
+                if (viewPointObj == null)
+                {
+                    viewPointObj = GameObject.Find("CameraViewPoint");
+                }
+
+                // 부모가 비활성화 상태여서 Find로 못 잡을 경우를 대비한 트랜스폼 전체 탐색
+                if (viewPointObj == null)
+                {
+                    Transform[] allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
+                    foreach (var t in allTransforms)
+                    {
+                        if (t.gameObject.scene.isLoaded &&
+                           (t.name == "Skewer_CameraTarget_Point"))
+                        {
+                            viewPointObj = t.gameObject;
+                            break;
+                        }
+                    }
+                }
+
                 if (viewPointObj != null)
                 {
                     cameraViewPoint = viewPointObj.transform;
@@ -79,6 +96,21 @@ namespace Marea.Cooking
             _onCompleteCallback = onComplete;
             _currentIngredientIndex = 0;
             _hitHistory.Clear();
+            _targetIngredients.Clear();
+
+            // MenuData의 Recipe에서 재료와 개수를 전개하여 순서 리스트 생성
+            if (_currentMenu != null && _currentMenu.Recipe != null)
+            {
+                foreach (var entry in _currentMenu.Recipe)
+                {
+                    if (entry.ingredient == null || entry.count <= 0) continue;
+                    for (int i = 0; i < entry.count; i++)
+                    {
+                        _targetIngredients.Add(entry.ingredient);
+                    }
+                }
+            }
+
             _isPlaying = true;
 
             if (cameraController != null && cameraViewPoint != null)
@@ -88,7 +120,7 @@ namespace Marea.Cooking
 
             if (ingredientController != null)
             {
-                ingredientController.InitializeMinigame3D();
+                ingredientController.InitializeMinigame3D(_targetIngredients);
             }
 
             if (minigameUI != null)
@@ -102,7 +134,6 @@ namespace Marea.Cooking
         {
             if (!_isPlaying) return;
 
-            //Debug.Log($"[SkewerMinigame] 시도 결과: {grade} (진행: {_currentIngredientIndex + 1}/{totalIngredients})");
             _hitHistory.Add(grade);
 
             if (grade != HitGrade.Miss)
@@ -114,7 +145,7 @@ namespace Marea.Cooking
 
                 _currentIngredientIndex++;
 
-                if (_currentIngredientIndex >= totalIngredients)
+                if (_currentIngredientIndex >= TotalIngredients)
                 {
                     FinishGame(true);
                 }
