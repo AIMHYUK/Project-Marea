@@ -12,19 +12,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fe6101a0a6a66142a2fefca2d69e34e, type: 3}
   m_Name: Menu_Skewer_temp
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.MenuData
-  id: 0
+  id: 100
   displayName: "\uC740\uD589\uAF2C\uCE58"
+  menuTier: 0
   recipe:
   - ingredient: {fileID: 11400000, guid: 70d5fec2a4e446038e3e7dd0bc7e620e, type: 2}
     count: 1
+    inputOrder: 1
   - ingredient: {fileID: 11400000, guid: df2846a9ba45b9e488a41ace90727dca, type: 2}
     count: 1
+    inputOrder: 2
   - ingredient: {fileID: 11400000, guid: e6e82f0a043244799c31067b36197fc9, type: 2}
     count: 1
+    inputOrder: 3
   - ingredient: {fileID: 11400000, guid: 048820df26c2493c926a99ee9485bdee, type: 2}
     count: 1
+    inputOrder: 4
   - ingredient: {fileID: 11400000, guid: e6e82f0a043244799c31067b36197fc9, type: 2}
     count: 1
+    inputOrder: 5
   basePrice: 100
+  isActive: 1
+  miniGameId: 1
   icon: {fileID: 21300000, guid: 31aaeccb9d1f87041a491a1d0c5498dc, type: 3}
   servingPrefab: {fileID: 4978157370354158506, guid: 6ecb18b12840eff47ab59468778fa22f, type: 3}

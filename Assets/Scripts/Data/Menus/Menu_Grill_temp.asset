@@ -12,11 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fe6101a0a6a66142a2fefca2d69e34e, type: 3}
   m_Name: Menu_Grill_temp
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.MenuData
-  id: 0
+  id: 300
   displayName: "\uACE0\uB4F1\uC5B4\uAD6C\uC774"
+  menuTier: 0
   recipe:
   - ingredient: {fileID: 11400000, guid: e6e82f0a043244799c31067b36197fc9, type: 2}
     count: 10
+    inputOrder: 1
   basePrice: 150
+  isActive: 1
+  miniGameId: 3
   icon: {fileID: 21300000, guid: 83ef236c18eb56f42b98692ad90bfdba, type: 3}
   servingPrefab: {fileID: 1968709143264870932, guid: b8205767cfd925b499a4d35283f8928d, type: 3}
