@@ -26,6 +26,12 @@ namespace Marea.Cooking
         [Header("3D 냄비 컨트롤러")]
         [SerializeField] private StewPot stewPot;
 
+        [Header("국물 연출")]
+        [Tooltip("냄비 안에서 회전할 국물 오브젝트의 트랜스폼")]
+        [SerializeField] private Transform soupTransform;
+        [Tooltip("드래그 시 국물이 회전하는 속도/감도")]
+        [SerializeField] private float soupRotationSpeed = 80f;
+
         [Header("미니게임 시간 설정")]
         [SerializeField] private float gameDuration = 8f;
 
@@ -91,6 +97,19 @@ namespace Marea.Cooking
             if (cameraViewPoint == null)
             {
                 GameObject viewPointObj = GameObject.Find("CameraViewPoint");
+                if (viewPointObj == null)
+                {
+                    Transform[] allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
+                    foreach (var t in allTransforms)
+                    {
+                        if (t.gameObject.scene.isLoaded && t.name == "Stew_CameraViewPoint")
+                        {
+                            viewPointObj = t.gameObject;
+                            break;
+                        }
+                    }
+                }
+
                 if (viewPointObj != null)
                 {
                     cameraViewPoint = viewPointObj.transform;
@@ -100,6 +119,42 @@ namespace Marea.Cooking
             if (minigameUI == null)
             {
                 minigameUI = FindFirstObjectByType<StewMinigameUI>(FindObjectsInactive.Include);
+            }
+
+            if (soupTransform == null)
+            {
+                // stewPot 하위 자식 계층에서 먼저 탐색
+                if (stewPot != null)
+                {
+                    Transform[] potChildren = stewPot.GetComponentsInChildren<Transform>(true);
+                    foreach (var child in potChildren)
+                    {
+                        string childName = child.name.ToLower();
+                        if (child != stewPot.transform && (childName.Contains("soup") || childName.Contains("국물")))
+                        {
+                            soupTransform = child;
+                            break;
+                        }
+                    }
+                }
+
+                // stewPot 하위에서 못 찾았을 경우 씬 전체 탐색
+                if (soupTransform == null)
+                {
+                    Transform[] allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
+                    foreach (var t in allTransforms)
+                    {
+                        if (t.gameObject.scene.isLoaded)
+                        {
+                            string tName = t.name.ToLower();
+                            if (tName.Contains("soup") || tName.Contains("국물"))
+                            {
+                                soupTransform = t;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -216,7 +271,21 @@ namespace Marea.Cooking
                 {
                     stewPot.AnimateStir(_requiredDirection);
                 }
+
+                // 국자 젓는 방향 및 마우스 드래그 거리에 비례하여 국물 오브젝트 Y축 회전
+                RotateSoup(delta.magnitude);
             }
+        }
+
+        private void RotateSoup(float dragMagnitude)
+        {
+            if (soupTransform == null) return;
+
+            // 좌/하 방향이면 반시계(-), 우/상 방향이면 시계(+) 방향 회전
+            float directionSign = (_requiredDirection == StirDirection.Left || _requiredDirection == StirDirection.Down) ? -1f : 1f;
+            float rotationAmount = (dragMagnitude / Screen.height) * soupRotationSpeed * directionSign;
+
+            soupTransform.Rotate(Vector3.up, rotationAmount, Space.Self);
         }
 
         private void SimulateGaugeDecay()

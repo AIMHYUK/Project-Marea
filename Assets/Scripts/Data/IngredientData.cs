@@ -12,9 +12,11 @@ namespace Marea.Data
         [SerializeField] private int id;
         [SerializeField] private string displayName;
         [SerializeField] private Sprite icon;
+        [SerializeField] private GameObject minigamePrefab;
 
         public int Id => id;
         public string DisplayName => displayName;
         public Sprite Icon => icon;
+        public GameObject MinigamePrefab => minigamePrefab;
     }
 }
