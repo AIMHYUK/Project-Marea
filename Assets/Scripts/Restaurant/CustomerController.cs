@@ -36,6 +36,10 @@ namespace Marea.Restaurant
         private Seat _assignedSeat;
         private CustomerState _state = CustomerState.WalkingToSeat;
         private MenuData _orderedMenu;
+
+        // 주문할 때마다 새 List를 만들지 않으려고 들고 있는 버퍼. 손님 수만큼 쓰레기가
+        // 생기는 자리라 인스턴스마다 하나씩 재사용한다. (+9/16)
+        private readonly List<MenuData> _orderCandidates = new();
         private AgentMover _mover;
         private Vector3 _exitPoint;
 
@@ -112,8 +116,25 @@ namespace Marea.Restaurant
         {
             if (availableMenus == null || availableMenus.Count == 0) return;
 
-            int randomIndex = Random.Range(0, availableMenus.Count);
-            _orderedMenu = availableMenus[randomIndex];
+            // 기획 MenuData.IsActive가 「주문 후보 포함 여부」다 (+9/16, #47).
+            // 빈 칸도 여기서 같이 걸러낸다 — 전에는 null이 뽑히면 손님이 주문 없이 앉아만
+            // 있었고, 증상만 보면 원인이 인스펙터인지 코드인지 알 수 없었다.
+            _orderCandidates.Clear();
+            for (int i = 0; i < availableMenus.Count; i++)
+            {
+                MenuData menu = availableMenus[i];
+                if (menu != null && menu.IsActive) _orderCandidates.Add(menu);
+            }
+
+            if (_orderCandidates.Count == 0)
+            {
+                Debug.LogError($"{name}: availableMenus에 주문할 수 있는 메뉴가 없다. "
+                             + "비어 있거나 IsActive가 전부 꺼져 있다.", this);
+                return;
+            }
+
+            int randomIndex = Random.Range(0, _orderCandidates.Count);
+            _orderedMenu = _orderCandidates[randomIndex];
 
             if (imgAngryFeedback != null) imgAngryFeedback.gameObject.SetActive(false);
             if (imgHappyFeedback != null) imgHappyFeedback.gameObject.SetActive(false);

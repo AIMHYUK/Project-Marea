@@ -71,7 +71,7 @@ namespace Marea.Field
             }
 
             foreach (var entry in contents)
-                warehouse.Add(entry.ingredient, entry.count);
+                warehouse.Add(entry.ingredient, entry.requiredAmount);
 
             _emptied = true;
             _refilledAt = Time.time + refillSeconds;

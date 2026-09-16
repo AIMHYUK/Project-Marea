@@ -98,7 +98,7 @@ namespace Marea.Cooking
                 if (entry.ingredient == null) continue;
 
                 int currentCount = Warehouse.Instance != null ? Warehouse.Instance.CountOf(entry.ingredient) : 0;
-                int requiredCount = entry.count;
+                int requiredCount = entry.requiredAmount;
 
                 string colorCode = currentCount >= requiredCount ? "#FFFFFF" : "#FF5555";
 

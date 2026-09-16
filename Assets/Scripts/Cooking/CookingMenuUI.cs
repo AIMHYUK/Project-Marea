@@ -230,6 +230,8 @@ namespace Marea.Cooking
                 return;
             }
 
+            WarnOnMiniGameMismatch(_selectedMenu, _selectedType);
+
             _cookingMenu = _selectedMenu;
 
             //Debug.Log($"[CookingMenuUI] 요리 시작 -> 카테고리: {_selectedType}, 선택 메뉴: {_selectedMenu.DisplayName}");
@@ -278,6 +280,33 @@ namespace Marea.Cooking
                     break;
             }
         }
+
+        /// <summary>
+        /// 어느 미니게임을 돌릴지는 아직 씬의 categoryDataList가 정한다. 에셋의 MiniGameId는
+        /// 기획 MenuData.MiniGameID를 옮겨둔 것이라 진실의 출처가 둘이다 — 어긋나면 여기서
+        /// 드러낸다. 동작은 바꾸지 않는다: 지금은 카테고리대로 돈다. (+9/16, #47)
+        ///
+        /// 디스패치를 MiniGameId 기준으로 옮기는 건 CookingMiniGameData 테이블을 할 때 같이 한다.
+        /// </summary>
+        private static void WarnOnMiniGameMismatch(MenuData menu, CookingType selectedType)
+        {
+            if (menu == null) return;
+
+            MiniGameId expected = ToMiniGameId(selectedType);
+            if (menu.MiniGameId == expected) return;
+
+            Debug.LogError($"[CookingMenuUI] '{menu.DisplayName}'의 MiniGameId가 {menu.MiniGameId}인데 "
+                         + $"{selectedType} 카테고리에 등록돼 있다. 지금은 카테고리대로 {expected} 미니게임을 "
+                         + "돌린다. categoryDataList와 메뉴 에셋 중 한쪽을 고칠 것.", menu);
+        }
+
+        private static MiniGameId ToMiniGameId(CookingType type) => type switch
+        {
+            CookingType.Skewer => MiniGameId.Skewer,
+            CookingType.Stew => MiniGameId.Stew,
+            CookingType.FishGrill => MiniGameId.FishGrill,
+            _ => MiniGameId.None
+        };
 
         private void OnMinigameFinished(CookingResult result)
         {

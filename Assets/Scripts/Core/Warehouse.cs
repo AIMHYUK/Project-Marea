@@ -48,7 +48,7 @@ namespace Marea.Core
 
             if (startingStock == null) return;
             foreach (var entry in startingStock)
-                Add(entry.ingredient, entry.count);
+                Add(entry.ingredient, entry.requiredAmount);
         }
 
         private void OnDestroy()
@@ -59,11 +59,41 @@ namespace Marea.Core
         public int CountOf(IngredientData ingredient)
             => ingredient != null && _stock.TryGetValue(ingredient, out int count) ? count : 0;
 
+        /// <summary>
+        /// 재료를 넣는다. 재료의 MaxStack(기획 ItemData.MaxStack)을 넘겨서는 안 받는다. (+9/16)
+        ///
+        /// 넘친 만큼은 버리는데, 조용히 버리면 증상이 "상자를 열었는데 수량이 안 는다"로만
+        /// 나와서 원인이 안 보인다. 그래서 잘릴 때마다 경고를 낸다.
+        /// </summary>
         public void Add(IngredientData ingredient, int count)
         {
             if (ingredient == null || count <= 0) return;
 
-            Set(ingredient, CountOf(ingredient) + count);
+            int had = CountOf(ingredient);
+            int wanted = had + count;
+            int limit = ingredient.MaxStack;
+
+            // [Min(1)]이 붙어 있어도 이 값은 에셋에서 온다 — 리네임·머지로 0이 되는 일이
+            // 실제로 있다. 0을 상한으로 믿으면 창고가 영영 안 차는데 아무 데서도 안 걸린다.
+            if (limit <= 0)
+            {
+                Debug.LogError($"{ingredient.name}: maxStack이 {limit}이다. 1 이상으로 채울 것. "
+                             + "이번에는 상한 없이 넣는다.", ingredient);
+                Set(ingredient, wanted);
+                return;
+            }
+
+            if (wanted > limit)
+            {
+                Debug.LogWarning($"{ingredient.name}: 최대 보유량 {limit}에 걸려 {wanted - limit}개를 버린다. "
+                               + $"(보유 {had} + 들어온 {count})", ingredient);
+
+                // 이미 꽉 차 있으면 값이 안 바뀐다. 안 바뀐 값으로 이벤트를 쏘면 UI가
+                // 헛돌기만 한다.
+                if (had >= limit) return;
+            }
+
+            Set(ingredient, Mathf.Min(wanted, limit));
         }
 
         // ── 아래 둘은 계약 2다. B의 「요리 전 재료 확인·차감」이 쓴다 (2차 분담 6단계).
@@ -120,10 +150,10 @@ namespace Marea.Core
             for (int i = 0; i < required.Count; i++)
             {
                 RecipeEntry entry = required[i];
-                if (entry.ingredient == null || entry.count <= 0) continue;
+                if (entry.ingredient == null || entry.requiredAmount <= 0) continue;
 
                 total.TryGetValue(entry.ingredient, out int had);
-                total[entry.ingredient] = had + entry.count;
+                total[entry.ingredient] = had + entry.requiredAmount;
             }
 
             return total;
