@@ -98,18 +98,10 @@ namespace Marea.Cooking
             _hitHistory.Clear();
             _targetIngredients.Clear();
 
-            // MenuData의 Recipe에서 재료와 개수를 전개하여 순서 리스트 생성
-            if (_currentMenu != null && _currentMenu.Recipe != null)
-            {
-                foreach (var entry in _currentMenu.Recipe)
-                {
-                    if (entry.ingredient == null || entry.count <= 0) continue;
-                    for (int i = 0; i < entry.count; i++)
-                    {
-                        _targetIngredients.Add(entry.ingredient);
-                    }
-                }
-            }
+            // MenuData의 Recipe에서 재료와 개수를 전개하여 순서 리스트 생성.
+            // 전에는 인스펙터 배열 순서를 그대로 썼다 — 행을 위아래로 옮기면 조리 순서가
+            // 조용히 바뀌었다. 이제 기획 RecipeData.InputOrder가 정한다. (+9/16, #47)
+            BuildTargetIngredients(_currentMenu, _targetIngredients);
 
             _isPlaying = true;
 
@@ -127,6 +119,42 @@ namespace Marea.Cooking
             {
                 minigameUI.Setup(this);
                 minigameUI.Open();
+            }
+        }
+
+        /// <summary>
+        /// 레시피를 투입 순서대로 펼쳐 재료 한 개씩의 목록으로 만든다.
+        ///
+        /// inputOrder가 같은 줄끼리는 인스펙터에 적힌 순서를 유지한다 — List.Sort는
+        /// 불안정 정렬이라 그냥 쓰면 값이 같은 줄의 앞뒤가 실행마다 달라질 수 있다.
+        /// </summary>
+        private static void BuildTargetIngredients(MenuData menu, List<IngredientData> result)
+        {
+            result.Clear();
+            if (menu == null || menu.Recipe == null) return;
+
+            IReadOnlyList<RecipeEntry> recipe = menu.Recipe;
+
+            var order = new List<int>(recipe.Count);
+            for (int i = 0; i < recipe.Count; i++)
+            {
+                if (recipe[i].ingredient == null || recipe[i].requiredAmount <= 0) continue;
+                order.Add(i);
+            }
+
+            order.Sort((a, b) =>
+            {
+                int byOrder = recipe[a].inputOrder.CompareTo(recipe[b].inputOrder);
+                return byOrder != 0 ? byOrder : a.CompareTo(b);
+            });
+
+            for (int i = 0; i < order.Count; i++)
+            {
+                RecipeEntry entry = recipe[order[i]];
+                for (int n = 0; n < entry.requiredAmount; n++)
+                {
+                    result.Add(entry.ingredient);
+                }
             }
         }
 
