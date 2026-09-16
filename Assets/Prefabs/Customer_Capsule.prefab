@@ -245,6 +245,7 @@ GameObject:
   - component: {fileID: 930331601456275210}
   - component: {fileID: 8197216221188781331}
   - component: {fileID: 2449088274342524172}
+  - component: {fileID: 7598478268969281383}
   m_Layer: 0
   m_Name: Customer_Capsule
   m_TagString: Untagged
@@ -370,6 +371,7 @@ MonoBehaviour:
   imgOrderIcon: {fileID: 8790703754132648792}
   imgAngryFeedback: {fileID: 497794588237201097}
   imgHappyFeedback: {fileID: 4666195280757733753}
+  animator: {fileID: 7598478268969281383}
 --- !u!114 &6339990044117620863
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -446,6 +448,36 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Core.AgentMover
   moveSpeed: 4
   arriveThreshold: 0.15
+--- !u!95 &7598478268969281383
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4935885104372150756}
+  m_Enabled: 1
+  m_Avatar: {fileID: 9000000, guid: 5091e0ddac783d44ab0947daf7901ef9, type: 3}
+  m_Controller: {fileID: 9100000, guid: 37c5a129387d67d4090c56c4c40d5197, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: "\nBinding warning: Some generic clip(s) animate transforms that
+    are already bound by a Humanoid avatar. These transforms can only be changed
+    by Humanoid clips.\n\tTransform 'mixamorig:Hips'\n\tTransform 'mixamorig:LeftFoot'\n\tTransform
+    'mixamorig:LeftHandIndex1'\n\tTransform 'mixamorig:Spine1'\n\tTransform 'mixamorig:LeftToeBase'\n\tTransform
+    'mixamorig:RightArm'\n\tTransform 'mixamorig:LeftLeg'\n\tTransform 'mixamorig:LeftShoulder'\n\tTransform
+    'mixamorig:RightHandIndex3'\n\tTransform 'mixamorig:RightFoot'\n\tand more ...\n\tFrom
+    animation clip 'AN_Npc_01_Sitting'\n\tFrom animation clip 'AN_Npc_01_Stand_To_Sit'\n\tFrom
+    animation clip 'AN_Npc01_Standing'\n\tFrom animation clip 'AN_Npc_01_Walking'\n\tFrom
+    animation clip 'AN_Npc_01_Sitting_Clap'"
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &5072432475445396739
 GameObject:
   m_ObjectHideFlags: 0
@@ -645,8 +677,20 @@ PrefabInstance:
     m_TransformParent: {fileID: 6651944090610019195}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 5091e0ddac783d44ab0947daf7901ef9, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 5091e0ddac783d44ab0947daf7901ef9, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 5091e0ddac783d44ab0947daf7901ef9, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 5091e0ddac783d44ab0947daf7901ef9, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.42801
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5091e0ddac783d44ab0947daf7901ef9, type: 3}
       propertyPath: m_LocalPosition.y
