@@ -486,7 +486,6 @@ MonoBehaviour:
   cameraController: {fileID: 0}
   cameraViewPoint: {fileID: 0}
   stewPot: {fileID: 0}
-  soupTransform: {fileID: 0}
   soupRotationSpeed: 80
   gameDuration: 10
   dragPower: 1
@@ -5447,13 +5446,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Core.Warehouse
   startingStock:
   - ingredient: {fileID: 11400000, guid: df2846a9ba45b9e488a41ace90727dca, type: 2}
-    count: 999
+    requiredAmount: 999
+    inputOrder: 0
   - ingredient: {fileID: 11400000, guid: e6e82f0a043244799c31067b36197fc9, type: 2}
-    count: 999
+    requiredAmount: 999
+    inputOrder: 0
   - ingredient: {fileID: 11400000, guid: 70d5fec2a4e446038e3e7dd0bc7e620e, type: 2}
-    count: 999
+    requiredAmount: 999
+    inputOrder: 0
   - ingredient: {fileID: 11400000, guid: 048820df26c2493c926a99ee9485bdee, type: 2}
-    count: 999
+    requiredAmount: 999
+    inputOrder: 0
 --- !u!4 &855621700
 Transform:
   m_ObjectHideFlags: 0
@@ -10607,6 +10610,7 @@ MonoBehaviour:
   - cookingType: 2
     subMenus:
     - {fileID: 11400000, guid: 74e4259cee3a04243b2d871e99a73bb5, type: 2}
+  menuDatabase: {fileID: 11400000, guid: fe6b4f2136c9e3e4b9b528a24cd88f6e, type: 2}
 --- !u!1 &1704537657
 GameObject:
   m_ObjectHideFlags: 0

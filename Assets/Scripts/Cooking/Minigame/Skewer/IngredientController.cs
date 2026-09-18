@@ -96,6 +96,11 @@ namespace Marea.Cooking
             IngredientData data = _sequenceIngredients[stepIndex];
             Transform targetSlot = (stepIndex < attachPoints.Count) ? attachPoints[stepIndex] : null;
 
+            if (data != null && data.MinigamePrefab == null)
+            {
+                Debug.LogWarning($"[IngredientController] 슬롯 결합 재료 프리팹 누락: 재료='{data.name}' (슬롯 단계: {stepIndex})");
+            }
+
             if (targetSlot != null && data != null && data.MinigamePrefab != null)
             {
                 // 슬롯 하위에 자식으로 생성
@@ -144,6 +149,12 @@ namespace Marea.Cooking
             if (index < 0 || index >= _sequenceIngredients.Count) return;
 
             IngredientData data = _sequenceIngredients[index];
+
+            if (data != null && data.MinigamePrefab == null)
+            {
+                Debug.LogWarning($"[IngredientController] 왕복 이동 재료 프리팹 누락: 재료='{data.name}' (단계: {index})");
+            }
+
             if (data == null || data.MinigamePrefab == null || movingIngredientTransform == null) return;
 
             _currentMovingModel = Instantiate(
