@@ -14,7 +14,7 @@ namespace Marea.Cooking
     {
         Skewer,   // 꼬치 요리
         Stew,     // 스튜 요리
-        FishGrill     // 생선 구이 (또는 스테이크) 요리
+        FishGrill // 생선 구이 (또는 스테이크) 요리
     }
 
     [Serializable]
@@ -56,6 +56,7 @@ namespace Marea.Cooking
 
         [Header("데이터 등록")]
         [SerializeField] private List<CookingCategoryGroup> categoryDataList;
+        [SerializeField] private MenuDatabase menuDatabase; // MenuDatabase 필드 추가
 
         private readonly List<MenuCardSlot> _activeSlots = new();
         private MenuStep _currentStep = MenuStep.Category;
@@ -179,12 +180,30 @@ namespace Marea.Cooking
             if (btnStartCooking != null) btnStartCooking.interactable = false;
             if (cardPrefab == null || cardContainer == null) return;
 
-            var targetGroup = categoryDataList.Find(g => g.cookingType == type);
-            if (targetGroup.subMenus == null) return;
+            // 1순위: 인스펙터 categoryDataList 조회
+            var targetGroup = categoryDataList?.Find(g => g.cookingType == type);
+            List<MenuData> source = targetGroup.HasValue ? targetGroup.Value.subMenus : null;
 
-            foreach (var menu in targetGroup.subMenus)
+            // 2순위: 그룹이 비었으면 MenuDatabase에서 CollectActive로 수집
+            if (source == null || source.Count == 0)
             {
-                if (menu == null) continue;
+                Debug.LogWarning($"[CookingMenuUI] categoryDataList에 {type} 메뉴가 없다. "
+                               + "MenuDatabase에서 IsActive/MiniGameId로 채운다.");
+
+                if (menuDatabase != null)
+                {
+                    var buffer = new List<MenuData>();
+                    menuDatabase.CollectActive(ToMiniGameId(type), buffer);
+                    source = buffer;
+                }
+            }
+
+            if (source == null) return;
+
+            // 슬롯 생성 및 IsActive 필터링 적용
+            foreach (var menu in source)
+            {
+                if (menu == null || !menu.IsActive) continue;
 
                 var slot = Instantiate(cardPrefab, cardContainer);
                 slot.Setup(menu, OnSelectSubMenu);
@@ -201,7 +220,7 @@ namespace Marea.Cooking
                 if (slot != null)
                 {
                     slot.SetSelected(slot.MenuData == menu);
-                    slot.UpdateRecipeDisplay(); // 갱신
+                    slot.UpdateRecipeDisplay();
                 }
             }
 
@@ -234,16 +253,15 @@ namespace Marea.Cooking
 
             _cookingMenu = _selectedMenu;
 
-            //Debug.Log($"[CookingMenuUI] 요리 시작 -> 카테고리: {_selectedType}, 선택 메뉴: {_selectedMenu.DisplayName}");
-
             if (rootPanel != null)
             {
                 rootPanel.SetActive(false);
             }
 
-            switch (_selectedType)
+            // 미니게임 디스패치 기준을 _selectedType에서 _selectedMenu.MiniGameId로 이관
+            switch (_selectedMenu.MiniGameId)
             {
-                case CookingType.Skewer:
+                case MiniGameId.Skewer:
                     if (skewerMinigameController != null)
                     {
                         skewerMinigameController.StartMinigame(_selectedMenu, OnMinigameFinished);
@@ -255,7 +273,7 @@ namespace Marea.Cooking
                     }
                     break;
 
-                case CookingType.Stew:
+                case MiniGameId.Stew:
                     if (stewMinigameController != null)
                     {
                         stewMinigameController.StartMinigame(_selectedMenu, OnMinigameFinished);
@@ -267,7 +285,7 @@ namespace Marea.Cooking
                     }
                     break;
 
-                case CookingType.FishGrill:
+                case MiniGameId.FishGrill:
                     if (fishGrillMinigameController != null)
                     {
                         fishGrillMinigameController.StartMinigame(_selectedMenu, OnMinigameFinished);
@@ -278,15 +296,18 @@ namespace Marea.Cooking
                         Close();
                     }
                     break;
+
+                case MiniGameId.None:
+                default:
+                    Debug.LogError($"[CookingMenuUI] '{_selectedMenu.DisplayName}'에 유효한 MiniGameId가 할당되지 않았습니다 ({_selectedMenu.MiniGameId}). 조리를 취소합니다.");
+                    Close();
+                    break;
             }
         }
 
         /// <summary>
-        /// 어느 미니게임을 돌릴지는 아직 씬의 categoryDataList가 정한다. 에셋의 MiniGameId는
-        /// 기획 MenuData.MiniGameID를 옮겨둔 것이라 진실의 출처가 둘이다 — 어긋나면 여기서
-        /// 드러낸다. 동작은 바꾸지 않는다: 지금은 카테고리대로 돈다. (+9/16, #47)
-        ///
-        /// 디스패치를 MiniGameId 기준으로 옮기는 건 CookingMiniGameData 테이블을 할 때 같이 한다.
+        /// 카테고리 UI 분류와 실제 미니게임 에셋 ID가 일치하지 않을 때 정보성 경고 출력.
+        /// 실행은 에셋의 MiniGameId를 우선한다.
         /// </summary>
         private static void WarnOnMiniGameMismatch(MenuData menu, CookingType selectedType)
         {
@@ -295,9 +316,8 @@ namespace Marea.Cooking
             MiniGameId expected = ToMiniGameId(selectedType);
             if (menu.MiniGameId == expected) return;
 
-            Debug.LogError($"[CookingMenuUI] '{menu.DisplayName}'의 MiniGameId가 {menu.MiniGameId}인데 "
-                         + $"{selectedType} 카테고리에 등록돼 있다. 지금은 카테고리대로 {expected} 미니게임을 "
-                         + "돌린다. categoryDataList와 메뉴 에셋 중 한쪽을 고칠 것.", menu);
+            Debug.LogWarning($"[CookingMenuUI] UI 카테고리({selectedType})와 '{menu.DisplayName}'의 MiniGameId({menu.MiniGameId})가 일치하지 않습니다. "
+                           + "실행은 에셋의 MiniGameId를 기준으로 진행합니다.");
         }
 
         private static MiniGameId ToMiniGameId(CookingType type) => type switch
