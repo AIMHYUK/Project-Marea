@@ -14,7 +14,10 @@ namespace Marea.Restaurant
         [Header("좌석 목록")]
         [SerializeField] private List<Seat> seatList = new();
 
-        [Header("손님 프리팹")]
+        [Header("손님 프리팹 풀")]
+        [Tooltip("스폰할 다양한 외형의 손님 프리팹들을 등록합니다.")]
+        [SerializeField] private List<GameObject> customerPrefabs = new();
+        [Tooltip("기존 단일 프리팹 호환용 슬롯 (customerPrefabs가 비어 있을 때 사용)")]
         [SerializeField] private GameObject customerPrefab;
 
         [Header("스폰 설정")]
@@ -109,9 +112,11 @@ namespace Marea.Restaurant
                 }
 
                 Seat emptySeat = GetRandomEmptySeat();
-                if (emptySeat != null && customerPrefab != null)
+                GameObject selectedPrefab = GetRandomCustomerPrefab();
+
+                if (emptySeat != null && selectedPrefab != null)
                 {
-                    SpawnCustomerAtSeat(emptySeat);
+                    SpawnCustomerAtSeat(emptySeat, selectedPrefab);
                 }
                 else
                 {
@@ -129,22 +134,49 @@ namespace Marea.Restaurant
             return emptySeats[randomIndex];
         }
 
-        private void SpawnCustomerAtSeat(Seat targetSeat)
+        private GameObject GetRandomCustomerPrefab()
         {
-            if (targetSeat == null || targetSeat.SitPoint == null) return;
+            // 리스트에 유효한 프리팹 필터링
+            List<GameObject> validList = new();
+            for (int i = 0; i < customerPrefabs.Count; i++)
+            {
+                if (customerPrefabs[i] != null)
+                {
+                    validList.Add(customerPrefabs[i]);
+                }
+            }
+
+            if (validList.Count > 0)
+            {
+                int randomIndex = Random.Range(0, validList.Count);
+                return validList[randomIndex];
+            }
+
+            // 폴백: 단일 슬롯에 값이 있다면 반환
+            if (customerPrefab != null)
+            {
+                return customerPrefab;
+            }
+
+            return null;
+        }
+
+        private void SpawnCustomerAtSeat(Seat targetSeat, GameObject prefabToSpawn)
+        {
+            if (targetSeat == null || targetSeat.SitPoint == null || prefabToSpawn == null) return;
 
             // 입구(spawnPoint) 위치가 지정되어 있으면 입구에서 생성하고, 없으면 본체 위치 사용
             Vector3 originPos = spawnPoint != null ? spawnPoint.position : transform.position;
             Quaternion originRot = spawnPoint != null ? spawnPoint.rotation : transform.rotation;
 
-            GameObject customerObj = Instantiate(customerPrefab, originPos, originRot);
+            GameObject customerObj = Instantiate(prefabToSpawn, originPos, originRot);
             CustomerController customer = customerObj.GetComponent<CustomerController>();
 
             if (customer != null)
             {
                 // 입구 좌표를 함께 넘겨주어 좌석으로 걸어가고, 식사 후 다시 입구로 퇴장하도록 연동
                 customer.Initialize(targetSeat, originPos);
-                Debug.Log($"[CustomerManager] 손님이 입구에서 생성되어 좌석({targetSeat.name})으로 이동을 시작합니다.");
+                Debug.Log($"[CustomerManager] 손님({prefabToSpawn.name})이 입구에서 생성되어 좌석({targetSeat.name})으로 이동을 시작합니다.");
             }
         }
 
