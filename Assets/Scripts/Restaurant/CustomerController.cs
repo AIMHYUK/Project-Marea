@@ -23,6 +23,10 @@ namespace Marea.Restaurant
         [Header("식사 설정")]
         [SerializeField] private float eatingDuration = 5.0f;
 
+        [Header("음식 서빙 비주얼 설정")]
+        [SerializeField] private float foodForwardOffset = 0.65f; // 손님 정면 기준 테이블 쪽 거리
+        [SerializeField] private float foodHeightOffset = 0.8f;   // 테이블 상판 높이에 맞출 Y 오프셋
+
         [Header("주문 설정 및 UI")]
         [SerializeField] private List<MenuData> availableMenus;
         [SerializeField] private GameObject orderBubble;
@@ -41,6 +45,7 @@ namespace Marea.Restaurant
         private Seat _assignedSeat;
         private CustomerState _state = CustomerState.WalkingToSeat;
         private MenuData _orderedMenu;
+        private GameObject _spawnedFoodVisual; // 손님 앞에 놓인 서빙 음식 인스턴스
 
         // 주문할 때마다 새 List를 만들지 않으려고 들고 있는 버퍼. 손님 수만큼 쓰레기가
         // 생기는 자리라 인스턴스마다 하나씩 재사용한다. (+9/16)
@@ -75,6 +80,11 @@ namespace Marea.Restaurant
             if (imgAngryFeedback != null) imgAngryFeedback.gameObject.SetActive(false);
             if (imgHappyFeedback != null) imgHappyFeedback.gameObject.SetActive(false);
             if (imgCoinFeedback != null) imgCoinFeedback.gameObject.SetActive(false);
+        }
+
+        private void OnDestroy()
+        {
+            ClearFoodVisual();
         }
 
         public void Initialize(Seat seat, Vector3 exitPoint = default)
@@ -186,7 +196,10 @@ namespace Marea.Restaurant
             _state = CustomerState.Eating;
             Debug.Log("[Customer] 음식을 받았습니다. 식사를 시작합니다.");
 
-            // 긍정 피드백 박수 애니메이션 트리거
+            // 1. 손님 앞 테이블 위치에 서빙된 음식 모델 스폰
+            SpawnFoodVisual(food.menuData);
+
+            // 2. 긍정 피드백 박수 애니메이션 트리거
             if (animator != null)
             {
                 animator.SetTrigger(ParamTriggerClap);
@@ -195,7 +208,34 @@ namespace Marea.Restaurant
             if (BusinessManager.Instance != null)
                 BusinessManager.Instance.RecordServedDish(food.bestGrade, food.finalPrice);
 
+            // 3. 식사 코루틴 시작 (총 5초 유지)
             StartCoroutine(EatAndLeaveRoutine());
+        }
+
+        private void SpawnFoodVisual(MenuData menu)
+        {
+            ClearFoodVisual();
+
+            if (menu == null || menu.ServingPrefab == null)
+            {
+                Debug.LogWarning($"[CustomerController] '{menu?.DisplayName}'의 ServingPrefab이 비어 있어 음식 비주얼 스폰을 건너뜁니다.");
+                return;
+            }
+
+            // 손님이 바라보는 앞쪽 및 테이블 높이 오프셋 적용
+            Vector3 spawnPos = transform.position + (transform.forward * foodForwardOffset) + (Vector3.up * foodHeightOffset);
+            Quaternion spawnRot = transform.rotation;
+
+            _spawnedFoodVisual = Instantiate(menu.ServingPrefab, spawnPos, spawnRot);
+        }
+
+        private void ClearFoodVisual()
+        {
+            if (_spawnedFoodVisual != null)
+            {
+                Destroy(_spawnedFoodVisual);
+                _spawnedFoodVisual = null;
+            }
         }
 
         private IEnumerator RejectAndLeaveRoutine()
@@ -214,19 +254,30 @@ namespace Marea.Restaurant
 
         private IEnumerator EatAndLeaveRoutine()
         {
+            // 주문 아이콘 끄고 만족 피드백 표시
             if (imgOrderIcon != null) imgOrderIcon.gameObject.SetActive(false);
             if (imgAngryFeedback != null) imgAngryFeedback.gameObject.SetActive(false);
             if (imgCoinFeedback != null) imgCoinFeedback.gameObject.SetActive(false);
             if (imgHappyFeedback != null) imgHappyFeedback.gameObject.SetActive(true);
 
+            // 1.5초 동안 만족 피드백 아이콘 보여줌
             yield return new WaitForSeconds(1.5f);
 
+            // 만족 피드백 숨김
             if (orderBubble != null)
             {
                 orderBubble.SetActive(false);
             }
+            if (imgHappyFeedback != null)
+            {
+                imgHappyFeedback.gameObject.SetActive(false);
+            }
 
-            float remainingEatTime = Mathf.Max(0f, eatingDuration - 1.5f);
+            // eatingDuration이 인스펙터에서 0으로 설정되어 있어도 최소 5초는 유지되도록 방어
+            float duration = Mathf.Max(5.0f, eatingDuration);
+            float remainingEatTime = duration - 1.5f;
+
+            // 남은 시간(3.5초) 동안 식사 지속
             yield return new WaitForSeconds(remainingEatTime);
 
             // 식사 완료 시 동전 피드백 활성화 및 효과음 재생
@@ -249,6 +300,7 @@ namespace Marea.Restaurant
 
             Debug.Log("[Customer] 식사를 마치고 퇴장합니다.");
 
+            // 식사 완료 후 퇴장 (음식도 함께 제거됨)
             LeaveRestaurant();
         }
 
@@ -269,6 +321,9 @@ namespace Marea.Restaurant
         private void LeaveRestaurant()
         {
             _state = CustomerState.Leaving;
+
+            // 자리에서 일어날 때 테이블 위의 서빙 음식 정리
+            ClearFoodVisual();
 
             if (orderBubble != null)
             {
@@ -298,6 +353,7 @@ namespace Marea.Restaurant
         private void FinishAndDestroy()
         {
             _state = CustomerState.Finished;
+            ClearFoodVisual();
             Destroy(gameObject);
         }
 
