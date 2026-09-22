@@ -29,6 +29,11 @@ namespace Marea.Restaurant
         [SerializeField] private Image imgOrderIcon;
         [SerializeField] private Image imgAngryFeedback;
         [SerializeField] private Image imgHappyFeedback;
+        [SerializeField] private Image imgCoinFeedback; // 식사 완료 후 결제 동전 아이콘
+
+        [Header("효과음 설정")]
+        [SerializeField] private AudioClip coinSoundClip; // 결제 시 재생할 사운드
+        [SerializeField] private AudioSource audioSource;  // 사운드 재생용 컴포넌트
 
         [Header("애니메이션 설정")]
         [SerializeField] private Animator animator;
@@ -61,9 +66,15 @@ namespace Marea.Restaurant
                 animator = GetComponentInChildren<Animator>();
             }
 
+            if (audioSource == null)
+            {
+                audioSource = GetComponent<AudioSource>();
+            }
+
             if (orderBubble != null) orderBubble.SetActive(false);
             if (imgAngryFeedback != null) imgAngryFeedback.gameObject.SetActive(false);
             if (imgHappyFeedback != null) imgHappyFeedback.gameObject.SetActive(false);
+            if (imgCoinFeedback != null) imgCoinFeedback.gameObject.SetActive(false);
         }
 
         public void Initialize(Seat seat, Vector3 exitPoint = default)
@@ -138,6 +149,7 @@ namespace Marea.Restaurant
 
             if (imgAngryFeedback != null) imgAngryFeedback.gameObject.SetActive(false);
             if (imgHappyFeedback != null) imgHappyFeedback.gameObject.SetActive(false);
+            if (imgCoinFeedback != null) imgCoinFeedback.gameObject.SetActive(false);
 
             if (imgOrderIcon != null && _orderedMenu != null && _orderedMenu.Icon != null)
             {
@@ -190,6 +202,7 @@ namespace Marea.Restaurant
         {
             if (imgOrderIcon != null) imgOrderIcon.gameObject.SetActive(false);
             if (imgHappyFeedback != null) imgHappyFeedback.gameObject.SetActive(false);
+            if (imgCoinFeedback != null) imgCoinFeedback.gameObject.SetActive(false);
             if (imgAngryFeedback != null) imgAngryFeedback.gameObject.SetActive(true);
 
             Debug.LogWarning("[Customer] 잘못된 음식을 받았습니다. 불만을 품고 즉시 퇴장합니다.");
@@ -203,6 +216,7 @@ namespace Marea.Restaurant
         {
             if (imgOrderIcon != null) imgOrderIcon.gameObject.SetActive(false);
             if (imgAngryFeedback != null) imgAngryFeedback.gameObject.SetActive(false);
+            if (imgCoinFeedback != null) imgCoinFeedback.gameObject.SetActive(false);
             if (imgHappyFeedback != null) imgHappyFeedback.gameObject.SetActive(true);
 
             yield return new WaitForSeconds(1.5f);
@@ -215,9 +229,41 @@ namespace Marea.Restaurant
             float remainingEatTime = Mathf.Max(0f, eatingDuration - 1.5f);
             yield return new WaitForSeconds(remainingEatTime);
 
+            // 식사 완료 시 동전 피드백 활성화 및 효과음 재생
+            if (imgHappyFeedback != null) imgHappyFeedback.gameObject.SetActive(false);
+            if (imgCoinFeedback != null) imgCoinFeedback.gameObject.SetActive(true);
+
+            if (orderBubble != null)
+            {
+                orderBubble.SetActive(true);
+            }
+
+            PlayCoinSound();
+
+            yield return new WaitForSeconds(1.2f);
+
+            if (imgCoinFeedback != null)
+            {
+                imgCoinFeedback.gameObject.SetActive(false);
+            }
+
             Debug.Log("[Customer] 식사를 마치고 퇴장합니다.");
 
             LeaveRestaurant();
+        }
+
+        private void PlayCoinSound()
+        {
+            if (coinSoundClip == null) return;
+
+            if (audioSource != null)
+            {
+                audioSource.PlayOneShot(coinSoundClip);
+            }
+            else
+            {
+                AudioSource.PlayClipAtPoint(coinSoundClip, transform.position);
+            }
         }
 
         private void LeaveRestaurant()

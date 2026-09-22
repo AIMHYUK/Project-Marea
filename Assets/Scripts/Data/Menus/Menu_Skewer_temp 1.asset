@@ -15,6 +15,9 @@ MonoBehaviour:
   id: 101
   displayName: "\uC591\uD30C\uAF2C\uCE58"
   menuTier: 0
+  basePrice: 100
+  isActive: 0
+  miniGameId: 1
   recipe:
   - ingredient: {fileID: 11400000, guid: 70d5fec2a4e446038e3e7dd0bc7e620e, type: 2}
     requiredAmount: 1
@@ -31,8 +34,5 @@ MonoBehaviour:
   - ingredient: {fileID: 11400000, guid: 70d5fec2a4e446038e3e7dd0bc7e620e, type: 2}
     requiredAmount: 1
     inputOrder: 5
-  basePrice: 100
-  isActive: 1
-  miniGameId: 1
-  icon: {fileID: 21300000, guid: 31aaeccb9d1f87041a491a1d0c5498dc, type: 3}
   servingPrefab: {fileID: 4978157370354158506, guid: 6ecb18b12840eff47ab59468778fa22f, type: 3}
+  icon: {fileID: 21300000, guid: 31aaeccb9d1f87041a491a1d0c5498dc, type: 3}
