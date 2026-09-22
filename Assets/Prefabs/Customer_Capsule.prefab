@@ -362,7 +362,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e56ee89b50a36e34f85772dda6e7b74b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Restaurant.CustomerController
-  eatingDuration: 5
+  eatingDuration: 8
+  foodForwardOffset: 1
+  foodHeightOffset: 1
   availableMenus:
   - {fileID: 11400000, guid: 74e4259cee3a04243b2d871e99a73bb5, type: 2}
   - {fileID: 11400000, guid: e57e146bf75fd6740a034dad4f04ecc9, type: 2}
@@ -465,15 +467,7 @@ Animator:
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_AnimatePhysics: 0
-  m_WarningMessage: "\nBinding warning: Some generic clip(s) animate transforms that
-    are already bound by a Humanoid avatar. These transforms can only be changed
-    by Humanoid clips.\n\tTransform 'mixamorig:Hips'\n\tTransform 'mixamorig:LeftFoot'\n\tTransform
-    'mixamorig:LeftHandIndex1'\n\tTransform 'mixamorig:Spine1'\n\tTransform 'mixamorig:LeftToeBase'\n\tTransform
-    'mixamorig:RightArm'\n\tTransform 'mixamorig:LeftLeg'\n\tTransform 'mixamorig:LeftShoulder'\n\tTransform
-    'mixamorig:RightHandIndex3'\n\tTransform 'mixamorig:RightFoot'\n\tand more ...\n\tFrom
-    animation clip 'AN_Npc_01_Sitting'\n\tFrom animation clip 'AN_Npc_01_Stand_To_Sit'\n\tFrom
-    animation clip 'AN_Npc01_Standing'\n\tFrom animation clip 'AN_Npc_01_Walking'\n\tFrom
-    animation clip 'AN_Npc_01_Sitting_Clap'"
+  m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
