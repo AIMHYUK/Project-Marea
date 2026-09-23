@@ -23,18 +23,37 @@ namespace Marea.Core
         private Action _onArrived;
         private Action _onFailed;
         private bool _allowPartialPath;
+        private Vector3 _lastPosition;
 
         /// <summary>목적지를 향해 걷는 중인가. MoveBy로 미는 건 여기 안 잡힌다.</summary>
         public bool IsMoving { get; private set; }
+
+        /// <summary>
+        /// 지금 실제 평면 이동 속도(m/s). 로코모션 애니메이션이 읽는다. (+9/23)
+        ///
+        /// moveSpeed(설정된 최대치)가 아니라 실측값이다. 목적지 이동은 가감속·도착 감속으로
+        /// 실제 속도가 0..moveSpeed를 오가고, 아날로그 입력·run이 들어오면 또 달라진다 —
+        /// 블렌드 트리엔 "지금 몇 m/s"가 필요하지 최대치가 아니다. WASD든 목적지 이동이든
+        /// 결과는 transform 이동이라, 위치 변화로 재면 두 경로가 한 값으로 잡힌다.
+        /// </summary>
+        public float CurrentSpeed { get; private set; }
 
         private void Awake()
         {
             _agent = GetComponent<NavMeshAgent>();
             _agent.speed = moveSpeed;
+            _lastPosition = transform.position;
         }
 
         private void Update()
         {
+            // 실제 평면 이동 속도를 위치 변화로 잰다. 매 프레임 한 번 재므로 측정값은 한 프레임
+            // 늦지만 애니메이션엔 안 보인다. CurrentSpeed 주석에 왜 실측인지 적어뒀다. (+9/23)
+            Vector3 delta = transform.position - _lastPosition;
+            delta.y = 0f;
+            CurrentSpeed = Time.deltaTime > 0f ? delta.magnitude / Time.deltaTime : 0f;
+            _lastPosition = transform.position;
+
             if (IsMoving) TickArrival();
         }
 

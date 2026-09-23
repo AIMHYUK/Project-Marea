@@ -36,6 +36,19 @@ namespace Marea.Player
         /// <summary>지금 다른 걸 하고 있는가. B는 이것만 보면 된다.</summary>
         public bool IsBusy => _busyHeld || _state != State.Idle;
 
+        /// <summary>
+        /// 지금 평면 이동 속도(m/s) — 로코모션 애니메이션용이다. PlayerAnimator가 읽어
+        /// 블렌드 트리(Idle→Walk→Run)의 Speed 파라미터로 넘긴다. (+9/23)
+        ///
+        /// 실측은 AgentMover가 한다(이동을 실제로 일으키는 게 걔다). 여기선 그대로 넘긴다.
+        /// State enum이 아니라 실측 속도를 쓰는 이유: State는 gait이 아니라 "지금 뭐 하는
+        /// 모드"고 WASD로 민 직후 Idle로 되돌아간다. 실측이면 그 함정을 피하고, run이 walk보다
+        /// 빠르다는 것 하나로 Walk/Run 구분까지 공짜다 — 신호가 늘지 않는다.
+        ///
+        /// B 계약이 아니다 — B는 여전히 IsBusy만 본다. 이건 A(애니메이션) 몫이다.
+        /// </summary>
+        public float Speed => _mover.CurrentSpeed;
+
         private void Awake()
         {
             _mover = GetComponent<AgentMover>();
