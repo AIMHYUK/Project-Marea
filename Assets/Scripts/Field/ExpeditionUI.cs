@@ -49,37 +49,45 @@ namespace Marea.Field
 
         private void Rebuild()
         {
-            ExpeditionRegionData[] regions = _manager.Regions ?? System.Array.Empty<ExpeditionRegionData>();
+            ExpeditionAreaData[] areas = _manager.Areas ?? System.Array.Empty<ExpeditionAreaData>();
 
-            while (_rows.Count < regions.Length) _rows.Add(Instantiate(rowPrefab, rowParent));
-            for (int i = 0; i < _rows.Count; i++) _rows[i].gameObject.SetActive(i < regions.Length);
+            while (_rows.Count < areas.Length) _rows.Add(Instantiate(rowPrefab, rowParent));
+            for (int i = 0; i < _rows.Count; i++) _rows[i].gameObject.SetActive(i < areas.Length);
 
-            for (int i = 0; i < regions.Length; i++)
+            for (int i = 0; i < areas.Length; i++)
             {
-                ExpeditionRegionData region = regions[i];
+                ExpeditionAreaData area = areas[i];
                 _rows[i].Set(
-                    region.DisplayName,
-                    $"{region.DurationSeconds:0}초   {RewardText(region)}",
+                    area.DisplayName,
+                    $"{area.DurationSeconds:0}초   {RewardText(area)}",
                     "파견",
                     _manager.Current == ExpeditionManager.State.Idle,
-                    () => HandleDispatch(region));
+                    () => HandleDispatch(area));
             }
         }
 
-        private void HandleDispatch(ExpeditionRegionData region)
+        private void HandleDispatch(ExpeditionAreaData area)
         {
-            if (_manager != null && _manager.TryDispatch(region)) Close();
+            if (_manager != null && _manager.TryDispatch(area)) Close();
         }
 
+        /// <summary>
+        /// 기획 8 「획득 가능한 주요 보상」. 후보 이름과 수량 범위를 늘어놓는다 — "생선 2~4, 당근 1~2".
+        /// 한 번에 이 중 하나만 들어온다는 건 창에 안 적었다. 문구는 기획이 정하면 바꾼다.
+        /// </summary>
         // 기호를 안 쓴다 — Pretendard-Bold SDF에 ·, × 가 없어 TMP가 조용히 지운다 (FacilityCell과 같은 이유).
-        private static string RewardText(ExpeditionRegionData region)
+        private static string RewardText(ExpeditionAreaData area)
         {
+            if (area.RewardGroup == null) return string.Empty;
+
             var sb = new StringBuilder();
-            foreach (RecipeEntry reward in region.Rewards)
+            foreach (ExpeditionRewardEntry e in area.RewardGroup.Entries)
             {
-                if (reward.ingredient == null) continue;
+                if (e.item == null || e.weight <= 0f) continue;
                 if (sb.Length > 0) sb.Append(", ");
-                sb.Append(reward.ingredient.DisplayName).Append(' ').Append(reward.requiredAmount);
+                int max = Mathf.Max(e.amountMin, e.amountMax);
+                sb.Append(e.item.DisplayName).Append(' ').Append(e.amountMin);
+                if (max != e.amountMin) sb.Append('~').Append(max);
             }
             return sb.ToString();
         }

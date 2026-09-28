@@ -10,14 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a367053fadaed41438025adb490380f4, type: 3}
-  m_Name: Region_FarSea
+  m_Name: Area_FarSea
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.ExpeditionRegionData
-  displayName: "\uBA3C \uBC14\uB2E4"
+  id: 2
   durationSeconds: 40
-  rewards:
-  - ingredient: {fileID: 11400000, guid: e6e82f0a043244799c31067b36197fc9, type: 2}
-    requiredAmount: 5
-    inputOrder: 0
-  - ingredient: {fileID: 11400000, guid: df2846a9ba45b9e488a41ace90727dca, type: 2}
-    requiredAmount: 2
-    inputOrder: 0
+  rewardGroup: {fileID: 11400000, guid: 0b0bee7619f6fc7478873444a7576acb, type: 2}
+  displayName: "\uBA3C \uBC14\uB2E4"

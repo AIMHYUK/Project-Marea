@@ -2,6 +2,7 @@ using Marea.Core;
 using Marea.Data;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Marea.Field
 {
@@ -18,8 +19,9 @@ namespace Marea.Field
     {
         public enum State { Idle, Away, Returned }
 
-        [Tooltip("갈 수 있는 지역. 지역 선택 창에 이 순서대로 뜬다.")]
-        [SerializeField] private ExpeditionRegionData[] regions;
+        [Tooltip("갈 수 있는 해역. 지역 선택 창에 이 순서대로 뜬다.")]
+        [FormerlySerializedAs("regions")]
+        [SerializeField] private ExpeditionAreaData[] areas;
 
         [Tooltip("탐사 중에 사라질 배. 선착장 발판은 여기 넣지 않는다.")]
         [SerializeField] private GameObject boat;
@@ -31,19 +33,19 @@ namespace Marea.Field
         [SerializeField] private GameObject returnedMarker;
 
         private ExpeditionUI _ui;
-        private ExpeditionRegionData _current;
+        private ExpeditionAreaData _current;
         private float _returnAt;
         private Camera _cam;
 
         public State Current { get; private set; } = State.Idle;
-        public ExpeditionRegionData[] Regions => regions;
+        public ExpeditionAreaData[] Areas => areas;
 
         private void Awake()
         {
             _ui = FindAnyObjectByType<ExpeditionUI>(FindObjectsInactive.Include);
 
-            if (regions == null || regions.Length == 0)
-                Debug.LogError($"{name}: ExpeditionManager.regions가 비어 있다. 보낼 곳이 없다.", this);
+            if (areas == null || areas.Length == 0)
+                Debug.LogError($"{name}: ExpeditionManager.areas가 비어 있다. 보낼 곳이 없다.", this);
             if (boat == null)
                 Debug.LogError($"{name}: ExpeditionManager.boat가 비어 있다. 파견해도 배가 안 사라진다.", this);
             if (_ui == null)
@@ -96,13 +98,13 @@ namespace Marea.Field
             }
         }
 
-        /// <summary>이 지역으로 보낸다. 대기가 아니면 false.</summary>
-        public bool TryDispatch(ExpeditionRegionData region)
+        /// <summary>이 해역으로 보낸다. 대기가 아니면 false.</summary>
+        public bool TryDispatch(ExpeditionAreaData area)
         {
-            if (Current != State.Idle || region == null) return false;
+            if (Current != State.Idle || area == null) return false;
 
-            _current = region;
-            _returnAt = Time.time + region.DurationSeconds;
+            _current = area;
+            _returnAt = Time.time + area.DurationSeconds;
             Current = State.Away;
             Show();
             return true;
@@ -118,8 +120,18 @@ namespace Marea.Field
                 return;
             }
 
-            foreach (RecipeEntry reward in _current.Rewards)
-                if (reward.ingredient != null) warehouse.Add(reward.ingredient, reward.requiredAmount);
+            // 보상 그룹에서 가중치로 한 줄을 뽑는다. 몇 번 뽑는지는 기획에 없어서 한 번이다 (ExpeditionRewardData).
+            ExpeditionRewardData group = _current.RewardGroup;
+            if (group != null && group.TryPick(Random.value, out ExpeditionRewardEntry picked))
+            {
+                int max = Mathf.Max(picked.amountMin, picked.amountMax);
+                warehouse.Add(picked.item, Random.Range(picked.amountMin, max + 1));
+            }
+            else
+            {
+                // 빈손으로 대기로 돌린다. 그룹이 비었다고 탐사정을 귀환 상태에 묶어두면 다시 못 보낸다.
+                Debug.LogError($"{name}: '{_current.name}'의 보상 그룹이 비었거나 가중치 합이 0이다. 보상 없이 대기로 돌린다.", _current);
+            }
 
             _current = null;
             Current = State.Idle;

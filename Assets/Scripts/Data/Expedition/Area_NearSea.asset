@@ -10,11 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a367053fadaed41438025adb490380f4, type: 3}
-  m_Name: Region_NearSea
+  m_Name: Area_NearSea
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.ExpeditionRegionData
-  displayName: "\uAC00\uAE4C\uC6B4 \uBC14\uB2E4"
+  id: 1
   durationSeconds: 20
-  rewards:
-  - ingredient: {fileID: 11400000, guid: e6e82f0a043244799c31067b36197fc9, type: 2}
-    requiredAmount: 3
-    inputOrder: 0
+  rewardGroup: {fileID: 11400000, guid: eecea5e4d5573284384dff523e442d5a, type: 2}
+  displayName: "\uAC00\uAE4C\uC6B4 \uBC14\uB2E4"
