@@ -57,6 +57,8 @@ namespace Marea.Field
 
         public override bool CanInteract(IInteractor actor) => IsReady;
 
+        public override string InteractLabel(IInteractor actor) => "열기";   // (+9/28, 이슈 75)
+
         public override void Interact(IInteractor actor)
         {
             if (!IsReady) return;

@@ -30,6 +30,8 @@ namespace Marea.Field
             => _site != null && _ui != null
             && FacilityLevels.Instance != null && !FacilityLevels.Instance.IsUnlocked(_site.Kind);
 
+        public override string InteractLabel(IInteractor actor) => "해금";   // (+9/28, 이슈 75)
+
         public override void Interact(IInteractor actor)
         {
             if (CanInteract(actor)) _ui.Open(_site.Kind);
