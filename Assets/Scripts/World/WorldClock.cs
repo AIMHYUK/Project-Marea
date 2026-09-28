@@ -24,7 +24,12 @@ namespace Marea.World
     /// DontDestroyOnLoad 는 일부러 안 붙였다. 프로젝트에 아직 SceneManager.LoadScene 이
     /// 한 군데도 없어서 지금은 하는 일이 없고, 나중에 씬 전환이 생기면 살아남아야 하는 건
     /// 이 숫자들이지 씬 참조를 든 조명 쪽이 아니다. 그때 여기에만 붙인다.
+    ///
+    /// 실행 순서를 앞당긴 이유 (+9/28): WorldClockUI는 OnEnable에서 Instance를 찾는다.
+    /// 둘이 다른 프리팹(PF_Systems · PF_AUI)으로 갈리면 인스펙터 참조가 없어서, 이게 늦게
+    /// 깨어나면 "WorldClock을 못 찾았다"가 난다. 빈 씬에 두 프리팹만 놓아서 재현했다.
     /// </summary>
+    [DefaultExecutionOrder(-100)]
     public class WorldClock : MonoBehaviour
     {
         public static WorldClock Instance { get; private set; }
