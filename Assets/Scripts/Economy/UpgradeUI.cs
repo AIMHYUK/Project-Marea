@@ -78,6 +78,7 @@ namespace Marea.Economy
             BuildCells();
 
             _levels.OnLevelChanged += HandleLevelChanged;
+            _levels.OnUnlocked += HandleUnlocked;
             if (_wallet != null) _wallet.OnGoldChanged += HandleGoldChanged;
 
             RefreshAll();
@@ -88,6 +89,7 @@ namespace Marea.Economy
         private void OnDestroy()
         {
             if (_levels != null) _levels.OnLevelChanged -= HandleLevelChanged;
+            if (_levels != null) _levels.OnUnlocked -= HandleUnlocked;
             if (_wallet != null) _wallet.OnGoldChanged -= HandleGoldChanged;
         }
 
@@ -123,11 +125,15 @@ namespace Marea.Economy
         {
             // 실패해도 조용하다 — 버튼이 이미 비활성이라 여기 오는 실패는 드물고,
             // 온다면 그 사이에 골드가 줄어든 경우다. 갱신하면 버튼이 알아서 꺼진다.
-            FacilityUpgrade.TryUpgrade(kind);
+            // 잠긴 시설은 같은 버튼이 해금을 한다 (+9/28, 이슈 71).
+            if (_levels.IsUnlocked(kind)) FacilityUpgrade.TryUpgrade(kind);
+            else FacilityUpgrade.TryUnlock(kind);
             RefreshAll();
         }
 
         private void HandleLevelChanged(FacilityKind kind, int level) => RefreshAll();
+
+        private void HandleUnlocked(FacilityKind kind) => RefreshAll();
 
         private void HandleGoldChanged(int gold) => RefreshAll();
 
