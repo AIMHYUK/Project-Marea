@@ -249,7 +249,7 @@ GameObject:
   - component: {fileID: 7598478268969281383}
   - component: {fileID: 8412886963872390515}
   m_Layer: 0
-  m_Name: Customer_Capsule
+  m_Name: PF_Customer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -365,8 +365,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Restaurant.CustomerController
   eatingDuration: 8
-  foodForwardOffset: 1
-  foodHeightOffset: 0.5
+  sitAlignDuration: 0.35
+  foodForwardOffset: 0.75
+  foodHeightOffset: 1
+  foodScale: 0.7
   availableMenus:
   - {fileID: 11400000, guid: 74e4259cee3a04243b2d871e99a73bb5, type: 2}
   - {fileID: 11400000, guid: e57e146bf75fd6740a034dad4f04ecc9, type: 2}
@@ -869,7 +871,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5091e0ddac783d44ab0947daf7901ef9, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.25503
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5091e0ddac783d44ab0947daf7901ef9, type: 3}
       propertyPath: m_LocalRotation.w
