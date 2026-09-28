@@ -112,6 +112,9 @@ MonoBehaviour:
   carriedIcon: {fileID: 0}
   handoffRadius: 1.8
   navSampleRadius: 4
+  tripChance: 0.15
+  tripPenalty: 50
+  tripSeconds: 6.6
 --- !u!114 &3907892234922634544
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -195,18 +198,38 @@ PrefabInstance:
       objectReference: {fileID: 9100000, guid: 3f1c7a5e9b2d4c84a9e6f0d1b7c35a28, type: 2}
     - target: {fileID: 5866666021909216657, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}
       propertyPath: m_ApplyRootMotion
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8632499244032258245}
   m_SourcePrefab: {fileID: 100100000, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}
 --- !u!95 &631552232356548481 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}
   m_PrefabInstance: {fileID: 6460744348844110352}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6154244829539340097 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}
+  m_PrefabInstance: {fileID: 6460744348844110352}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8632499244032258245
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6154244829539340097}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dca7d9e9901a7e459eff20e3bda312f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.ServingStaffRootMotion
 --- !u!4 &6783430099640931835 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}

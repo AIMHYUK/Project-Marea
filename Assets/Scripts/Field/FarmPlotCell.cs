@@ -41,6 +41,10 @@ namespace Marea.Field
 
         public override bool CanInteract(IInteractor actor) => _manager != null && _manager.CanInteract(this);
 
+        // (+9/28, 이슈 75) 성장 중엔 CanInteract가 false라 라벨이 안 뜬다.
+        public override string InteractLabel(IInteractor actor)
+            => _manager != null && _manager.StateOf(this) == FarmManager.PlotState.Ready ? "수확" : "심기";
+
         public override void Interact(IInteractor actor)
         {
             if (_manager != null) _manager.Interact(this);

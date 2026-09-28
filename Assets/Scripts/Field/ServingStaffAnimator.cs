@@ -18,17 +18,24 @@ namespace Marea.Field
     {
         private const string StateParam = "State";
 
+        // (+9/28, 이슈 76) Tripped 는 State 값만으로 들어가면 안 된다 — Any State 전환이
+        // "State == 4" 를 계속 만족해서 넘어짐 → 일어남으로 넘어가자마자 다시 넘어짐으로 끌려온다.
+        // 들어갈 때만 이 트리거를 쏘고, State = 4 는 다른 Any 전환(0~3)을 막는 데만 쓴다.
+        private const string TripParam = "Trip";
+
         [Tooltip("비워두면 자식에서 찾는다. 캐릭터 모델이 자식으로 들어가는 구조라 대개 자동으로 잡힌다.")]
         [SerializeField] private Animator animator;
 
         private ServingStaff _staff;
         private int _stateHash;
+        private int _tripHash;
         private int _lastSent = -1;
 
         private void Awake()
         {
             _staff = GetComponent<ServingStaff>();
             _stateHash = Animator.StringToHash(StateParam);
+            _tripHash = Animator.StringToHash(TripParam);
 
             if (animator == null) animator = GetComponentInChildren<Animator>();
         }
@@ -73,6 +80,7 @@ namespace Marea.Field
             if (now == _lastSent) return;
 
             animator.SetInteger(_stateHash, now);
+            if (_staff.Current == ServingStaff.State.Tripped) animator.SetTrigger(_tripHash);
             _lastSent = now;
         }
     }

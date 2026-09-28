@@ -1,4 +1,5 @@
 using Marea.Core;
+using Marea.Economy;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -25,8 +26,11 @@ namespace Marea.Field
         ///
         /// Returning 은 배달을 끝내고 픽업대로 빈손으로 걸어 돌아가는 중이다. (+9/23)
         /// 일이 없는 상태이므로 여기서도 새 작업을 받는다 — Idle 과 같이 취급하는 자리가 있다.
+        ///
+        /// Tripped 는 배달 중에 넘어져 음식을 잃고 일어나는 중이다. (+9/28, 이슈 76)
+        /// DeliverTarget 이 null이라 B는 그 손님에게 다시 조리한 음식을 배정할 수 있다.
         /// </summary>
-        public enum State { Idle = 0, ToPickup = 1, ToTarget = 2, Returning = 3 }
+        public enum State { Idle = 0, ToPickup = 1, ToTarget = 2, Returning = 3, Tripped = 4 }
 
         [Tooltip("작업을 받아올 게시판. 자동으로 못 찾으니 반드시 넣어야 한다 — "
                + "비면 OnEnable에서 에러를 내고 이 직원은 서빙을 하지 않는다. (+9/8)")]
@@ -42,6 +46,17 @@ namespace Marea.Field
         [Tooltip("대상 발밑이 NavMesh 밖일 때, 이 반경 안에서 가장 가까운 NavMesh 점을 목적지로 삼는다.")]
         [SerializeField, Min(0.1f)] private float navSampleRadius = 4f;
 
+        [Header("넘어짐 (+9/28, 이슈 76)")]
+        [Tooltip("음식을 들고 가는 배달 한 번마다 넘어질 확률 (0~1). 한 번만 판정한다.")]
+        [SerializeField, Range(0f, 1f)] private float tripChance = 0.15f;
+
+        [Tooltip("넘어지면 지갑에서 빠지는 골드. 잔액이 모자라면 있는 만큼만 빠진다.")]
+        [SerializeField, Min(0)] private int tripPenalty = 50;
+
+        [Tooltip("넘어져서 다시 움직일 때까지 초. AC_ServingStaff 의 Tripping(2.8초) + "
+               + "Standing Up(11.4초, 3배속 ≈ 3.8초)에 맞췄다.")]
+        [SerializeField, Min(0.1f)] private float tripSeconds = 6.6f;
+
         private AgentMover _mover;
         private State _state = State.Idle;
         private ServeTask _task;
@@ -52,6 +67,15 @@ namespace Marea.Field
         /// 처음부터 좌표 배달이었던 것을 구분할 수 없다.
         /// </summary>
         private bool _expectTarget;
+
+        // 넘어짐 (+9/28). 판정은 픽업을 마치고 배달을 떠날 때 한 번 한다.
+        private bool _tripPending;
+        private float _tripAt;
+        private float _tripEndsAt;
+        private float _penaltyLabelUntil;
+        private string _penaltyText;
+        private WorldLabelUI _labels;
+        private NavMeshAgent _agent;
 
         /// <summary>
         /// 지금 상태. ServingStaffAnimator 가 이것만 읽어서 Animator 에 넘긴다 (+9/22).
@@ -77,6 +101,8 @@ namespace Marea.Field
         private void Awake()
         {
             _mover = GetComponent<AgentMover>();
+            _agent = GetComponent<NavMeshAgent>();
+            _labels = FindAnyObjectByType<WorldLabelUI>(FindObjectsInactive.Include);
             ShowIcon(null);
         }
 
@@ -105,6 +131,22 @@ namespace Marea.Field
 
         private void Update()
         {
+            // 차감 표시는 상태와 상관없이 잠깐 띄운다. 씬에 WorldLabelUI가 없으면 표시만 빠진다.
+            if (_labels != null && Time.time < _penaltyLabelUntil)
+                _labels.Set(this, transform.position + Vector3.up * 2.2f, _penaltyText);
+
+            if (_state == State.Tripped)
+            {
+                if (Time.time >= _tripEndsAt) EndTrip();
+                return;
+            }
+
+            if (_state == State.ToTarget && _tripPending && Time.time >= _tripAt)
+            {
+                Trip();
+                return;
+            }
+
             if (_state != State.ToTarget || !_expectTarget) return;
 
             // 손님이 식사를 끝내고 Destroy됐다. 들고 있던 음식은 버린다.
@@ -196,9 +238,65 @@ namespace Marea.Field
                 return;
             }
 
-            _mover.GoTo(ResolveDeliverPoint(),
+            Vector3 deliverPoint = ResolveDeliverPoint();
+            RollTrip(deliverPoint);
+
+            _mover.GoTo(deliverPoint,
                 onArrived: OnDeliverArrived,
                 onFailed: OnPathFailed);
+        }
+
+        /// <summary>
+        /// 이번 배달에서 넘어질지 한 번 정한다 (+9/28, 이슈 76). 넘어진다면 가는 길 30~70% 지점쯤.
+        /// 경로 길이 대신 직선거리를 쓴다 — 경로는 GoTo 뒤에야 나오고, 시점이 조금 어긋나도 상관없다.
+        /// 도착이 먼저 오면 CompleteDelivery가 _tripPending을 지워서 안 넘어진다.
+        /// </summary>
+        private void RollTrip(Vector3 deliverPoint)
+        {
+            _tripPending = Random.value < tripChance;
+            if (!_tripPending) return;
+
+            float speed = _agent != null && _agent.speed > 0.01f ? _agent.speed : 3.5f;
+            float travel = Vector3.Distance(transform.position, deliverPoint) / speed;
+            _tripAt = Time.time + travel * Random.Range(0.3f, 0.7f);
+        }
+
+        /// <summary>
+        /// 넘어졌다. 음식을 잃는다 — 작업을 버리면 DeliverTarget이 null이 되어, B가 다음 조리분을
+        /// 그 손님에게 다시 배정한다. 손님은 OnDelivered가 올 때까지 그냥 기다린다. (+9/28, 이슈 76)
+        /// 골드는 넘어지는 순간 뺀다. Wallet은 0 아래로 안 가서 모자라면 있는 만큼만.
+        /// </summary>
+        private void Trip()
+        {
+            _tripPending = false;
+            _mover.Stop();
+            ShowIcon(null);
+            _task = default;
+            _expectTarget = false;
+            _state = State.Tripped;
+            _tripEndsAt = Time.time + tripSeconds;
+
+            Wallet wallet = Wallet.Instance;
+            if (wallet == null)
+            {
+                Debug.LogError("[ServingStaff] 씬에 Wallet이 없다. 넘어졌는데 골드를 못 뺐다.", this);
+                return;
+            }
+
+            int paid = Mathf.Min(wallet.Gold, tripPenalty);
+            if (paid > 0 && wallet.TrySpend(paid))
+            {
+                _penaltyText = $"-{paid}G";
+                _penaltyLabelUntil = Time.time + 2f;
+            }
+        }
+
+        /// <summary>일어났다. 큐에 다음 일이 있으면 받고, 없으면 픽업대로 돌아간다 (CompleteDelivery와 같은 끝).</summary>
+        private void EndTrip()
+        {
+            _state = State.Idle;
+            TryStartNext();
+            if (_state == State.Idle) GoReturn();
         }
 
         /// <summary>
@@ -265,6 +363,7 @@ namespace Marea.Field
         {
             ServeTask done = _task;
 
+            _tripPending = false;   // (+9/28) 넘어지기 전에 도착했다
             _mover.Stop();
             ShowIcon(null);
             _task = default;
@@ -282,6 +381,7 @@ namespace Marea.Field
 
         /// <summary>
         /// 빈손으로 픽업대까지 걸어 돌아간다. 배달을 성공으로 끝냈을 때만 탄다. (+9/23)
+        /// (+9/28) 넘어졌다 일어난 뒤에도 탄다(EndTrip) — 경로 실패가 아니라 돌아갈 길은 있다.
         ///
         /// 실패(DropTask)에서는 부르지 않는다. 경로를 못 만들어서 버린 상황이라면
         /// 돌아가는 경로도 대개 실패하고, 그때마다 로그가 두 번씩 쌓인다.
@@ -322,6 +422,7 @@ namespace Marea.Field
         /// </summary>
         private void DropTask()
         {
+            _tripPending = false;
             _mover.Stop();
             ShowIcon(null);
             _task = default;

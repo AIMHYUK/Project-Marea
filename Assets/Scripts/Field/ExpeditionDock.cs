@@ -22,6 +22,10 @@ namespace Marea.Field
 
         public override bool CanInteract(IInteractor actor) => _manager != null && _manager.CanInteract;
 
+        // (+9/28, 이슈 75) 탐사 중엔 CanInteract가 false라 라벨이 안 뜬다.
+        public override string InteractLabel(IInteractor actor)
+            => _manager != null && _manager.Current == ExpeditionManager.State.Returned ? "보상 받기" : "파견";
+
         public override void Interact(IInteractor actor)
         {
             if (_manager != null) _manager.Interact();
