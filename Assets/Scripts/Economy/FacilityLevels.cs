@@ -33,9 +33,13 @@ namespace Marea.Economy
 
         private readonly Dictionary<FacilityKind, FacilityData> _data = new();
         private readonly Dictionary<FacilityKind, int> _levels = new();
+        private readonly HashSet<FacilityKind> _unlocked = new();   // (+9/28)
 
         /// <summary>(시설, 오른 뒤 레벨). UI가 구독한다.</summary>
         public event Action<FacilityKind, int> OnLevelChanged;
+
+        /// <summary>(+9/28) 방금 해금된 시설. UI와 월드 오브젝트가 구독한다.</summary>
+        public event Action<FacilityKind> OnUnlocked;
 
         private void Awake()
         {
@@ -74,6 +78,7 @@ namespace Marea.Economy
 
                     _data[data.Kind] = data;
                     _levels[data.Kind] = FacilityData.MinLevel;
+                    if (data.StartsUnlocked) _unlocked.Add(data.Kind);
                 }
             }
 
@@ -140,6 +145,24 @@ namespace Marea.Economy
             int next = LevelOf(kind) + 1;
             _levels[kind] = next;
             OnLevelChanged?.Invoke(kind, next);
+            return true;
+        }
+
+        // ── 해금 (+9/28, 이슈 71). 레벨과 별개 축이다 — 잠긴 시설도 레벨은 1로 들고 있고,
+        //    해금 뒤 업그레이드는 기존 경로 그대로다. B는 이걸 안 읽는다.
+
+        /// <summary>열려 있나. 에셋이 없으면 false.</summary>
+        public bool IsUnlocked(FacilityKind kind) => _unlocked.Contains(kind);
+
+        /// <summary>
+        /// 연다. 이미 열렸거나 에셋이 없으면 false. 골드·선행 조건은 여기서 안 본다 —
+        /// FacilityUpgrade.TryUnlock이 먼저 본다 (TryRaiseLevel과 같은 분담).
+        /// </summary>
+        public bool TryUnlock(FacilityKind kind)
+        {
+            if (DataOf(kind) == null || !_unlocked.Add(kind)) return false;
+
+            OnUnlocked?.Invoke(kind);
             return true;
         }
 
