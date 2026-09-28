@@ -38,6 +38,7 @@ namespace Marea.Field
 
         private readonly Dictionary<FarmPlotCell, Plot> _plots = new();
         private SeedSelectUI _ui;
+        private WorldLabelUI _labels;
 
         public IReadOnlyList<CropData> Crops => crops;
 
@@ -45,6 +46,7 @@ namespace Marea.Field
         {
             if (plots == null || plots.Length == 0) plots = GetComponentsInChildren<FarmPlotCell>(true);
             _ui = FindAnyObjectByType<SeedSelectUI>(FindObjectsInactive.Include);
+            _labels = FindAnyObjectByType<WorldLabelUI>(FindObjectsInactive.Include);
 
             if (crops == null || crops.Length == 0)
                 Debug.LogError($"{name}: FarmManager.crops가 비어 있다. 빈 밭을 눌러도 심을 게 없다.", this);
@@ -52,6 +54,8 @@ namespace Marea.Field
                 Debug.LogError($"{name}: 밭 칸(FarmPlotCell)이 하나도 없다.", this);
             if (_ui == null)
                 Debug.LogError($"{name}: 씬에 SeedSelectUI가 없다. 빈 밭을 눌러도 작물 선택 창이 안 뜬다.", this);
+            if (_labels == null)
+                Debug.LogError($"{name}: 씬에 WorldLabelUI가 없다. 밭의 남은 시간이 안 뜬다.", this);
 
             foreach (FarmPlotCell cell in plots)
             {
@@ -72,6 +76,11 @@ namespace Marea.Field
                 if (t < 1f)
                 {
                     pair.Key.ShowGrowing(t);
+
+                    // (+9/28) 남은 시간. 성장 중인 동안만 부른다 — 다 자라면 수확 표식이 대신한다.
+                    if (_labels != null)
+                        _labels.Set(pair.Key, pair.Key.transform.position + Vector3.up * 1.2f,
+                                    TimeText.Format(plot.PlantedAt + plot.Crop.GrowSeconds - Time.time));
                     continue;
                 }
 
