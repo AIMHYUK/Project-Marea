@@ -4,7 +4,7 @@ namespace Marea.Restaurant
 {
     public class Seat : MonoBehaviour
     {
-        [Header("ì°©ì„ ìœ„ì¹˜ ê¸°ì¤€ì ")]
+        [Header("Âø¼® À§Ä¡ ±âÁØÁ¡")]
         [SerializeField] private Transform sitPoint;
 
         private bool _isOccupied;

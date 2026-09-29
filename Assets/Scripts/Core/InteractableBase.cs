@@ -20,12 +20,6 @@ namespace Marea.Core
 
         public virtual bool CanInteract(IInteractor actor) => true;
 
-        /// <summary>
-        /// 가까이 갔을 때 뜨는 "[E] ○○"의 ○○. 기본은 "상호작용"이다. (+9/28, 이슈 75)
-        /// 상태에 따라 문구가 바뀔 수 있게 속성이 아니라 메서드다 — 빈 밭은 "심기", 다 자란 밭은 "수확".
-        /// </summary>
-        public virtual string InteractLabel(IInteractor actor) => "상호작용";
-
         public abstract void Interact(IInteractor actor);
 
         /// <summary>마우스가 올라왔을 때. 아웃라인 같은 걸 켜고 싶으면 override.</summary>

@@ -48,8 +48,6 @@ namespace Marea.Field
         // ClickSelector가 바닥 이동으로도 흘려보내지 않는다(설계상 클릭 하나에 뜻 하나).
         public override bool CanInteract(IInteractor actor) => IsReady;
 
-        public override string InteractLabel(IInteractor actor) => "영업 시작";   // (+9/28, 이슈 75)
-
         public override void Interact(IInteractor actor)
         {
             BusinessManager manager = BusinessManager.Instance;

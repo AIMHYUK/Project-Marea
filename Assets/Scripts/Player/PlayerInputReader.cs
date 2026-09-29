@@ -31,9 +31,6 @@ namespace Marea.Player
         /// <summary>이번 프레임에 시설 업그레이드 열기(U)가 눌렸는가. (+9/10)</summary>
         public bool UpgradePressed => _actions.Player.Upgrade.WasPressedThisFrame();
 
-        /// <summary>이번 프레임에 가까운 대상과 상호작용(E)이 눌렸는가. (+9/28, 이슈 75)</summary>
-        public bool InteractPressed => _actions.Player.Interact.WasPressedThisFrame();
-
         private void Awake() => _actions = new PlayerInputAction();
 
         private void OnEnable() => _actions.Enable();
