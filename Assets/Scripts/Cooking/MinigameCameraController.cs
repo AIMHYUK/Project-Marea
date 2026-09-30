@@ -1,6 +1,7 @@
 using Marea.Player;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Marea.Cooking
 {
@@ -25,6 +26,15 @@ namespace Marea.Cooking
             {
                 Debug.LogError("[MinigameCameraController] 같은 오브젝트에서 CameraFollow 컴포넌트를 찾지 못했습니다!");
             }
+
+            PhysicsRaycaster raycaster = GetComponent<PhysicsRaycaster>();
+            if (raycaster == null)
+            {
+                raycaster = gameObject.AddComponent<PhysicsRaycaster>();
+            }
+
+            // 게임 시작 시 무조건 비활성화
+            raycaster.enabled = false;
         }
 
         public void MoveToViewPoint(Transform targetViewPoint)

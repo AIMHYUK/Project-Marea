@@ -13,6 +13,15 @@ namespace Marea.Data
     }
 
     /// <summary>
+    /// FishGrill(구이) 카테고리 내부 세부 요리 식별용.
+    /// </summary>
+    public enum FishGrillSubtype
+    {
+        fish, // 고등어 구이
+        Clam,     // 조개 구이
+    }
+
+    /// <summary>
     /// 어느 요리 미니게임을 쓰는가. 기획 MenuData.MiniGameID. (+9/16)
     ///
     /// Marea.Cooking.CookingType과 값이 겹치지만 따로 둔다 — 데이터 계층이 B의 UI 계층을
@@ -92,6 +101,9 @@ namespace Marea.Data
         [Tooltip("기획 MenuData.MiniGameID. 지금은 씬 카테고리와 대조만 한다.")]
         [SerializeField] private MiniGameId miniGameId = MiniGameId.None;
 
+        [Tooltip("FishGrill(구이) 카테고리 내부 세부 미니게임 식별자.")]
+        [SerializeField] private FishGrillSubtype fishGrillSubtype = FishGrillSubtype.fish;
+
         [Tooltip("기획 RecipeData. 투입 순서는 inputOrder가 정한다 — 배열 순서가 아니다.")]
         [SerializeField] private RecipeEntry[] recipe;
 
@@ -109,6 +121,7 @@ namespace Marea.Data
         public int BasePrice => basePrice;
         public bool IsActive => isActive;
         public MiniGameId MiniGameId => miniGameId;
+        public FishGrillSubtype FishGrillSubtype => fishGrillSubtype;
 
         /// <summary>
         /// 레시피 줄 전부. 인스펙터에 적힌 순서 그대로다 — 투입 순서가 필요하면
@@ -118,5 +131,15 @@ namespace Marea.Data
 
         public GameObject ServingPrefab => servingPrefab;
         public Sprite Icon => icon;
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            if (miniGameId != MiniGameId.FishGrill)
+            {
+                fishGrillSubtype = FishGrillSubtype.fish;
+            }
+        }
+#endif
     }
 }
