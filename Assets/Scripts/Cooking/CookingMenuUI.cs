@@ -14,7 +14,7 @@ namespace Marea.Cooking
     public enum CookingType
     {
         Skewer,   // 꼬치 요리
-        Stew,     // 스튜 요리
+        Stew,     // 스튜 요리 (스튜, 야채볶음 등)
         FishGrill // 생선 구이 (또는 스테이크/해산물 구이) 요리
     }
 
@@ -33,13 +33,13 @@ namespace Marea.Cooking
         [SerializeField] private GameObject rootPanel;
         [SerializeField] private Button btnClose;
 
-        [Header("1단계: 카테고리 패널 (꼬치 / 스튜 / 생선구이)")]
+        [Header("카테고리 패널 (꼬치 / 스튜 / 생선구이)")]
         [SerializeField] private GameObject categoryPanel;
         [SerializeField] private Button btnSkewer;
         [SerializeField] private Button btnStew;
         [SerializeField] private Button btnFishGrill;
 
-        [Header("2단계: 세부 메뉴 패널")]
+        [Header("세부 메뉴 패널")]
         [SerializeField] private GameObject subMenuPanel;
         [SerializeField] private Transform cardContainer;
         [SerializeField] private MenuCardSlot cardPrefab;
@@ -51,9 +51,12 @@ namespace Marea.Cooking
         [SerializeField] private SkewerMinigameController skewerMinigameController;
         [SerializeField] private StewMinigameController stewMinigameController;
 
+        [Header("Stew 세부 요리별 컨트롤러")]
+        [SerializeField] private VeggieStirFryMinigameController veggieStirFryController; // 야채 볶음 전용
+
         [Header("FishGrill 세부 요리별 컨트롤러")]
         [SerializeField] private FishGrillMinigameController fishGrillController; // 생선 구이 전용
-        [SerializeField] private ClamGrillMinigameController clamGrillController;         // 조개 구이 전용
+        [SerializeField] private ClamGrillMinigameController clamGrillController; // 조개 구이 전용
 
         [Header("조리대 연동")]
         [SerializeField] private CookingCounter cookingCounter;
@@ -99,6 +102,11 @@ namespace Marea.Cooking
                 stewMinigameController = FindFirstObjectByType<StewMinigameController>(FindObjectsInactive.Include);
             }
 
+            if (veggieStirFryController == null)
+            {
+                veggieStirFryController = FindFirstObjectByType<VeggieStirFryMinigameController>(FindObjectsInactive.Include);
+            }
+
             if (fishGrillController == null)
             {
                 fishGrillController = FindFirstObjectByType<FishGrillMinigameController>(FindObjectsInactive.Include);
@@ -106,7 +114,7 @@ namespace Marea.Cooking
 
             if (clamGrillController == null)
             {
-               // clamGrillController = FindFirstObjectByType<ClamGrillMinigameController>(FindObjectsInactive.Include);
+                // clamGrillController = FindFirstObjectByType<ClamGrillMinigameController>(FindObjectsInactive.Include);
             }
         }
 
@@ -189,7 +197,7 @@ namespace Marea.Cooking
                 txtCategoryTitle.text = type switch
                 {
                     CookingType.Skewer => "꼬치 요리 선택",
-                    CookingType.Stew => "스튜 요리 선택",
+                    CookingType.Stew => "스튜/볶음 요리 선택",
                     CookingType.FishGrill => "구이 요리 선택",
                     _ => "메뉴 선택"
                 };
@@ -298,19 +306,12 @@ namespace Marea.Cooking
                     break;
 
                 case MiniGameId.Stew:
-                    if (stewMinigameController != null)
-                    {
-                        stewMinigameController.StartMinigame(_selectedMenu, OnMinigameFinished);
-                    }
-                    else
-                    {
-                        Debug.LogWarning("[CookingMenuUI] StewMinigameController가 연결되지 않았습니다.");
-                        Close();
-                    }
+                    // Stew 카테고리 내부에서 StewSubtype 기준 세부 미니게임 분기
+                    DispatchStewMenu(_selectedMenu);
                     break;
 
                 case MiniGameId.FishGrill:
-                    // FishGrill 카테고리 내부에서 MenuData의 FishGrillSubtype 기준 분기
+                    // FishGrill 카테고리 내부에서 FishGrillSubtype 기준 세부 미니게임 분기
                     DispatchFishGrillMenu(_selectedMenu);
                     break;
 
@@ -318,6 +319,43 @@ namespace Marea.Cooking
                 default:
                     Debug.LogError($"[CookingMenuUI] '{_selectedMenu.DisplayName}'에 유효한 MiniGameId가 없습니다.");
                     Close();
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// MenuData.StewSubtype Enum 값을 대조하여 기본 스튜 / 야채 볶음 미니게임 컨트롤러 분기
+        /// </summary>
+        private void DispatchStewMenu(MenuData menu)
+        {
+            if (menu == null) return;
+
+            switch (menu.StewSubtype)
+            {
+                case StewSubtype.VeggieStirFry:
+                    if (veggieStirFryController != null)
+                    {
+                        veggieStirFryController.StartMinigame(menu, OnMinigameFinished);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[CookingMenuUI] VeggieStirFryMinigameController가 연결되지 않았습니다.");
+                        Close();
+                    }
+                    break;
+
+                case StewSubtype.SeafoodStew:
+                case StewSubtype.None:
+                default:
+                    if (stewMinigameController != null)
+                    {
+                        stewMinigameController.StartMinigame(menu, OnMinigameFinished);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[CookingMenuUI] StewMinigameController가 연결되지 않았습니다.");
+                        Close();
+                    }
                     break;
             }
         }
@@ -334,7 +372,7 @@ namespace Marea.Cooking
                 case FishGrillSubtype.Clam:
                     if (clamGrillController != null)
                     {
-                       // clamGrillController.StartMinigame(menu, OnMinigameFinished);
+                        // clamGrillController.StartMinigame(menu, OnMinigameFinished);
                     }
                     else
                     {
@@ -344,6 +382,7 @@ namespace Marea.Cooking
                     break;
 
                 case FishGrillSubtype.fish:
+                case FishGrillSubtype.None:
                 default:
                     if (fishGrillController != null)
                     {

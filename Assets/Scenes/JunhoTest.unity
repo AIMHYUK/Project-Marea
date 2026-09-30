@@ -2967,6 +2967,7 @@ GameObject:
   - component: {fileID: 204986633}
   - component: {fileID: 204986632}
   - component: {fileID: 204986631}
+  - component: {fileID: 204986637}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -3122,6 +3123,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 44.28, y: 0, z: 0}
+--- !u!114 &204986637
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 204986630}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c49b4cc203aa6414fae5c798d1d0e7d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.EventSystems.PhysicsRaycaster
+  m_EventMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_MaxRayIntersections: 0
 --- !u!1 &209372862
 GameObject:
   m_ObjectHideFlags: 0
@@ -64161,7 +64178,8 @@ MonoBehaviour:
   btnStartCooking: {fileID: 1953896529}
   skewerMinigameController: {fileID: 1568201299}
   stewMinigameController: {fileID: 1413466269}
-  fishGrillMinigameController: {fileID: 1640253674}
+  veggieStirFryController: {fileID: 0}
+  fishGrillController: {fileID: 0}
   cookingCounter: {fileID: 8164078558985977734}
   categoryDataList:
   - cookingType: 0
@@ -64171,6 +64189,7 @@ MonoBehaviour:
   - cookingType: 1
     subMenus:
     - {fileID: 11400000, guid: dee79e9f0e8d0c1449b59cc88cf8645f, type: 2}
+    - {fileID: 11400000, guid: 3757a907cfff334459933986511e718c, type: 2}
   - cookingType: 2
     subMenus:
     - {fileID: 11400000, guid: 74e4259cee3a04243b2d871e99a73bb5, type: 2}
@@ -78293,7 +78312,6 @@ GameObject:
   - component: {fileID: 1640253679}
   - component: {fileID: 1640253678}
   - component: {fileID: 1640253677}
-  - component: {fileID: 1640253674}
   - component: {fileID: 1640253675}
   m_Layer: 0
   m_Name: FishGrillMinigameUI
@@ -78302,29 +78320,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
---- !u!114 &1640253674
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1640253673}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2fa86250e93d504488738eadd03af96b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.FishGrillMinigameController
-  cameraController: {fileID: 204986631}
-  cameraViewPoint: {fileID: 0}
-  fishVisual: {fileID: 0}
-  minigameUI: {fileID: 1640253675}
-  totalBakeDuration: 6.5
-  perfectMin: 0.65
-  perfectMax: 0.8
-  goodMin: 0.45
-  goodMax: 0.9
-  badMin: 0.3
-  badMax: 0.97
 --- !u!114 &1640253675
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -86186,6 +86181,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 190624656}
     m_Modifications:
+    - target: {fileID: 3072805237684428045, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6763454596524457324, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
       propertyPath: m_Name
       value: CookingTable_MinigameView 1 1
@@ -86229,6 +86228,14 @@ PrefabInstance:
     - target: {fileID: 7628637823069335808, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7788170899010278100, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8614619812855686836, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
