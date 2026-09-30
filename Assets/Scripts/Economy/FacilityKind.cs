@@ -12,5 +12,9 @@ namespace Marea.Economy
         Business,
         Kitchen,
         Storage,
+
+        // (+9/28) 월드에 실물이 있고, 부서진 채 시작해 해금해야 쓰는 시설이다 (이슈 71).
+        Farm,
+        Explorer,
     }
 }

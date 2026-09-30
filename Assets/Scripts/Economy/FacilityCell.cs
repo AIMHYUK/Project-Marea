@@ -49,6 +49,13 @@ namespace Marea.Economy
             FacilityData data = levels != null ? levels.DataOf(Kind) : null;
             if (data == null) return;
 
+            // 잠긴 시설은 레벨 대신 해금 비용을 보인다 (+9/28, 이슈 71).
+            if (!levels.IsUnlocked(Kind))
+            {
+                RefreshLocked(data);
+                return;
+            }
+
             int level = levels.LevelOf(Kind);
             bool isMax = data.IsMaxLevel(level);
             FacilityUpgrade.Result state = FacilityUpgrade.CanUpgrade(Kind);
@@ -72,6 +79,35 @@ namespace Marea.Economy
                 FacilityUpgrade.Result.NotEnoughGold => "골드 부족",
                 _                                    => "설정 오류",
             });
+        }
+
+        private void RefreshLocked(FacilityData data)
+        {
+            FacilityUpgrade.Result state = FacilityUpgrade.CanUnlock(Kind);
+            FacilityKind? missing = FacilityUpgrade.FirstMissingPrerequisite(Kind);
+
+            SetText(levelLabel, "잠김");
+            SetText(nameLabel, NameOf(Kind));
+            SetText(currentLabel, missing != null ? $"먼저 해금   {NameOf(missing.Value)}" : string.Empty);
+            SetText(nextLabel, string.Empty);
+            SetText(costLabel, $"{data.UnlockCost:N0} G");
+
+            if (upgradeButton != null) upgradeButton.interactable = state == FacilityUpgrade.Result.Ok;
+
+            SetText(buttonLabel, state switch
+            {
+                FacilityUpgrade.Result.Ok                  => "해금",
+                FacilityUpgrade.Result.NotEnoughGold       => "골드 부족",
+                FacilityUpgrade.Result.MissingPrerequisite => "선행 필요",
+                _                                          => "설정 오류",
+            });
+        }
+
+        private static string NameOf(FacilityKind kind)
+        {
+            FacilityData data = FacilityLevels.Instance != null ? FacilityLevels.Instance.DataOf(kind) : null;
+            if (data == null) return kind.ToString();
+            return string.IsNullOrWhiteSpace(data.DisplayName) ? data.name : data.DisplayName;
         }
 
         /// <summary>

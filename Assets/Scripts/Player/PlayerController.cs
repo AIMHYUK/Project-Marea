@@ -19,7 +19,7 @@ namespace Marea.Player
         private enum State { Idle, Moving, Interacting }
 
         [Header("이동")]
-        [Tooltip("WASD 방향의 기준. 비워두면 Camera.main을 쓴다.")]
+        [Tooltip("WASD 방향의 기준. 비워두면 Awake에서 Camera.main을 쓴다. 프리팹은 이 칸이 비어 있는 게 정상이다.")]
         [SerializeField] private Transform cameraBasis;
 
         private AgentMover _mover;
@@ -36,10 +36,34 @@ namespace Marea.Player
         /// <summary>지금 다른 걸 하고 있는가. B는 이것만 보면 된다.</summary>
         public bool IsBusy => _busyHeld || _state != State.Idle;
 
+        /// <summary>
+        /// 지금 평면 이동 속도(m/s) — 로코모션 애니메이션용이다. PlayerAnimator가 읽어
+        /// 블렌드 트리(Idle→Walk→Run)의 Speed 파라미터로 넘긴다. (+9/23)
+        ///
+        /// 실측은 AgentMover가 한다(이동을 실제로 일으키는 게 걔다). 여기선 그대로 넘긴다.
+        /// State enum이 아니라 실측 속도를 쓰는 이유: State는 gait이 아니라 "지금 뭐 하는
+        /// 모드"고 WASD로 민 직후 Idle로 되돌아간다. 실측이면 그 함정을 피하고, run이 walk보다
+        /// 빠르다는 것 하나로 Walk/Run 구분까지 공짜다 — 신호가 늘지 않는다.
+        ///
+        /// B 계약이 아니다 — B는 여전히 IsBusy만 본다. 이건 A(애니메이션) 몫이다.
+        /// </summary>
+        public float Speed => _mover.CurrentSpeed;
+
         private void Awake()
         {
             _mover = GetComponent<AgentMover>();
             _input = GetComponent<PlayerInputReader>();
+
+            // 프리팹이 되면 cameraBasis는 반드시 빈다 — 프리팹은 씬 오브젝트를 못 들고
+            // 간다. 그래서 여기서 한 번 잡는다. ClickSelector.cam이 이미 쓰는 방식과 같다. (#49)
+            if (cameraBasis == null && Camera.main != null) cameraBasis = Camera.main.transform;
+
+            // 둘 다 없으면 WASD가 월드 축 기준으로 간다. 증상이 "카메라를 돌려도 앞이
+            // 안 바뀐다"라서 원인이 카메라인지 입력인지 안 보인다.
+            if (cameraBasis == null)
+                Debug.LogError($"{name}: PlayerController.cameraBasis가 비어 있고 Camera.main도 없다. "
+                             + "MainCamera 태그가 붙은 카메라가 씬에 있는지 확인할 것. "
+                             + "WASD 방향이 카메라를 안 따라간다.", this);
         }
 
         private void Update()
@@ -115,14 +139,12 @@ namespace Marea.Player
 
         private Vector3 ToWorldDirection(Vector2 axis)
         {
-            Transform basis = cameraBasis != null ? cameraBasis
-                            : Camera.main != null ? Camera.main.transform
-                            : null;
+            // Awake에서 이미 Camera.main까지 봤다. 여기까지 null이면 씬에 카메라가 없는
+            // 것이고, 그건 Awake가 에러로 알렸다. 매 프레임 Camera.main을 다시 뒤지지 않는다.
+            if (cameraBasis == null) return new Vector3(axis.x, 0f, axis.y).normalized;
 
-            if (basis == null) return new Vector3(axis.x, 0f, axis.y).normalized;
-
-            Vector3 forward = Vector3.ProjectOnPlane(basis.forward, Vector3.up).normalized;
-            Vector3 right = Vector3.ProjectOnPlane(basis.right, Vector3.up).normalized;
+            Vector3 forward = Vector3.ProjectOnPlane(cameraBasis.forward, Vector3.up).normalized;
+            Vector3 right = Vector3.ProjectOnPlane(cameraBasis.right, Vector3.up).normalized;
             return (forward * axis.y + right * axis.x).normalized;
         }
     }

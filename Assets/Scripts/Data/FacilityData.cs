@@ -26,6 +26,23 @@ namespace Marea.Data
         [Tooltip("업그레이드 목록에 보일 이름.")]
         [SerializeField] private string displayName;
 
+        // ── 해금 (+9/28, 이슈 71). 여기 있는 건 정의뿐이다. "지금 해금됐나"는 FacilityLevels가
+        //    든다 — SO에 넣으면 플레이 중에 바뀐 값이 에셋에 그대로 남아 다음 플레이가
+        //    해금된 채로 시작한다 (설계 결정 3).
+
+        [Tooltip("처음부터 열려 있나. 영업·주방·창고는 켠다. 끄면 업그레이드 목록에서 "
+               + "'해금'부터 해야 레벨을 올릴 수 있다.")]
+        [SerializeField] private bool startsUnlocked = true;
+
+        [Tooltip("해금 비용(골드). startsUnlocked면 안 읽는다.")]
+        [SerializeField, Min(0)] private int unlockCost;
+
+        [Tooltip("이것들이 먼저 해금돼 있어야 해금할 수 있다. 비워두면 조건 없음.")]
+        [SerializeField] private FacilityKind[] prerequisites;
+
+        [Tooltip("해금 창에 보일 「해금 후 이용 가능한 기능」. 기획 7-2 해금 대상 선택 2번. (+9/28)")]
+        [SerializeField, TextArea(2, 4)] private string unlockDescription;
+
         [Tooltip("레벨을 올리는 데 드는 골드. 0번이 1→2레벨 비용이다. "
                + "칸 수가 곧 상한을 정한다 — 3칸이면 최대 4레벨.")]
         [SerializeField] private int[] upgradeCosts;
@@ -45,6 +62,10 @@ namespace Marea.Data
 
         public FacilityKind Kind => kind;
         public string DisplayName => displayName;
+        public bool StartsUnlocked => startsUnlocked;
+        public int UnlockCost => unlockCost;
+        public FacilityKind[] Prerequisites => prerequisites ?? System.Array.Empty<FacilityKind>();
+        public string UnlockDescription => unlockDescription;
 
         /// <summary>시설은 1레벨에서 시작한다. 0레벨은 없다.</summary>
         public const int MinLevel = 1;

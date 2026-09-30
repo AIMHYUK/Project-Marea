@@ -19,6 +19,9 @@ namespace Marea.Economy
             MaxLevel,
             NotEnoughGold,
             Misconfigured,   // 씬에 Wallet/FacilityLevels가 없거나 에셋이 빠졌다
+            Locked,              // (+9/28) 아직 해금 전이라 레벨을 못 올린다
+            AlreadyUnlocked,     // (+9/28)
+            MissingPrerequisite, // (+9/28) 선행 시설이 아직 잠겨 있다
         }
 
         /// <summary>
@@ -37,6 +40,7 @@ namespace Marea.Economy
             var data = levels.DataOf(kind);
             if (data == null) return Result.Misconfigured;
 
+            if (!levels.IsUnlocked(kind)) return Result.Locked;
             if (!levels.CanRaise(kind)) return Result.MaxLevel;
             if (wallet.Gold < data.CostToNext(levels.LevelOf(kind))) return Result.NotEnoughGold;
 
@@ -69,6 +73,59 @@ namespace Marea.Economy
             }
 
             return Result.Ok;
+        }
+
+        // ── 해금 (+9/28, 이슈 71). 위 둘과 같은 모양이다 — 확인은 부작용 없이, 실행은
+        //    차감을 먼저 하고 실패하면 되돌린다.
+
+        /// <summary>지금 이 시설을 해금할 수 있는지. 아무것도 바꾸지 않는다.</summary>
+        public static Result CanUnlock(FacilityKind kind)
+        {
+            FacilityLevels levels = FacilityLevels.Instance;
+            Wallet wallet = Wallet.Instance;
+            if (levels == null || wallet == null) return Result.Misconfigured;
+
+            var data = levels.DataOf(kind);
+            if (data == null) return Result.Misconfigured;
+
+            if (levels.IsUnlocked(kind)) return Result.AlreadyUnlocked;
+            if (FirstMissingPrerequisite(kind) != null) return Result.MissingPrerequisite;
+            if (wallet.Gold < data.UnlockCost) return Result.NotEnoughGold;
+
+            return Result.Ok;
+        }
+
+        /// <summary>실제로 연다. <see cref="Result.Ok"/>가 아니면 골드도 상태도 안 건드린다.</summary>
+        public static Result TryUnlock(FacilityKind kind)
+        {
+            Result check = CanUnlock(kind);
+            if (check != Result.Ok) return check;
+
+            int cost = FacilityLevels.Instance.DataOf(kind).UnlockCost;
+            if (!Wallet.Instance.TrySpend(cost)) return Result.NotEnoughGold;
+
+            if (!FacilityLevels.Instance.TryUnlock(kind))
+            {
+                Debug.LogError($"FacilityUpgrade: {kind} 해금 차감({cost}G)은 됐는데 해금이 안 됐다. "
+                             + "골드를 되돌린다.");
+                Wallet.Instance.Add(cost);
+                return Result.Misconfigured;
+            }
+
+            return Result.Ok;
+        }
+
+        /// <summary>아직 잠긴 선행 시설 중 첫째. 전부 열렸으면 null. UI가 사유 문구에 쓴다.</summary>
+        public static FacilityKind? FirstMissingPrerequisite(FacilityKind kind)
+        {
+            FacilityLevels levels = FacilityLevels.Instance;
+            var data = levels != null ? levels.DataOf(kind) : null;
+            if (data == null) return null;
+
+            foreach (FacilityKind pre in data.Prerequisites)
+                if (!levels.IsUnlocked(pre)) return pre;
+
+            return null;
         }
     }
 }
