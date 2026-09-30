@@ -12,7 +12,7 @@ namespace Marea.Data
     /// 이 프로젝트 관례대로 에셋 참조로 든다. 씨앗 가격은 표에는 없고 기획 PDF 9절에 있어서 따로 둔다.
     ///
     /// 변하지 않는 값만 넣는다. "이 밭은 지금 몇 초째다"는 FarmManager가 든다.
-    /// 성장 단계 스프라이트는 아트가 나오면 넣는다 — 지금은 싹 크기로만 보인다.
+    /// 성장 모습은 stagePrefabs로 넣는다. 비어 있으면 밭의 기본 싹이 크기로만 자란다. (+9/30)
     /// </summary>
     [CreateAssetMenu(menuName = "Marea/Crop", fileName = "Crop_")]
     public class CropData : ScriptableObject
@@ -33,11 +33,16 @@ namespace Marea.Data
         [Tooltip("심을 때 빠지는 골드. 모자라면 못 심는다. 기획 표에는 없고 PDF 9절에 있다.")]
         [SerializeField, Min(0)] private int seedPrice;
 
+        // (+9/30) 표에 없다. 아트 에셋(Art/Asset/Farm/Farm_prefab)을 단계 순서대로 넣는다.
+        [Tooltip("성장 단계 모델. 씨앗 → … → 다 자람 순서. 마지막 칸이 수확 가능한 모습이다. 비우면 기본 싹이 자란다.")]
+        [SerializeField] private GameObject[] stagePrefabs;
+
         public int Id => id;
         public float GrowSeconds => growSeconds;
         public IngredientData Harvest => harvest;
         public int HarvestCount => harvestCount;
         public int SeedPrice => seedPrice;
+        public GameObject[] StagePrefabs => stagePrefabs;
 
         /// <summary>목록에 보일 이름. 재료 이름을 그대로 쓴다.</summary>
         public string DisplayName => harvest != null && !string.IsNullOrWhiteSpace(harvest.DisplayName)

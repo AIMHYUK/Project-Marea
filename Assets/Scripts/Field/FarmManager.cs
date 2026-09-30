@@ -130,6 +130,7 @@ namespace Marea.Field
             plot.State = PlotState.Growing;
             plot.Crop = crop;
             plot.PlantedAt = Time.time;
+            cell.Plant(crop.StagePrefabs);   // (+9/30) 단계 모델을 한 번에 만들어 둔다
             cell.ShowGrowing(0f);
             return PlantResult.Ok;
         }
