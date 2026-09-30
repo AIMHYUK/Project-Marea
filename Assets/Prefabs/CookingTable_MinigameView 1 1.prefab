@@ -108,6 +108,37 @@ Transform:
   - {fileID: 7108871552449843047}
   m_Father: {fileID: 2616143907184312517}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &971725427561122958
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2358718474181645665}
+  m_Layer: 0
+  m_Name: Step2Panel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2358718474181645665
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971725427561122958}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 9140311724291690990}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1782933167135778101
 GameObject:
   m_ObjectHideFlags: 0
@@ -171,6 +202,9 @@ Transform:
   m_Children:
   - {fileID: 8763007194689940385}
   - {fileID: 6614525718196815129}
+  - {fileID: 5801539510391394640}
+  - {fileID: 2358718474181645665}
+  - {fileID: 3284126055571456881}
   m_Father: {fileID: 7628637823069335808}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6299923845307585416
@@ -185,22 +219,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 966d34788e81cd041b5dfaff38b82c35, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.StewMinigameController
+  step1Panel: {fileID: 7102175048566021600}
+  step2Panel: {fileID: 971725427561122958}
+  step3Panel: {fileID: 7328942458112940241}
   cameraController: {fileID: 0}
-  cameraViewPoint: {fileID: 0}
-  stewPot: {fileID: 0}
+  cameraViewPoint: {fileID: 8763007194689940385}
+  stepTransitionDelay: 1.5
+  stewPot: {fileID: 3101196614948759483}
   soupRotationSpeed: 80
-  gameDuration: 8
-  dragPower: 2.5
-  gaugeDecaySpeed: 0.22
-  dragSensitivity: 8
-  safeZoneMin: 0.35
+  gameDuration: 10
+  dragPower: 1
+  gaugeDecaySpeed: 0.45
+  dragSensitivity: 7
+  safeZoneMin: 0.4
   safeZoneMax: 0.75
   maxDirectionChanges: 2
-  requiredSafeTimeForChange: 1.8
-  perfectRatio: 0.55
-  goodRatio: 0.35
-  badRatio: 0.15
+  requiredSafeTimeForChange: 1.5
+  perfectRatio: 0.75
+  goodRatio: 0.45
+  badRatio: 0.2
   minigameUI: {fileID: 0}
+  catchGame: {fileID: 9125349257834776164}
+  popupTouch: {fileID: 1377720299253819634}
 --- !u!1 &2509889852005481796
 GameObject:
   m_ObjectHideFlags: 0
@@ -927,6 +967,92 @@ Transform:
   - {fileID: 2616143907184312517}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7102175048566021600
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5801539510391394640}
+  - component: {fileID: 9125349257834776164}
+  m_Layer: 0
+  m_Name: Step1Panel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5801539510391394640
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7102175048566021600}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 9140311724291690990}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &9125349257834776164
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7102175048566021600}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d98e39f4d0f5468478cc7639b9e5b877, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.CatchGame
+  catcher: {fileID: 6614525718196815129}
+  mouth: {fileID: 8384134597439294979}
+  catchRadius: 0.55
+  rimHeight: 0.8
+  moveRange: 1.8
+  followSpeed: 12
+  spawnHeight: 2
+  spawnInterval: 0.9
+  fallSpeedRange: {x: 1.2, y: 3.2}
+  fallbackSize: 0.3
+  timeLimit: 10
+--- !u!1 &7154381656905923953
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8384134597439294979}
+  m_Layer: 0
+  m_Name: CatchMouth
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8384134597439294979
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7154381656905923953}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.073990345, y: -0.05400002, z: -0.43701935}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6614525718196815129}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7235227293716238089
 GameObject:
   m_ObjectHideFlags: 0
@@ -958,6 +1084,90 @@ Transform:
   m_Children: []
   m_Father: {fileID: 7782566174719942709}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7300008788627388349
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5246625627849114553}
+  m_Layer: 0
+  m_Name: BubbleSurface
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5246625627849114553
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7300008788627388349}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.073990345, y: -0.11399996, z: -0.44702148}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6614525718196815129}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7328942458112940241
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3284126055571456881}
+  - component: {fileID: 1377720299253819634}
+  m_Layer: 0
+  m_Name: Step3Panel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3284126055571456881
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7328942458112940241}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 9140311724291690990}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1377720299253819634
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7328942458112940241}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5e7e64d431eb5c4fb7ca6ebdd928bd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.PopupTouchGame
+  surface: {fileID: 5246625627849114553}
+  radius: 0.45
+  heightOffset: 0.05
+  popupPrefab: {fileID: 0}
+  size: 0.18
+  spawnInterval: 0.6
+  lifetimeRange: {x: 1.2, y: 2}
+  maxAlive: 4
+  timeLimit: 10
 --- !u!1 &7725938793872267923
 GameObject:
   m_ObjectHideFlags: 0
@@ -1711,9 +1921,26 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 3672585925272420569, guid: 6afb9fc3233c159458342abfb70eeed0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8384134597439294979}
+    - targetCorrespondingSourceObject: {fileID: 3672585925272420569, guid: 6afb9fc3233c159458342abfb70eeed0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5246625627849114553}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6afb9fc3233c159458342abfb70eeed0, type: 3}
+--- !u!114 &3101196614948759483 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4770869511934108283, guid: 6afb9fc3233c159458342abfb70eeed0, type: 3}
+  m_PrefabInstance: {fileID: 7582972606169007552}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2894fb3fa67892641a481fbac20ed928, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.StewPot
 --- !u!4 &6614525718196815129 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3672585925272420569, guid: 6afb9fc3233c159458342abfb70eeed0, type: 3}

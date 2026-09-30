@@ -220,7 +220,6 @@ GameObject:
   - component: {fileID: 123130521}
   - component: {fileID: 123130520}
   - component: {fileID: 123130519}
-  - component: {fileID: 123130518}
   - component: {fileID: 123130517}
   m_Layer: 5
   m_Name: StewMinigameUI
@@ -275,34 +274,6 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
---- !u!114 &123130518
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 123130515}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 966d34788e81cd041b5dfaff38b82c35, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.StewMinigameController
-  cameraController: {fileID: 348482002}
-  cameraViewPoint: {fileID: 0}
-  stewPot: {fileID: 0}
-  soupRotationSpeed: 80
-  gameDuration: 10
-  dragPower: 1
-  gaugeDecaySpeed: 0.45
-  dragSensitivity: 7
-  safeZoneMin: 0.4
-  safeZoneMax: 0.75
-  maxDirectionChanges: 2
-  requiredSafeTimeForChange: 1.5
-  perfectRatio: 0.75
-  goodRatio: 0.45
-  badRatio: 0.2
-  minigameUI: {fileID: 123130519}
 --- !u!114 &123130519
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1633,6 +1604,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+--- !u!114 &327914795 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6299923845307585416, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+  m_PrefabInstance: {fileID: 327914794}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 966d34788e81cd041b5dfaff38b82c35, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.StewMinigameController
 --- !u!1 &333311134
 GameObject:
   m_ObjectHideFlags: 0
@@ -5513,7 +5495,7 @@ MonoBehaviour:
   btnBackToCategory: {fileID: 1890504195}
   btnStartCooking: {fileID: 1068914482}
   skewerMinigameController: {fileID: 367805597}
-  stewMinigameController: {fileID: 123130518}
+  stewMinigameController: {fileID: 327914795}
   fishGrillController: {fileID: 0}
   cookingCounter: {fileID: 1672658449}
   categoryDataList:
