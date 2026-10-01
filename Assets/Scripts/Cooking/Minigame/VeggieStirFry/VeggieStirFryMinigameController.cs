@@ -18,6 +18,7 @@ namespace Marea.Cooking
 
         private MenuData _currentMenu;
         private Action<CookingResult> _onCompleteCallback;
+        private bool _isStep3Completed;
 
         public void StartMinigame(MenuData menu, Action<CookingResult> onComplete)
         {
@@ -31,6 +32,10 @@ namespace Marea.Cooking
         // --- 1단계 ---
         protected override void OnStep1Start()
         {
+            if (step1Panel != null) step1Panel.SetActive(true);
+            if (step2Panel != null) step2Panel.SetActive(false);
+            if (step3Panel != null) step3Panel.SetActive(false);
+
             if (onionSlicer != null) onionSlicer.ResetSlicer();
         }
 
@@ -38,13 +43,17 @@ namespace Marea.Cooking
         {
             if (onionSlicer != null && onionSlicer.IsCompleted)
             {
-                CompleteStep1(1.0f); // 1.5초 딜레이 후 2단계 전이
+                CompleteStep1(1.0f);
             }
         }
 
         // --- 2단계 ---
         protected override void OnStep2Start()
         {
+            if (step1Panel != null) step1Panel.SetActive(false);
+            if (step2Panel != null) step2Panel.SetActive(true);
+            if (step3Panel != null) step3Panel.SetActive(false);
+
             if (panStirController != null) panStirController.ResetStep();
         }
 
@@ -53,23 +62,60 @@ namespace Marea.Cooking
             if (panStirController != null && panStirController.IsCookCompleted)
             {
                 float score = Mathf.Clamp01(1.0f - (panStirController.BurnProgress / 100f));
-                CompleteStep2(score); // 1.5초 딜레이 후 3단계 전이
+                CompleteStep2(score);
             }
         }
 
         // --- 3단계 ---
         protected override void OnStep3Start()
         {
-            // 3단계 리듬 QTE 시작
+            if (step1Panel != null) step1Panel.SetActive(false);
+            if (step2Panel != null) step2Panel.SetActive(false);
+            if (step3Panel != null) step3Panel.SetActive(true); // 3단계 시작 시 패널 활성화
+
+            _isStep3Completed = false;
+
+            if (seasoningQTE != null)
+            {
+                seasoningQTE.StartQTEGame(OnStep3Finished);
+            }
         }
 
         protected override void OnStep3Update()
         {
-            // QTE 완결 시 CompleteStep3(score) 호출
+            if (seasoningQTE != null && seasoningQTE.IsQTECompleted && !_isStep3Completed)
+            {
+                OnStep3Finished();
+            }
+        }
+
+        private void OnStep3Finished()
+        {
+            if (_isStep3Completed) return;
+            _isStep3Completed = true;
+
+            if (seasoningQTE == null) return;
+
+            int total = seasoningQTE.TotalNoteCount > 0 ? seasoningQTE.TotalNoteCount : 15;
+            float score = Mathf.Clamp01((float)seasoningQTE.SuccessCount / total);
+
+            Debug.Log($"[VeggieStirFryMinigameController] 3단계 완료! 계산된 점수: {score}");
+
+            // 3단계 종료 시 Step3Panel 비활성화
+            if (step3Panel != null)
+            {
+                step3Panel.SetActive(false);
+            }
+
+            CompleteStep3(score);
         }
 
         protected override void OnMinigameCompleted(float finalScore)
         {
+            if (step1Panel != null) step1Panel.SetActive(false);
+            if (step2Panel != null) step2Panel.SetActive(false);
+            if (step3Panel != null) step3Panel.SetActive(false);
+
             CookingResult result = new CookingResult
             {
                 isSuccess = true,

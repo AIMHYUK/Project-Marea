@@ -46,7 +46,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.Seasoning3DQTE
   salt3DObject: {fileID: 541315552356163272}
   pepper3DObject: {fileID: 2229109801418948221}
+  saltParticle: {fileID: 0}
+  pepperParticle: {fileID: 0}
+  shakeAudioSource: {fileID: 0}
   railUI: {fileID: 8656058411952360706}
+  totalNoteCount: 10
+  initialDelay: 1.2
+  minInterval: 0.8
+  maxInterval: 1.4
 --- !u!1 &534449340766659119
 GameObject:
   m_ObjectHideFlags: 0
@@ -150,7 +157,7 @@ Transform:
   m_GameObject: {fileID: 541315552356163272}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 2.36}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -259,7 +266,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 687945845103525162}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -268,8 +275,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_AnchoredPosition: {x: 500, y: 0}
+  m_SizeDelta: {x: 10, y: 10}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &736040012042268219
 GameObject:
@@ -295,13 +302,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 736040012042268219}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -0.218, y: -0.583, z: 0}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.218, y: 0.059, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2433109056667833466}
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &955336902717968121
 GameObject:
   m_ObjectHideFlags: 0
@@ -410,12 +417,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f188c35cc4c28f47a706e29e819f2b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.DynamicOnionSlicer
-  targetOnionObject: {fileID: 6801258682278707770}
+  targetOnionObject: {fileID: 7536116826822918370}
   sliceGuidePoints:
   - {fileID: 7570388091464156830}
   - {fileID: 59020903496284266}
+  - {fileID: 6685243737215938622}
+  crossSectionMaterial: {fileID: 3514935808808263199, guid: 6b18d91a958f957498e36cee9505a058, type: 3}
   knifeVisual: {fileID: 0}
-  mhCutter: {fileID: 6151507152916103234}
+  cutImpulseForce: 1.5
+  sliceEffect: {fileID: 0}
+  sliceAudioSource: {fileID: 0}
   hitMaxDistance: 1.5
   raycastLayerMask:
     serializedVersion: 2
@@ -476,7 +487,7 @@ Transform:
   m_GameObject: {fileID: 2002079091230783438}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.209, y: 0.462, z: 0}
+  m_LocalPosition: {x: 0.028, y: 0.103, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -572,7 +583,7 @@ Transform:
   m_GameObject: {fileID: 2229109801418948221}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 1.579, y: 0, z: 2.3600006}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -702,12 +713,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ede38b81c96cdc42a49d1ac48232090, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.PanStirCookingController
-  clickableVeggieObject: {fileID: 3107066725223209102}
+  clickableVeggieObjects:
+  - {fileID: 3107066725223209102}
   panInsideTransform: {fileID: 6474355359585716280}
   spatulaTransform: {fileID: 914522208668918390}
+  spatulaMoveRange: {x: 1.5, y: 1.5}
+  spatulaSpeedMultiplier: 0.005
   requiredCookProgress: 100
   burnRate: 15
   cookRate: 25
+  veggieRenderer: {fileID: 0}
+  rawColor: {r: 1, g: 1, b: 1, a: 1}
+  cookedColor: {r: 1, g: 0.8, b: 0.4, a: 1}
+  burnedColor: {r: 0, g: 0, b: 0, a: 1}
+  cookingSteamEffect: {fileID: 0}
+  stirAudioSource: {fileID: 0}
 --- !u!1 &2509889852005481796
 GameObject:
   m_ObjectHideFlags: 0
@@ -831,7 +851,7 @@ Transform:
   m_GameObject: {fileID: 3107066725223209102}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0.883, y: 0.104, z: 0}
   m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1244,7 +1264,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2433109056667833466
 Transform:
   m_ObjectHideFlags: 0
@@ -1261,6 +1281,7 @@ Transform:
   - {fileID: 6388383696352611017}
   - {fileID: 7570388091464156830}
   - {fileID: 59020903496284266}
+  - {fileID: 6685243737215938622}
   - {fileID: 6718904344638734782}
   - {fileID: 2185284993655038593}
   - {fileID: 2980682950957062176}
@@ -1291,7 +1312,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4709505048303355416}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1300,8 +1321,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_AnchoredPosition: {x: -500, y: 0}
+  m_SizeDelta: {x: 30, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5807548992038482948
 CanvasRenderer:
@@ -1324,7 +1345,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.2783019, b: 0.2783019, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1371,6 +1392,37 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7108871552449843047}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &5592128628551559587
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6685243737215938622}
+  m_Layer: 0
+  m_Name: SliceGuidePoints (2)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6685243737215938622
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5592128628551559587}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.228, y: 0.103, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2433109056667833466}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5641860120112227605
 GameObject:
@@ -1789,7 +1841,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4701578602606620275}
   - component: {fileID: 8656058411952360706}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: RailContainer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1803,17 +1855,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6206630302608156099}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3639797158880129830}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_AnchorMin: {x: 0.5, y: 0}
+  m_AnchorMax: {x: 0.5, y: 0}
+  m_AnchoredPosition: {x: 0, y: 50}
+  m_SizeDelta: {x: 1200, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &8656058411952360706
 MonoBehaviour:
@@ -1827,11 +1879,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 263d195baf5090040971497915a48612, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.SequenceInputRailUI
-  railContainer: {fileID: 0}
-  hitZoneTransform: {fileID: 0}
-  notePrefab: {fileID: 0}
-  noteSpeed: 300
-  hitTolerance: 40
+  railContainer: {fileID: 4701578602606620275}
+  spawnZoneTransform: {fileID: 7900238250479610209}
+  hitZoneTransform: {fileID: 3460947898251968473}
+  notePrefab: {fileID: 1201491458794143381, guid: 1e71522c091cb2e4d9811604e8a86930, type: 3}
+  noteSpeed: 450
+  perfectTolerance: 30
+  goodTolerance: 70
 --- !u!1 &6343056829402394011
 GameObject:
   m_ObjectHideFlags: 0
@@ -2103,7 +2157,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2980682950957062176
 Transform:
   m_ObjectHideFlags: 0
@@ -2248,11 +2302,11 @@ RectTransform:
   - {fileID: 4701578602606620275}
   m_Father: {fileID: 8360429685235556935}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0.5, y: 0}
+  m_AnchorMax: {x: 0.5, y: 0}
+  m_AnchoredPosition: {x: 0, y: 20}
+  m_SizeDelta: {x: 1200, y: 100}
+  m_Pivot: {x: 0.5, y: 0}
 --- !u!222 &2631912086657456689
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2431,7 +2485,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &7441756909926915680
 Transform:
   m_ObjectHideFlags: 0
@@ -2864,7 +2918,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: b3fbb8de1cddbf74baeb15a463aa25a8, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.33032036
+      value: -0.004
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b3fbb8de1cddbf74baeb15a463aa25a8, type: 3}
       propertyPath: m_LocalPosition.y
@@ -2908,7 +2962,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: b3fbb8de1cddbf74baeb15a463aa25a8, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1151388028547126963, guid: b3fbb8de1cddbf74baeb15a463aa25a8, type: 3}
       propertyPath: m_LocalScale.x
