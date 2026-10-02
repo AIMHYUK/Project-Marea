@@ -55,10 +55,14 @@ namespace Marea.Core
 
             panel.SetActive(open);
             if (open) OnOpened();
+            else OnClosed();
             OnOpenChanged?.Invoke(open);
         }
 
         /// <summary>닫혀 있는 동안 바뀐 값(골드 등)을 열 때 맞춘다.</summary>
         protected virtual void OnOpened() { }
+
+        /// <summary>열 때 넘겨받은 대상(어느 밭, 어느 탐사정)을 놓는다. (+10/2)</summary>
+        protected virtual void OnClosed() { }
     }
 }
