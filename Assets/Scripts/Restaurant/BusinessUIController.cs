@@ -24,6 +24,7 @@ namespace Marea.UI
         [SerializeField] private Button btnConfirmSettlement;
 
         private bool _isPlayerInZone;
+        private Marea.Economy.TodayMenuUI _todayMenuUI;
 
         private void Start()
         {
@@ -36,7 +37,14 @@ namespace Marea.UI
 
             if (btnStartBusiness != null)
             {
-                btnStartBusiness.onClick.AddListener(() => BusinessManager.Instance.StartBusiness());
+                // (+10/2, A) 바로 영업을 열지 않고 오늘의 메뉴 창을 연다. 창의 [영업 시작]이 StartBusiness를 부른다.
+                // 창이 씬에 없으면 예전처럼 바로 연다.
+                _todayMenuUI = FindAnyObjectByType<Marea.Economy.TodayMenuUI>(FindObjectsInactive.Include);
+                btnStartBusiness.onClick.AddListener(() =>
+                {
+                    if (_todayMenuUI != null) _todayMenuUI.Open();
+                    else BusinessManager.Instance.StartBusiness();
+                });
             }
 
             if (btnConfirmSettlement != null)
