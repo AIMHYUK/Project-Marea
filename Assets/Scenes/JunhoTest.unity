@@ -64177,6 +64177,7 @@ MonoBehaviour:
   btnBackToCategory: {fileID: 897791415}
   btnStartCooking: {fileID: 1953896529}
   skewerMinigameController: {fileID: 1568201299}
+  seafoodSkewersController: {fileID: 0}
   stewMinigameController: {fileID: 1413466269}
   veggieStirFryController: {fileID: 0}
   fishGrillController: {fileID: 0}
@@ -64184,8 +64185,7 @@ MonoBehaviour:
   categoryDataList:
   - cookingType: 0
     subMenus:
-    - {fileID: 11400000, guid: e57e146bf75fd6740a034dad4f04ecc9, type: 2}
-    - {fileID: 11400000, guid: e2810b3f54ff68a469887c6e71ca9018, type: 2}
+    - {fileID: 11400000, guid: 1248ecc2d4883da439660b9b3bd95b10, type: 2}
   - cookingType: 1
     subMenus:
     - {fileID: 11400000, guid: dee79e9f0e8d0c1449b59cc88cf8645f, type: 2}
@@ -71782,8 +71782,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 966d34788e81cd041b5dfaff38b82c35, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.StewMinigameController
+  step1Panel: {fileID: 0}
+  step2Panel: {fileID: 0}
+  step3Panel: {fileID: 0}
   cameraController: {fileID: 0}
   cameraViewPoint: {fileID: 0}
+  step1ViewPoint: {fileID: 0}
+  step2ViewPoint: {fileID: 0}
+  step3ViewPoint: {fileID: 0}
+  stepTransitionDelay: 1.5
   stewPot: {fileID: 0}
   soupRotationSpeed: 80
   gameDuration: 10
@@ -71798,6 +71805,8 @@ MonoBehaviour:
   goodRatio: 0.45
   badRatio: 0.2
   minigameUI: {fileID: 1413466266}
+  catchGame: {fileID: 0}
+  popupTouch: {fileID: 0}
 --- !u!1 &1425000925
 GameObject:
   m_ObjectHideFlags: 0

@@ -47,11 +47,12 @@ namespace Marea.Cooking
         [SerializeField] private Button btnBackToCategory;
         [SerializeField] private Button btnStartCooking;
 
-        [Header("미니게임 연동 (카테고리 대표 컨트롤러)")]
-        [SerializeField] private SkewerMinigameController skewerMinigameController;
-        [SerializeField] private StewMinigameController stewMinigameController;
+        [Header("Skewer 세부 요리별 컨트롤러")]
+        [SerializeField] private SkewerMinigameController skewerMinigameController; // 기본 꼬치 컨트롤러
+        [SerializeField] private SeafoodSkewersMinigameController seafoodSkewersController; // 해물 꼬치 전용 컨트롤러
 
         [Header("Stew 세부 요리별 컨트롤러")]
+        [SerializeField] private StewMinigameController stewMinigameController;
         [SerializeField] private VeggieStirFryMinigameController veggieStirFryController; // 야채 볶음 전용
 
         [Header("FishGrill 세부 요리별 컨트롤러")]
@@ -95,6 +96,11 @@ namespace Marea.Cooking
             if (skewerMinigameController == null)
             {
                 skewerMinigameController = FindFirstObjectByType<SkewerMinigameController>(FindObjectsInactive.Include);
+            }
+
+            if (seafoodSkewersController == null)
+            {
+                seafoodSkewersController = FindFirstObjectByType<SeafoodSkewersMinigameController>(FindObjectsInactive.Include);
             }
 
             if (stewMinigameController == null)
@@ -294,15 +300,8 @@ namespace Marea.Cooking
             switch (_selectedMenu.MiniGameId)
             {
                 case MiniGameId.Skewer:
-                    if (skewerMinigameController != null)
-                    {
-                        skewerMinigameController.StartMinigame(_selectedMenu, OnMinigameFinished);
-                    }
-                    else
-                    {
-                        Debug.LogWarning("[CookingMenuUI] SkewerMinigameController가 연결되지 않았습니다.");
-                        Close();
-                    }
+                    // Skewer 카테고리 내부에서 SkewerSubtype 기준 세부 미니게임 분기
+                    DispatchSkewerMenu(_selectedMenu);
                     break;
 
                 case MiniGameId.Stew:
@@ -319,6 +318,43 @@ namespace Marea.Cooking
                 default:
                     Debug.LogError($"[CookingMenuUI] '{_selectedMenu.DisplayName}'에 유효한 MiniGameId가 없습니다.");
                     Close();
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// MenuData.SkewerSubtype Enum 값을 대조하여 기본 꼬치 / 해물 꼬치 미니게임 컨트롤러 분기
+        /// </summary>
+        private void DispatchSkewerMenu(MenuData menu)
+        {
+            if (menu == null) return;
+
+            switch (menu.SkewerSubtype)
+            {
+                case SkewerSubtype.SeafoodSkewers:
+                    if (seafoodSkewersController != null)
+                    {
+                        seafoodSkewersController.StartMinigame(menu, OnMinigameFinished);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[CookingMenuUI] SeafoodSkewersMinigameController가 연결되지 않았습니다.");
+                        Close();
+                    }
+                    break;
+
+                case SkewerSubtype.HawaiianSkewers:
+                case SkewerSubtype.None:
+                default:
+                    if (skewerMinigameController != null)
+                    {
+                        skewerMinigameController.StartMinigame(menu, OnMinigameFinished);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[CookingMenuUI] SkewerMinigameController가 연결되지 않았습니다.");
+                        Close();
+                    }
                     break;
             }
         }

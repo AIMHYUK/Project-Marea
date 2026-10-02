@@ -127,8 +127,8 @@ namespace Marea.Data
         [Tooltip("Stew(스튜/볶음) 카테고리 내부 세부 미니게임 식별자.")]
         [SerializeField] private StewSubtype stewSubtype = StewSubtype.None;
 
-        [Tooltip("Stew(스튜/볶음) 카테고리 내부 세부 미니게임 식별자.")]
-        [SerializeField] private SkewerSubtype SkewerSubtype = SkewerSubtype.None;
+        [Tooltip("Skewer(꼬치) 카테고리 내부 세부 미니게임 식별자.")]
+        [SerializeField] private SkewerSubtype skewerSubtype = SkewerSubtype.None;
 
         [Tooltip("기획 RecipeData. 투입 순서는 inputOrder가 정한다 — 배열 순서가 아니다.")]
         [SerializeField] private RecipeEntry[] recipe;
@@ -149,6 +149,7 @@ namespace Marea.Data
         public MiniGameId MiniGameId => miniGameId;
         public FishGrillSubtype FishGrillSubtype => fishGrillSubtype;
         public StewSubtype StewSubtype => stewSubtype;
+        public SkewerSubtype SkewerSubtype => skewerSubtype;
 
         /// <summary>
         /// 레시피 줄 전부. 인스펙터에 적힌 순서 그대로다 — 투입 순서가 필요하면
@@ -170,6 +171,11 @@ namespace Marea.Data
             if (miniGameId != MiniGameId.Stew)
             {
                 stewSubtype = StewSubtype.None;
+            }
+
+            if (miniGameId != MiniGameId.Skewer)
+            {
+                skewerSubtype = SkewerSubtype.None;
             }
         }
 #endif
