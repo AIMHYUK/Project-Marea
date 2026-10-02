@@ -131,7 +131,7 @@ namespace Marea.Field
         /// 와이어프레임 「획득 가능한 자원 — 식재료 / 특수 자원」. 후보 이름과 수량 범위를 종류별로 나눈다.
         /// 한 번에 이 중 하나만 들어온다는 건 창에 안 적었다. 문구는 기획이 정하면 바꾼다.
         /// </summary>
-        // 기호를 안 쓴다 — Pretendard-Bold SDF에 ·, × 가 없어 TMP가 조용히 지운다 (FacilityCell과 같은 이유).
+        // 기호를 안 쓴다 — Pretendard-Bold SDF에 ·, × 가 없어 TMP가 조용히 지운다 (UpgradeUI와 같은 이유).
         private static string RewardText(ExpeditionAreaData area)
         {
             if (area.RewardGroup == null) return string.Empty;

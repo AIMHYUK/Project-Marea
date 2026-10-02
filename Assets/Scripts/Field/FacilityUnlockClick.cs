@@ -34,7 +34,7 @@ namespace Marea.Field
 
         public override void Interact(IInteractor actor)
         {
-            if (CanInteract(actor)) _ui.Open(_site.Kind);
+            if (CanInteract(actor)) _ui.Open(_site.Kind, transform);   // (+10/2) 창이 이 오브젝트 위에 뜬다
         }
     }
 }

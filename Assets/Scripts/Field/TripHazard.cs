@@ -15,6 +15,9 @@ namespace Marea.Field
     /// 들고 있는지 · 이번 배달에 이미 굴렸는지는 직원이 판단한다 (ServingStaff.OnSteppedHazard).
     ///
     /// 수리 상태는 여기 든다(인스턴스마다 다르다). 한 번 고치면 다시 부서지지 않는다 — 다시 부서지는 규칙은 기획에 없다.
+    ///
+    /// (+10/2, 이슈 92 — 와이어프레임 「바닥 수리」) 클릭 즉시 수리하던 것을 장판 위 확인창
+    /// (수리 비용 · 보유 골드 · [취소] / [수리])을 거치게 바꿨다. 골드가 모자라면 같은 창에서 [수리]가 꺼진다.
     /// </summary>
     public class TripHazard : InteractableBase
     {
@@ -36,6 +39,7 @@ namespace Marea.Field
         private Collider _collider;
         private bool _repaired;
         private WorldLabelUI _labels;
+        private WorldConfirmUI _confirm;
         private float _messageUntil;
         private string _message;
 
@@ -46,6 +50,9 @@ namespace Marea.Field
         {
             _collider = GetComponent<Collider>();
             _labels = FindAnyObjectByType<WorldLabelUI>(FindObjectsInactive.Include);
+            _confirm = FindAnyObjectByType<WorldConfirmUI>(FindObjectsInactive.Include);
+            if (_confirm == null)
+                Debug.LogError($"{name}: 씬에 WorldConfirmUI가 없다. 클릭해도 수리 창이 안 뜬다.", this);
             if (brokenVisual == null)
                 Debug.LogError($"{name}: TripHazard.brokenVisual이 비어 있다. 수리해도 모습이 안 바뀐다.", this);
             if (stepTrigger == null || !stepTrigger.isTrigger)
@@ -74,23 +81,40 @@ namespace Marea.Field
 
         public override void Interact(IInteractor actor)
         {
-            if (_repaired) return;
+            if (_repaired || _confirm == null) return;
+            _confirm.Open(transform, Vector3.up * 0.5f, BuildView, TryRepair);
+        }
+
+        private ConfirmView BuildView()
+        {
+            int gold = Wallet.Instance != null ? Wallet.Instance.Gold : 0;
+            bool enough = gold >= repairCost;
+            return new ConfirmView
+            {
+                Title = "바닥 수리",
+                Body = "음식을 든 직원이 밟으면 넘어질 수 있습니다.",
+                Status = $"수리 비용 {repairCost:N0} G\n보유 골드 {gold:N0} G",
+                ConfirmLabel = enough ? "수리" : "골드 부족",
+                CanConfirm = enough,
+            };
+        }
+
+        private bool TryRepair()
+        {
+            if (_repaired) return true;
 
             Wallet wallet = Wallet.Instance;
             if (wallet == null)
             {
                 Debug.LogError($"{name}: 씬에 Wallet이 없다. 수리비를 낼 수 없다.", this);
-                return;
+                return false;
             }
-            if (!wallet.TrySpend(repairCost))
-            {
-                ShowMessage("골드 부족");
-                return;
-            }
+            if (!wallet.TrySpend(repairCost)) return false;
 
             _repaired = true;
             Apply();
             ShowMessage($"-{repairCost}G");
+            return true;
         }
 
         private void Apply()
