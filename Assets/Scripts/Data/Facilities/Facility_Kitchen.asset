@@ -13,10 +13,50 @@ MonoBehaviour:
   m_Name: Facility_Kitchen
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.FacilityData
   kind: 1
-  displayName: "\uC8FC\uBC29"
+  displayName: "\uC8FC\uBC29 \uC2DC\uC124"
+  description: "\uC694\uB9AC \uAE30\uB2A5\uC744 \uD655\uC7A5\uD558\uB294 \uC2DC\uC124"
   startsUnlocked: 1
+  unlockName: 
   unlockCost: 0
   prerequisites: 
-  upgradeCosts: f4010000b0040000c4090000
-  businessDurations: []
-  settlementBonuses: []
+  unlockDescription: 
+  steps:
+  - upgradeId: UPG_KITCHEN_001
+    goldCost: 500
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 6
+    effectValue: 1
+    effectChance: 0
+    effectTarget: MENU_VEGETABLE_STIR_FRY
+    description: "\uC57C\uCC44\uBCF6\uC74C \uB808\uC2DC\uD53C \uC624\uD508"
+  - upgradeId: UPG_KITCHEN_002
+    goldCost: 1000
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 5
+    effectValue: 1
+    effectChance: 0
+    effectTarget: STATION_GRILL, STATION_POT
+    description: "\uAF2C\uCE58, \uB0C4\uBE44 \uC870\uB9AC\uB300 \uC624\uD508 (\uAF2C\uCE58\uAD6C\uC774,
+      \uC0DD\uC120\uC2A4\uD29C)"
+  - upgradeId: UPG_KITCHEN_003
+    goldCost: 1500
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 6
+    effectValue: 1
+    effectChance: 0
+    effectTarget: MENU_HAWAIIAN_SKEWER, MENU_GRILLED_CLAM
+    description: "\uD558\uC640\uC774\uC548 \uAF2C\uCE58, \uC870\uAC1C\uAD6C\uC774
+      \uB808\uC2DC\uD53C \uC624\uD508"
+  - upgradeId: UPG_KITCHEN_004
+    goldCost: 3000
+    resource: {fileID: 11400000, guid: befa003b74f6ede43a6aa4b2ff320644, type: 2}
+    resourceAmount: 2
+    effectType: 5
+    effectValue: 1
+    effectChance: 0
+    effectTarget: STATION_MIXER
+    description: "\uBBF9\uC11C\uAE30 \uC870\uB9AC\uB300 \uC624\uD508 (\uD1A0\uB9C8\uD1A0,
+      \uD30C\uC778\uC560\uD50C\uC8FC\uC2A4)"

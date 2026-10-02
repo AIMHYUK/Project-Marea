@@ -50,7 +50,7 @@ namespace Marea.Economy
 
             return new ConfirmView
             {
-                Title = $"{NameOf(kind)} 해금",
+                Title = $"{(data != null ? data.UnlockName : kind.ToString())} 해금",   // (+10/2) 기획 UnlockData.Name
                 Body = data != null ? data.UnlockDescription : string.Empty,
                 Status = status,
                 CanConfirm = state == FacilityUpgrade.Result.Ok,

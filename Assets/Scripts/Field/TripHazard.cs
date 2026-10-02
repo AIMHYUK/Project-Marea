@@ -24,8 +24,8 @@ namespace Marea.Field
         [Tooltip("음식을 든 직원이 밟았을 때 넘어질 확률 (0~1). 한 배달에 장판 하나당 한 번 판정한다.")]
         [SerializeField, Range(0f, 1f)] private float tripChance = 0.25f;
 
-        [Tooltip("수리비(골드). 임시값.")]
-        [SerializeField, Min(0)] private int repairCost = 100;
+        [Tooltip("수리비(골드). 기획 UnlockData UNLOCK_FLOOR_REPAIR 1,000G. (+10/2)")]
+        [SerializeField, Min(0)] private int repairCost = 1000;
 
         [Tooltip("파손된 모습. 수리하면 끈다.")]
         [SerializeField] private GameObject brokenVisual;

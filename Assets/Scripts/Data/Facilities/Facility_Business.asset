@@ -13,18 +13,47 @@ MonoBehaviour:
   m_Name: Facility_Business
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.FacilityData
   kind: 0
-  displayName: "\uC601\uC5C5"
+  displayName: "\uC601\uC5C5 \uC2DC\uC124"
+  description: "\uC601\uC5C5\uC758 \uD6A8\uC728\uC744 \uAC15\uD654\uD558\uB294 \uC2DC\uC124"
   startsUnlocked: 1
+  unlockName: 
   unlockCost: 0
   prerequisites: 
-  upgradeCosts: f4010000b0040000c4090000
-  businessDurations:
-  - 180
-  - 240
-  - 300
-  - 360
-  settlementBonuses:
-  - 1
-  - 1.03
-  - 1.06
-  - 1.09
+  unlockDescription: 
+  steps:
+  - upgradeId: UPG_SALES_001
+    goldCost: 500
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 1
+    effectValue: 30
+    effectChance: 0
+    effectTarget: 
+    description: "\uC601\uC5C5 \uC2DC\uAC04 +30\uCD08"
+  - upgradeId: UPG_SALES_002
+    goldCost: 1000
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 2
+    effectValue: 1
+    effectChance: 0
+    effectTarget: 
+    description: "\uD14C\uC774\uBE14 +1"
+  - upgradeId: UPG_SALES_003
+    goldCost: 1500
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 4
+    effectValue: 1.1
+    effectChance: 0
+    effectTarget: 
+    description: "\uCD5C\uC885 \uC815\uC0B0 \uACE8\uB4DC 1.1\uBC30"
+  - upgradeId: UPG_SALES_004
+    goldCost: 3000
+    resource: {fileID: 11400000, guid: befa003b74f6ede43a6aa4b2ff320644, type: 2}
+    resourceAmount: 2
+    effectType: 14
+    effectValue: 1
+    effectChance: 0
+    effectTarget: UNLOCK_LAND_LEVEL_01
+    description: "\uBD80\uC9C0 \uD655\uC7A5 1 \uAD6C\uB9E4 \uAC00\uB2A5"

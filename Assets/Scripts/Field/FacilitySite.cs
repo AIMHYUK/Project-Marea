@@ -1,5 +1,7 @@
 using Marea.Economy;
+using Marea.Data;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Marea.Field
 {
@@ -23,13 +25,15 @@ namespace Marea.Field
         [Tooltip("해금 뒤 모습. 이 안의 모델은 갈아끼워도 된다.")]
         [SerializeField] private GameObject builtVisual;
 
-        [Header("레벨 단위 (선택)")]
-        [Tooltip("레벨이 오를 때 앞에서부터 켜지는 것들. 농사 데크의 밭 자리다. "
-               + "탐사정처럼 레벨로 늘어나는 게 없으면 비워둔다.")]
+        // (+10/2) 레벨 × 개수였다가, 기획 표의 FARM_SLOT_ADD(재배 공간 +n칸)로 바뀌었다.
+        // 시설이 0레벨에서 시작해서 예전 식이면 해금해도 밭이 0칸이 된다.
+        [Header("칸 (선택)")]
+        [Tooltip("앞에서부터 켜지는 것들. 농사 데크의 밭 자리다. 탐사정처럼 늘어나는 게 없으면 비워둔다.")]
         [SerializeField] private GameObject[] levelSlots;
 
-        [Tooltip("한 레벨에 켜지는 개수. 1레벨이면 이만큼, 2레벨이면 두 배.")]
-        [SerializeField, Min(1)] private int slotsPerLevel = 2;
+        [Tooltip("해금하면 처음 켜지는 칸 수. 업그레이드의 FARM_SLOT_ADD 만큼 더 켜진다.")]
+        [FormerlySerializedAs("slotsPerLevel")]
+        [SerializeField, Min(1)] private int baseSlots = 2;
 
         private FacilityLevels _levels;
 
@@ -56,11 +60,12 @@ namespace Marea.Field
 
             if (_levels.DataOf(kind) != null && levelSlots != null && levelSlots.Length > 0)
             {
-                // 최대 레벨까지 켤 자리가 모자라면 마지막 업그레이드가 겉으로 아무 일도 안 한다.
-                int needed = _levels.DataOf(kind).MaxLevel * slotsPerLevel;
+                // 최대 레벨까지 켤 자리가 모자라면 그 업그레이드가 겉으로 아무 일도 안 한다.
+                FacilityData data = _levels.DataOf(kind);
+                int needed = baseSlots + Mathf.RoundToInt(data.EffectValueAt(data.MaxLevel, FacilityEffectType.FarmSlotAdd));
                 if (levelSlots.Length < needed)
                     Debug.LogError($"{name}: levelSlots가 {levelSlots.Length}개인데 최대 레벨에 "
-                                 + $"{needed}개가 필요하다. 자리를 더 깔거나 slotsPerLevel을 줄일 것.", this);
+                                 + $"{needed}개가 필요하다. 자리를 더 깔거나 baseSlots를 줄일 것.", this);
             }
 
             _levels.OnUnlocked += HandleUnlocked;
@@ -85,16 +90,18 @@ namespace Marea.Field
             if (changed == kind) Refresh();
         }
 
-        private void Refresh() => Apply(_levels.IsUnlocked(kind), _levels.LevelOf(kind));
+        private void Refresh()
+            => Apply(_levels.IsUnlocked(kind),
+                     baseSlots + Mathf.RoundToInt(_levels.EffectValue(kind, FacilityEffectType.FarmSlotAdd)));
 
-        private void Apply(bool unlocked, int level)
+        private void Apply(bool unlocked, int slots)
         {
             if (brokenVisual != null) brokenVisual.SetActive(!unlocked);
             if (builtVisual != null) builtVisual.SetActive(unlocked);
 
             if (levelSlots == null) return;
 
-            int active = unlocked ? level * slotsPerLevel : 0;
+            int active = unlocked ? slots : 0;
             for (int i = 0; i < levelSlots.Length; i++)
                 if (levelSlots[i] != null) levelSlots[i].SetActive(i < active);
         }

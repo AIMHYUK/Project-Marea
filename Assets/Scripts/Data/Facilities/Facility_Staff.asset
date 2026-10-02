@@ -10,51 +10,51 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b4c146bc81828e74ca1d3adfb0e51443, type: 3}
-  m_Name: Facility_Explorer
+  m_Name: Facility_Staff
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.FacilityData
-  kind: 4
-  displayName: "\uD0D0\uC0AC \uC2DC\uC124"
-  description: "\uD0D0\uC0AC \uC131\uB2A5\uC744 \uAC15\uD654\uD558\uB294 \uC2DC\uC124"
-  startsUnlocked: 0
-  unlockName: "\uD0D0\uC0AC\uC815"
-  unlockCost: 6000
+  kind: 5
+  displayName: "\uC9C1\uC6D0 \uC6B4\uC601"
+  description: "\uC9C1\uC6D0\uC758 \uC131\uB2A5\uC744 \uAC15\uD654\uD558\uB294 \uC2DC\uC124"
+  startsUnlocked: 1
+  unlockName: 
+  unlockCost: 0
   prerequisites: 
-  unlockDescription: "\uD0D0\uC0AC \uC9C0\uC5ED \uC120\uD0DD \uBC0F \uC790\uB3D9
-    \uD0D0\uC0AC \uAE30\uB2A5 \uD65C\uC131\uD654"
+  unlockDescription: 
   steps:
-  - upgradeId: UPG_EXPLORE_001
+  - upgradeId: UPG_STAFF_001
     goldCost: 1000
     resource: {fileID: 0}
     resourceAmount: 0
-    effectType: 11
-    effectValue: 0.1
+    effectType: 15
+    effectValue: 1
     effectChance: 0
     effectTarget: 
-    description: "\uD0D0\uC0AC \uC2DC\uAC04 -10%"
-  - upgradeId: UPG_EXPLORE_002
+    description: "\uC9C1\uC6D0 \uACE0\uC6A9 / \uC11C\uBE59 \uC790\uB3D9\uD654"
+  - upgradeId: UPG_STAFF_002
     goldCost: 1500
     resource: {fileID: 0}
     resourceAmount: 0
-    effectType: 12
-    effectValue: 0.1
+    effectType: 16
+    effectValue: 0.05
     effectChance: 0
     effectTarget: 
-    description: "\uD0D0\uC0AC \uD68D\uB4DD\uB7C9 +10%"
-  - upgradeId: UPG_EXPLORE_003
+    description: "\uC9C1\uC6D0 \uC774\uB3D9 \uC18D\uB3C4 +5%"
+  - upgradeId: UPG_STAFF_003
     goldCost: 2000
     resource: {fileID: 0}
     resourceAmount: 0
-    effectType: 11
-    effectValue: 0.2
+    effectType: 16
+    effectValue: 0.1
     effectChance: 0
     effectTarget: 
-    description: "\uD0D0\uC0AC \uC2DC\uAC04 \uCD1D -20%"
-  - upgradeId: UPG_EXPLORE_004
+    description: "\uC9C1\uC6D0 \uC774\uB3D9 \uC18D\uB3C4 \uCD1D +10%"
+  - upgradeId: UPG_STAFF_004
     goldCost: 3000
     resource: {fileID: 11400000, guid: befa003b74f6ede43a6aa4b2ff320644, type: 2}
     resourceAmount: 2
-    effectType: 13
+    effectType: 17
     effectValue: 1
     effectChance: 0
-    effectTarget: AREA_SEA_01
-    description: "\uC2E0\uADDC \uD574\uC5ED \uD574\uAE08"
+    effectTarget: 
+    description: "\uD55C \uBC88\uC5D0 \uC6B4\uBC18\uD558\uB294 \uC74C\uC2DD \uC218
+      +1"

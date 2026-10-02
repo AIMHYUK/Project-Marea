@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Marea.Core;
+using Marea.Data;
 using UnityEngine;
 
 namespace Marea.Economy
@@ -9,6 +12,9 @@ namespace Marea.Economy
     /// 골드는 빠졌는데 레벨이 안 오르는 상태가 그것이다. 그래서 UI는 이 함수만 부른다.
     ///
     /// MonoBehaviour가 아니다. 씬에 놓을 상태가 없고, 두 싱글턴을 잇는 절차뿐이다.
+    ///
+    /// (+10/2) 상위 단계는 골드에 더해 특수 자원(강화 금속)을 쓴다 — 창고에서 뺀다.
+    /// 순서는 골드 → 자원 → 레벨이고, 뒤가 실패하면 앞을 되돌린다.
     /// </summary>
     public static class FacilityUpgrade
     {
@@ -22,6 +28,7 @@ namespace Marea.Economy
             Locked,              // (+9/28) 아직 해금 전이라 레벨을 못 올린다
             AlreadyUnlocked,     // (+9/28)
             MissingPrerequisite, // (+9/28) 선행 시설이 아직 잠겨 있다
+            NotEnoughResource,   // (+10/2) 특수 자원이 모자란다
         }
 
         /// <summary>
@@ -42,10 +49,22 @@ namespace Marea.Economy
 
             if (!levels.IsUnlocked(kind)) return Result.Locked;
             if (!levels.CanRaise(kind)) return Result.MaxLevel;
-            if (wallet.Gold < data.CostToNext(levels.LevelOf(kind))) return Result.NotEnoughGold;
+            data.TryGetStep(levels.LevelOf(kind) + 1, out FacilityUpgradeStep step);
+            if (wallet.Gold < step.goldCost) return Result.NotEnoughGold;
+            if (!HasResource(step)) return Result.NotEnoughResource;
 
             return Result.Ok;
         }
+
+        /// <summary>이 단계의 특수 자원을 창고에 가지고 있나. 자원이 없는 단계면 true.</summary>
+        public static bool HasResource(FacilityUpgradeStep step)
+        {
+            if (step.resource == null || step.resourceAmount <= 0) return true;
+            return Warehouse.Instance != null && Warehouse.Instance.CountOf(step.resource) >= step.resourceAmount;
+        }
+
+        private static IReadOnlyList<RecipeEntry> ResourceBundle(FacilityUpgradeStep step)
+            => new[] { new RecipeEntry { ingredient = step.resource, requiredAmount = step.resourceAmount } };
 
         /// <summary>
         /// 실제로 올린다. <see cref="Result.Ok"/>가 아니면 골드도 레벨도 안 건드린다.
@@ -56,19 +75,28 @@ namespace Marea.Economy
             if (check != Result.Ok) return check;
 
             FacilityLevels levels = FacilityLevels.Instance;
-            int cost = levels.DataOf(kind).CostToNext(levels.LevelOf(kind));
+            levels.DataOf(kind).TryGetStep(levels.LevelOf(kind) + 1, out FacilityUpgradeStep step);
+            int cost = step.goldCost;
+            bool usesResource = step.resource != null && step.resourceAmount > 0;
 
             // 차감이 먼저다. 레벨을 먼저 올리면 TrySpend가 false일 때 되돌려야 하는데,
             // 그 되돌리기가 OnLevelChanged를 이미 쏜 뒤라 UI가 한 번 깜빡인다.
-            if (!Wallet.Instance.TrySpend(cost)) return Result.NotEnoughGold;
+            if (cost > 0 && !Wallet.Instance.TrySpend(cost)) return Result.NotEnoughGold;
+
+            if (usesResource && !Warehouse.Instance.Consume(ResourceBundle(step)))
+            {
+                if (cost > 0) Wallet.Instance.Add(cost);
+                return Result.NotEnoughResource;
+            }
 
             if (!levels.TryRaiseLevel(kind))
             {
                 // CanUpgrade를 통과했으면 여기 올 수 없다. 왔다면 그 사이에 레벨이
-                // 다른 데서 바뀐 것이고, 골드만 빠진 상태라 조용히 넘기면 안 된다.
+                // 다른 데서 바뀐 것이고, 비용만 빠진 상태라 조용히 넘기면 안 된다.
                 Debug.LogError($"FacilityUpgrade: {kind} 차감({cost}G)은 됐는데 레벨이 안 올랐다. "
-                             + "골드를 되돌린다.");
-                Wallet.Instance.Add(cost);
+                             + "비용을 되돌린다.");
+                if (cost > 0) Wallet.Instance.Add(cost);
+                if (usesResource) Warehouse.Instance.Add(step.resource, step.resourceAmount);
                 return Result.Misconfigured;
             }
 
