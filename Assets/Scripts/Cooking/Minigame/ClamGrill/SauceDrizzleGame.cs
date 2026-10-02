@@ -9,7 +9,8 @@ namespace Marea.Cooking
     /// 조개구이 3단계 — 조리대에서 소스 뿌리기. 기획 MG_GUIDE_DRAG 자리. (+10/2, 이슈 85)
     ///
     /// 소스통을 눌러 집고, 누른 채로 움직이면 소스통이 조리대 위 일정 높이에서 따라온다.
-    /// 집고 있는 동안 노즐에서 아래로 소스 줄기가 나온다 — 지금은 베지어 곡선을 LineRenderer로 그린 임시 표현이다.
+    /// (+10/2) 소스통은 평소 똑바로 서 있다가 집으면 뒤집히고, 충분히 뒤집혔을 때부터 소스가 나온다. 놓으면 다시 선다.
+    /// 집고 있는 동안 노즐에서 아래로 소스 줄기가 나온다 — 베지어 곡선을 LineRenderer로 그린다(고추장 텍스처).
     /// 줄기 끝(조리대에 닿는 점)이 조개 위에 머문 시간이 쌓여 coatSeconds를 넘으면 그 조개는 소스가 묻은 것이다.
     /// 점수 = 소스 묻은 조개 수 / 전체. 다 묻히거나 제한시간이 끝나면 끝.
     ///
@@ -48,6 +49,16 @@ namespace Marea.Cooking
 
         [SerializeField, Min(0.05f)] private float bottleHeight = 0.35f;
 
+        [Header("뒤집기 (+10/2)")]
+        [Tooltip("놓여 있을 때 소스통 기준점이 조리대 윗면 위 이 높이. 소스통 높이의 절반쯤 — 바닥이 조리대에 닿는다.")]
+        [SerializeField, Min(0f)] private float restHeight = 0.115f;
+        [Tooltip("놓여 있을 때의 회전(소스통 기준). 소스통은 '뒤집힌(노즐이 아래)' 모습으로 만들어져 있어 180°면 바로 선다.")]
+        [SerializeField] private Vector3 restEuler = new Vector3(180f, 0f, 0f);
+        [Tooltip("뒤집히는 / 다시 서는 빠르기.")]
+        [SerializeField, Min(0.1f)] private float flipSpeed = 10f;
+        [Tooltip("이 각도 안으로 뒤집혀야 소스가 나온다.")]
+        [SerializeField, Range(1f, 90f)] private float pourAngle = 35f;
+
         [Header("줄기 (LineRenderer · 베지어 임시 표현)")]
         [SerializeField] private LineRenderer stream;
         [Tooltip("줄기가 앞으로 휘는 정도(m). 소스통 진행 방향으로 휜다.")]
@@ -75,6 +86,8 @@ namespace Marea.Cooking
         private Collider _bottleCollider;
         private Vector3 _bottleHome;
         private Vector3 _lastBottlePos;
+        private Quaternion _pourRot;   // 뒤집힌(짜는) 회전 = 만들어진 그대로
+        private Quaternion _restRot;   // 선 회전
         private bool _holding;
         private float _timeLeft;
         private bool _running;
@@ -95,8 +108,13 @@ namespace Marea.Cooking
             {
                 _bottleCollider = bottle.GetComponentInChildren<Collider>();
                 _bottleHome = bottle.position;
+                _pourRot = bottle.localRotation;
+                _restRot = _pourRot * Quaternion.Euler(restEuler);
             }
         }
+
+        /// <summary>놓인 자리 — 지금 xz에서 조리대 위 restHeight.</summary>
+        private Vector3 RestPosition(Vector3 xz) => new Vector3(xz.x, surface.position.y + restHeight, xz.z);
 
         public void Begin()
         {
@@ -123,8 +141,9 @@ namespace Marea.Cooking
                 _targets.Add(t);
             }
 
-            bottle.position = _bottleHome;
-            _lastBottlePos = _bottleHome;
+            bottle.position = RestPosition(_bottleHome);
+            bottle.localRotation = _restRot;
+            _lastBottlePos = bottle.position;
             _holding = false;
             SetStream(false);
             _timeLeft = timeLimit;
@@ -152,7 +171,11 @@ namespace Marea.Cooking
             _timeLeft -= Time.deltaTime;
 
             HandleInput();
-            if (_holding) Pour();
+            UpdateFlip();
+            bool pouring = _holding && Quaternion.Angle(bottle.localRotation, _pourRot) < pourAngle;
+            SetStream(pouring);
+            if (pouring) Pour();
+            else _lastBottlePos = bottle.position;
 
             if (_timeLeft <= 0f || CoatedCount == TotalCount) Finish();
         }
@@ -171,13 +194,20 @@ namespace Marea.Cooking
                     if (hit.collider == _bottleCollider) { _holding = true; break; }
             }
             if (!mouse.leftButton.isPressed) _holding = false;
-            SetStream(_holding);
 
             if (!_holding) return;
 
             // 조리대 위 bottleHeight 높이의 수평면에 마우스 레이를 맞혀 소스통을 옮긴다.
             var plane = new Plane(Vector3.up, surface.position + Vector3.up * bottleHeight);
             if (plane.Raycast(ray, out float enter)) bottle.position = ray.GetPoint(enter);
+        }
+
+        /// <summary>집으면 뒤집고(노즐이 아래), 놓으면 그 자리에서 다시 세워 내려놓는다.</summary>
+        private void UpdateFlip()
+        {
+            float k = 1f - Mathf.Exp(-flipSpeed * Time.deltaTime);
+            bottle.localRotation = Quaternion.Slerp(bottle.localRotation, _holding ? _pourRot : _restRot, k);
+            if (!_holding) bottle.position = Vector3.Lerp(bottle.position, RestPosition(bottle.position), k);
         }
 
         /// <summary>노즐에서 조리대까지 줄기를 그리고, 줄기 끝 아래 조개에 소스를 쌓는다.</summary>
@@ -263,7 +293,11 @@ namespace Marea.Cooking
             _holding = false;
             SetStream(false);
             Cleanup();
-            if (bottle != null) bottle.position = _bottleHome;
+            if (bottle != null && surface != null)
+            {
+                bottle.position = RestPosition(_bottleHome);
+                bottle.localRotation = _restRot;
+            }
         }
 
         private void Cleanup()
