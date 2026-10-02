@@ -97,7 +97,11 @@ namespace Marea.Field
 
             while (_cards.Count < count) _cards.Add(Instantiate(cardPrefab, cardParent));
             for (int i = 0; i < _cards.Count; i++) _cards[i].gameObject.SetActive(i < count);
-            for (int i = 0; i < count; i++) _cards[i].Bind(crops[i], Select);
+            for (int i = 0; i < count; i++)
+            {
+                _cards[i].Bind(crops[i], Select, _manager.GrowSecondsOf(crops[i]));
+                _cards[i].SetLocked(!_manager.IsCropUnlocked(crops[i], out _));
+            }
 
             RefreshDetail();
         }
@@ -116,7 +120,9 @@ namespace Marea.Field
             CropCard.SetIcon(detailIcon, _selected);
             if (detailName != null) detailName.text = _selected != null ? _selected.DisplayName : string.Empty;
             if (detailInfo != null)
-                detailInfo.text = _selected != null ? $"가격 {_selected.SeedPrice:N0} G\n성장 시간 {_selected.GrowSeconds:0}초" : string.Empty;
+                detailInfo.text = _selected != null && _manager != null
+                    ? $"가격 {_selected.SeedPrice:N0} G\n성장 시간 {_manager.GrowSecondsOf(_selected):0}초"
+                    : string.Empty;
             if (detailDescription != null)
                 detailDescription.text = _selected != null && _selected.Harvest != null ? _selected.Harvest.Description : string.Empty;
 
@@ -126,8 +132,13 @@ namespace Marea.Field
                 : FarmManager.PlantResult.Misconfigured;
 
             plantButton.interactable = state == FarmManager.PlantResult.Ok;
-            if (plantButtonLabel != null)
-                plantButtonLabel.text = state == FarmManager.PlantResult.NotEnoughGold ? "골드 부족" : "심기";
+            if (plantButtonLabel == null) return;
+            if (state == FarmManager.PlantResult.Locked)
+            {
+                _manager.IsCropUnlocked(_selected, out int need);
+                plantButtonLabel.text = $"수급 시설 Lv.{need} 필요";
+            }
+            else plantButtonLabel.text = state == FarmManager.PlantResult.NotEnoughGold ? "골드 부족" : "심기";
         }
 
         private void HandlePlant()

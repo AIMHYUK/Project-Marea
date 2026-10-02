@@ -115,11 +115,33 @@ namespace Marea.Data
         /// 없으면 0. 기획 표의 값이 누적 총합이라 더하지 않는다.
         /// </summary>
         public float EffectValueAt(int level, FacilityEffectType type)
+            => TryGetEffectAt(level, type, out FacilityUpgradeStep s) ? s.effectValue : 0f;
+
+        /// <summary>(+10/2) 지금 레벨까지 중 그 효과를 가진 가장 높은 단계. 값 · 확률을 같이 읽을 때 쓴다.</summary>
+        public bool TryGetEffectAt(int level, FacilityEffectType type, out FacilityUpgradeStep step)
         {
-            if (steps == null) return 0f;
-            for (int i = Mathf.Min(level, steps.Length) - 1; i >= 0; i--)
-                if (steps[i].effectType == type) return steps[i].effectValue;
-            return 0f;
+            if (steps != null)
+                for (int i = Mathf.Min(level, steps.Length) - 1; i >= 0; i--)
+                    if (steps[i].effectType == type) { step = steps[i]; return true; }
+            step = default;
+            return false;
+        }
+
+        /// <summary>
+        /// (+10/2) 이 대상(메뉴 · 조리대 · 해역 · 등급 키)을 여는 단계의 레벨. 없으면 0.
+        /// 해금 효과는 누적이라(주방 Lv.1 야채볶음 + Lv.3 조개구이) "가장 높은 단계"가 아니라 대상 키로 찾는다.
+        /// 대상 칸은 "A, B"처럼 쉼표로 여럿 적혀 있을 수 있다.
+        /// </summary>
+        public int LevelForTarget(FacilityEffectType type, string key)
+        {
+            if (steps == null || string.IsNullOrWhiteSpace(key)) return 0;
+            for (int i = 0; i < steps.Length; i++)
+            {
+                if (steps[i].effectType != type || string.IsNullOrEmpty(steps[i].effectTarget)) continue;
+                foreach (string part in steps[i].effectTarget.Split(','))
+                    if (part.Trim() == key) return i + 1;
+            }
+            return 0;
         }
     }
 }
