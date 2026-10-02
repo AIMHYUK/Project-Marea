@@ -42,7 +42,6 @@ namespace Marea.Hud
         [SerializeField] private WarehouseUI warehouseUI;
         [SerializeField] private UpgradeUI upgradeUI;
         [SerializeField] private ExpeditionManager expedition;
-        [SerializeField] private ExpeditionUI expeditionUI;
 
         private Wallet _wallet;
         private FacilityLevels _levels;
@@ -52,15 +51,14 @@ namespace Marea.Hud
             if (warehouseUI == null) warehouseUI = FindAnyObjectByType<WarehouseUI>(FindObjectsInactive.Include);
             if (upgradeUI == null) upgradeUI = FindAnyObjectByType<UpgradeUI>(FindObjectsInactive.Include);
             if (expedition == null) expedition = FindAnyObjectByType<ExpeditionManager>(FindObjectsInactive.Include);
-            if (expeditionUI == null) expeditionUI = FindAnyObjectByType<ExpeditionUI>(FindObjectsInactive.Include);
 
             if (goldLabel == null) Debug.LogError($"{name}: MainHud.goldLabel이 비어 있다. 골드가 안 보인다.", this);
             if (menuButton == null || menuGroup == null)
                 Debug.LogError($"{name}: MainHud.menuButton/menuGroup이 비어 있다. [메뉴]가 안 펼쳐진다.", this);
             if (warehouseUI == null) Debug.LogError($"{name}: 씬에 WarehouseUI가 없다. [창고]가 아무것도 안 연다.", this);
             if (upgradeUI == null) Debug.LogError($"{name}: 씬에 UpgradeUI가 없다. [성장]이 아무것도 안 연다.", this);
-            if (expedition == null || expeditionUI == null)
-                Debug.LogError($"{name}: 씬에 ExpeditionManager/ExpeditionUI가 없다. [탐사정]이 아무것도 안 연다.", this);
+            if (expedition == null)
+                Debug.LogError($"{name}: 씬에 ExpeditionManager가 없다. [탐사정]이 아무것도 안 연다.", this);
 
             if (menuButton != null) menuButton.onClick.AddListener(ToggleMenu);
             // ?. 를 쓰지 않는다 — 파괴된 UnityEngine.Object는 ?. 로는 null로 안 걸린다.
@@ -118,13 +116,13 @@ namespace Marea.Hud
         }
 
         /// <summary>
-        /// 대기 중일 때만 지역 선택을 연다. 탐사 중 · 귀환 팝업은 3묶음(탐사)에서 붙는다 —
-        /// 그때까지 귀환한 보상은 지금처럼 월드의 탐사정을 클릭해 받는다.
+        /// 대기면 지역 선택, 탐사 중이면 남은 시간, 귀환이면 결과 창 — 월드의 탐사정을 누른 것과 같다.
+        /// (+10/2) 1묶음에선 대기 중에만 열었다. 탐사 중 · 귀환 창이 생겨서 막을 이유가 없어졌다.
         /// </summary>
         private void OpenExpedition()
         {
-            if (expedition == null || expeditionUI == null) return;
-            if (ExplorerUnlocked && expedition.Current == ExpeditionManager.State.Idle) expeditionUI.Open(expedition);
+            if (expedition == null || !ExplorerUnlocked) return;
+            expedition.Interact();
         }
 
         private void HandleGoldChanged(int gold)
@@ -139,7 +137,7 @@ namespace Marea.Hud
             if (menuBadge != null) menuBadge.SetActive(returned);
             if (expeditionBadge != null) expeditionBadge.SetActive(returned);
             if (expeditionButton != null)
-                expeditionButton.interactable = ExplorerUnlocked && state == ExpeditionManager.State.Idle;
+                expeditionButton.interactable = ExplorerUnlocked;
 
             if (alarm == null) return;
             if (returned) alarm.Post(expedition, "탐사정이 돌아왔습니다");
