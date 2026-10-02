@@ -6,7 +6,8 @@ using UnityEngine.UI;
 namespace Marea.Field
 {
     /// <summary>
-    /// 창고 목록의 한 줄. 아이콘 → 이름 → 개수. (+9/9)
+    /// 창고의 한 칸. 아이콘 → 이름 → 개수. (+9/9)
+    /// (+10/2) 세로 줄에서 격자 칸으로 바뀌었다 — 배치는 프리팹이 정하고 코드는 그대로다.
     ///
     /// 자기가 어느 재료인지만 알고 창고는 모른다. 수량은 WarehouseUI가 넣어준다 —
     /// 셀이 창고를 직접 구독하면 셀 수만큼 구독이 늘고, 해지를 한 군데서 못 본다.
@@ -45,7 +46,8 @@ namespace Marea.Field
 
         public void SetCount(int count)
         {
-            if (countLabel != null) countLabel.text = count.ToString();
+            // 와이어프레임 창고 칸 문구 (+10/2, 이슈 92)
+            if (countLabel != null) countLabel.text = $"보유 {count} 개";
         }
     }
 }
