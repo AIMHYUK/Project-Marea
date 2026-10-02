@@ -25,6 +25,11 @@ namespace Marea.Cooking
         [Tooltip("조개 모습. 비우면 임시 모양(납작한 구).")]
         [SerializeField] private GameObject clamPrefab;
 
+        [Tooltip("(+10/2 아트 적용) 자리별 조개 — i번 자리는 [i % 개수]. 칸이 비면 clamPrefab.")]
+        [SerializeField] private GameObject[] targetPrefabs;
+        [Tooltip("소스가 묻은 뒤 갈아 끼울 모습(전복 → 와사비 등). 칸이 비면 coatedColor로 칠한다.")]
+        [SerializeField] private GameObject[] coatedPrefabs;
+
         [Tooltip("줄기 끝이 이 반경(m) 안이면 조개 위다.")]
         [SerializeField, Min(0.01f)] private float targetRadius = 0.12f;
 
@@ -60,6 +65,7 @@ namespace Marea.Cooking
         private sealed class Target
         {
             public Transform Anchor;
+            public int Index;
             public GameObject Visual;
             public float Coat;
             public bool Done;
@@ -104,13 +110,16 @@ namespace Marea.Cooking
             if (_bottleCollider == null)
                 Debug.LogError($"{name}: 소스통에 콜라이더가 없다. 집을 수 없다.", bottle);
 
-            foreach (Transform anchor in targets)
+            for (int i = 0; i < targets.Length; i++)
             {
+                Transform anchor = targets[i];
                 if (anchor == null) continue;
-                var t = new Target { Anchor = anchor };
-                t.Visual = clamPrefab != null
-                    ? Instantiate(clamPrefab, anchor.position, anchor.rotation, transform)
+                var t = new Target { Anchor = anchor, Index = i };
+                GameObject prefab = Pick(targetPrefabs, i, clamPrefab);
+                t.Visual = prefab != null
+                    ? Instantiate(prefab, anchor.position, anchor.rotation, transform)
                     : MakePlaceholder(anchor);
+                StripColliders(t.Visual);
                 _targets.Add(t);
             }
 
@@ -207,9 +216,32 @@ namespace Marea.Cooking
                 if (tg.Coat < coatSeconds) continue;
 
                 tg.Done = true;
-                foreach (Renderer r in tg.Visual.GetComponentsInChildren<Renderer>()) r.material.color = coatedColor;
+                GameObject coated = Pick(coatedPrefabs, tg.Index, null);
+                if (coated != null)
+                {
+                    Destroy(tg.Visual);
+                    tg.Visual = Instantiate(coated, tg.Anchor.position, tg.Anchor.rotation, transform);
+                    StripColliders(tg.Visual);
+                }
+                else
+                {
+                    foreach (Renderer r in tg.Visual.GetComponentsInChildren<Renderer>()) r.material.color = coatedColor;
+                }
                 OnProgress?.Invoke(CoatedCount, TotalCount);
             }
+        }
+
+        private static GameObject Pick(GameObject[] perSlot, int index, GameObject fallback)
+        {
+            if (perSlot == null || perSlot.Length == 0) return fallback;
+            GameObject p = perSlot[index % perSlot.Length];
+            return p != null ? p : fallback;
+        }
+
+        // 접시 위 조개 콜라이더가 소스통 레이를 가리지 않게 뗀다 (판정은 거리로 한다).
+        private static void StripColliders(GameObject go)
+        {
+            foreach (Collider c in go.GetComponentsInChildren<Collider>()) Destroy(c);
         }
 
         private void SetStream(bool on)

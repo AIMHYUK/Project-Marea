@@ -55,6 +55,12 @@ namespace Marea.Cooking
         [Tooltip("열리기 전 모습(닫힌 조개). 비우면 임시 모양.")]
         [SerializeField] private GameObject idlePrefab;
 
+        [Tooltip("(+10/2 아트 적용) 자리별 모습 — i번 자리는 [i % 개수]. 칸이 비면 위 idlePrefab · popupPrefab, 그것도 비면 임시 모양.")]
+        [SerializeField] private GameObject[] slotIdlePrefabs;
+        [SerializeField] private GameObject[] slotOpenPrefabs;
+        [Tooltip("탔을 때 갈아 끼울 모습. 비면 burntColor로 칠한다.")]
+        [SerializeField] private GameObject[] slotBurntPrefabs;
+
         [Tooltip("열리는 시점 범위(초, Begin부터).")]
         [SerializeField] private Vector2 openTimeRange = new Vector2(3f, 9f);
 
@@ -74,6 +80,7 @@ namespace Marea.Cooking
         private sealed class Slot
         {
             public Transform Anchor;
+            public int Index;
             public GameObject Visual;
             public Collider Col;
             public SlotState State;
@@ -253,16 +260,18 @@ namespace Marea.Cooking
             // 열리고도 누를 틈은 있게 — 제한시간 끝에 열리면 누를 수가 없다.
             float latest = Mathf.Max(openTimeRange.x, timeLimit - reactionWindow);
             float hi = Mathf.Min(Mathf.Max(openTimeRange.x, openTimeRange.y), latest);
-            foreach (Transform anchor in slots)
+            for (int i = 0; i < slots.Length; i++)
             {
+                Transform anchor = slots[i];
                 if (anchor == null) continue;
                 var sl = new Slot
                 {
                     Anchor = anchor,
+                    Index = i,
                     State = SlotState.Waiting,
                     OpenAt = UnityEngine.Random.Range(openTimeRange.x, hi),
                 };
-                ShowSlot(sl, idlePrefab, idleColor, false);
+                ShowSlot(sl, Pick(slotIdlePrefabs, i, idlePrefab), idleColor, false);
                 _slots.Add(sl);
                 _spawned++;
             }
@@ -281,13 +290,15 @@ namespace Marea.Cooking
                 {
                     sl.State = SlotState.Open;
                     sl.OpenedAt = _elapsed;
-                    ShowSlot(sl, popupPrefab, openColor, true);
+                    ShowSlot(sl, Pick(slotOpenPrefabs, sl.Index, popupPrefab), openColor, true);
                 }
                 else if (sl.State == SlotState.Open && _elapsed - sl.OpenedAt > reactionWindow)
                 {
                     sl.State = SlotState.Done;   // 탔다
                     sl.Score = 0f;
-                    Tint(sl.Visual, burntColor);
+                    GameObject burnt = Pick(slotBurntPrefabs, sl.Index, null);
+                    if (burnt != null) ShowSlot(sl, burnt, burntColor, false);
+                    else Tint(sl.Visual, burntColor);
                     if (sl.Col != null) sl.Col.enabled = false;
                     OnProgress?.Invoke(_popped, _spawned);
                 }
@@ -354,6 +365,13 @@ namespace Marea.Cooking
 
             sl.Visual = go;
             sl.Col = col;
+        }
+
+        private static GameObject Pick(GameObject[] perSlot, int index, GameObject fallback)
+        {
+            if (perSlot == null || perSlot.Length == 0) return fallback;
+            GameObject p = perSlot[index % perSlot.Length];
+            return p != null ? p : fallback;
         }
 
         private static void Tint(GameObject go, Color color)
