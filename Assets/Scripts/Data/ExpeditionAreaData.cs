@@ -27,9 +27,15 @@ namespace Marea.Data
         [Tooltip("지역 선택 창에 보일 이름. 기획 표에는 없는 칸이다.")]
         [SerializeField] private string displayName;
 
+        // (+10/2) 기획 업그레이드 테이블 REGION_UNLOCK의 대상 ID(예: AREA_SEA_01). 비우면 처음부터 열려 있다.
+        // 기획 UnlockConditionID 자리를 이것으로 메운다 — 조건 데이터 대신 업그레이드 대상 키로 잇는다.
+        [Tooltip("이 해역을 여는 업그레이드 대상 키 (REGION_UNLOCK의 EffectTarget). 비우면 처음부터 열림.")]
+        [SerializeField] private string unlockKey;
+
         public int Id => id;
         public float DurationSeconds => durationSeconds;
         public ExpeditionRewardData RewardGroup => rewardGroup;
         public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
+        public string UnlockKey => unlockKey;
     }
 }

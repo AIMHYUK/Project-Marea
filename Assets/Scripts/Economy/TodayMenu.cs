@@ -27,6 +27,20 @@ namespace Marea.Economy
         [Tooltip("한 번에 고를 수 있는 메뉴 수. 임시값 — 성장 데이터가 생기면 거기서 읽는다.")]
         [SerializeField, Min(1)] private int maxCount = 3;
 
+        /// <summary>(+10/2) 메뉴 하나를 여는 주방 업그레이드 대상. 메뉴 데이터에 문자열 키가 없어 여기서 잇는다.</summary>
+        [Serializable]
+        private struct MenuUnlock
+        {
+            public MenuData menu;
+            [Tooltip("MenuUnlock(메뉴 오픈) 또는 CookingStationUnlock(조리대 오픈 — 그 조리대 기본 레시피).")]
+            public FacilityEffectType type;
+            [Tooltip("업그레이드 대상 키. 예: MENU_GRILLED_CLAM, STATION_GRILL")]
+            public string key;
+        }
+
+        [Tooltip("(+10/2) 주방 업그레이드로 열리는 메뉴. 여기 없는 메뉴는 처음부터 고를 수 있다.")]
+        [SerializeField] private MenuUnlock[] menuUnlocks;
+
         private readonly List<MenuData> _selected = new();
         private readonly List<MenuData> _candidates = new();
 
@@ -76,6 +90,17 @@ namespace Marea.Economy
 
         public bool IsSelected(MenuData menu) => _selected.Contains(menu);
 
+        /// <summary>(+10/2) 주방 업그레이드로 열렸나. 잠겼으면 열리는 주방 레벨을 준다.</summary>
+        public bool IsMenuUnlocked(MenuData menu, out int requiredLevel)
+        {
+            requiredLevel = 0;
+            if (menu == null || menuUnlocks == null || FacilityLevels.Instance == null) return true;
+            foreach (MenuUnlock u in menuUnlocks)
+                if (u.menu == menu)
+                    return FacilityLevels.Instance.IsTargetUnlocked(FacilityKind.Kitchen, u.type, u.key, out requiredLevel);
+            return true;
+        }
+
         /// <summary>지금 창고 재고로 몇 그릇 만들 수 있나. 레시피가 비면 int.MaxValue.</summary>
         public static int ServingsAvailable(MenuData menu)
         {
@@ -105,6 +130,7 @@ namespace Marea.Economy
                 return true;
             }
 
+            if (!IsMenuUnlocked(menu, out _)) return false;
             if (_selected.Count >= maxCount || ServingsAvailable(menu) <= 0) return false;
 
             _selected.Add(menu);
