@@ -10,7 +10,7 @@ namespace Marea.Economy
 {
     /// <summary>
     /// 오늘의 메뉴 카드 한 장 — 이름 · 그림 · 판매 가격 · 재료 필요량 / 보유량 · 선택 체크. (+10/2, 이슈 92)
-    /// 안 고른 카드는 흐리게, 재료가 모자라 한 그릇도 못 만드는 카드는 "재료 부족"으로 보인다.
+    /// 고른 카드는 테두리 · 체크, 재료가 모자라 한 그릇도 못 만드는 카드는 흐리게 "재료 부족"으로 보인다. (+10/2 아트 적용)
     /// </summary>
     public class MenuCard : MonoBehaviour
     {
@@ -20,7 +20,9 @@ namespace Marea.Economy
         [SerializeField] private TextMeshProUGUI priceLabel;
         [SerializeField] private TextMeshProUGUI recipeLabel;
         [SerializeField] private GameObject checkMark;
-        [Tooltip("안 고른 카드를 흐리게 할 때 쓴다.")]
+        [Tooltip("고른 카드 뒤에 켜지는 테두리. (+10/2)")]
+        [SerializeField] private GameObject selectedFrame;
+        [Tooltip("재료가 모자라 못 만드는 카드를 흐리게 할 때 쓴다. (+10/2 — 예전엔 안 고른 카드를 흐렸다)")]
         [SerializeField] private CanvasGroup group;
 
         public MenuData Menu { get; private set; }
@@ -46,7 +48,8 @@ namespace Marea.Economy
                 icon.enabled = Menu.Icon != null;
             }
             if (checkMark != null) checkMark.SetActive(selected);
-            if (group != null) group.alpha = selected ? 1f : 0.6f;
+            if (selectedFrame != null) selectedFrame.SetActive(selected);
+            if (group != null) group.alpha = selected || servings > 0 ? 1f : 0.55f;
         }
 
         // 기호를 안 쓴다 — Pretendard-Bold SDF에 · 가 없다. "/" 는 있다.
