@@ -16,7 +16,11 @@ namespace Marea.Economy
     /// 레벨이 늘든 곡선이 바뀌든 B는 안 고친다. 프로퍼티를 지우거나 이름을 바꾸는 건
     /// B에게 먼저 말한다 — 늘리는 건 A 마음대로 해도 된다.
     ///
-    /// 저장·로드는 없다. 씬을 다시 켜면 전부 1레벨로 돌아간다 (이슈 23 범위 밖).
+    /// 저장·로드는 없다. 씬을 다시 켜면 전부 0레벨로 돌아간다 (이슈 23 범위 밖).
+    ///
+    /// (+10/2) 기획 「업그레이드_해금 데이터테이블」로 바뀌었다. 0레벨에서 시작하고, 효과는
+    /// 단계마다 (종류, 값)으로 든다 — <see cref="EffectValue"/>. BusinessDuration·SettlementBonus는
+    /// 이름 그대로 두고 그 위에서 계산한다 (계약 8).
     /// </summary>
     public class FacilityLevels : MonoBehaviour
     {
@@ -25,11 +29,9 @@ namespace Marea.Economy
         [Tooltip("시설 정의 에셋. FacilityKind마다 하나씩, 빠짐없이 넣는다.")]
         [SerializeField] private FacilityData[] facilities;
 
-        // 영업 에셋이 없거나 효과표가 깨졌을 때 쓸 값. Awake에서 이미 에러를 냈고,
-        // 여기서 0을 돌려주면 "영업이 시작하자마자 끝난다"는 엉뚱한 증상으로 번진다.
-        // BusinessManager.cs:49의 기존 기본값과 같은 수를 쓴다.
-        private const float FallbackDuration = 180f;
-        private const float FallbackBonus = 1f;
+        // 업그레이드 0레벨의 영업 시간. BusinessManager의 기존 기본값과 같은 수다.
+        // 기획 표는 "+30초"처럼 늘어나는 양만 적어서 바닥값이 따로 필요하다.
+        private const float BaseBusinessDuration = 180f;
 
         private readonly Dictionary<FacilityKind, FacilityData> _data = new();
         private readonly Dictionary<FacilityKind, int> _levels = new();
@@ -77,12 +79,12 @@ namespace Marea.Economy
                     }
 
                     _data[data.Kind] = data;
-                    _levels[data.Kind] = FacilityData.MinLevel;
+                    _levels[data.Kind] = FacilityData.MinLevel;   // (+10/2) 0레벨
                     if (data.StartsUnlocked) _unlocked.Add(data.Kind);
                 }
             }
 
-            // 빠진 시설이 있으면 LevelOf가 1을 돌려주고 업그레이드 목록에서도 사라진다.
+            // 빠진 시설이 있으면 LevelOf가 0을 돌려주고 업그레이드 목록에서도 사라진다.
             // 둘 다 조용해서, 여기서 이름을 찍어주지 않으면 못 찾는다.
             foreach (FacilityKind kind in Enum.GetValues(typeof(FacilityKind)))
             {
@@ -90,36 +92,37 @@ namespace Marea.Economy
                     Debug.LogError($"{name}: {kind} 시설 에셋이 facilities에 없다. "
                                  + "업그레이드 목록에 안 뜨고 효과도 안 걸린다.", this);
             }
-
-            // 효과표는 레벨마다 한 칸이라 비용보다 한 칸 길어야 한다. 어긋나면
-            // 마지막 레벨을 올리는 순간 IndexOutOfRange로 터진다 — 그때 원인을 찾느니
-            // 지금 잡는다.
-            if (_data.TryGetValue(FacilityKind.Business, out FacilityData business)
-                && !business.HasEffectTable)
-            {
-                Debug.LogError($"{name}: '{business.name}'의 효과표 길이가 안 맞는다. "
-                             + $"businessDurations·settlementBonuses가 각각 {business.MaxLevel}칸이어야 "
-                             + "한다 (비용 칸 수 + 1).", this);
-            }
         }
 
         // ── 아래 넷이 계약 8이다. B가 읽는다. 시그니처를 지우거나 바꿀 땐 먼저 말한다.
 
-        /// <summary>지금 레벨. 에셋이 없으면 1을 돌려준다 (Awake에서 이미 에러를 냈다).</summary>
+        /// <summary>지금 레벨. 에셋이 없으면 0을 돌려준다 (Awake에서 이미 에러를 냈다).</summary>
         public int LevelOf(FacilityKind kind)
             => _levels.TryGetValue(kind, out int level) ? level : FacilityData.MinLevel;
 
-        /// <summary>지금 영업 시간(초). B의 타이머가 읽는다.</summary>
-        public float BusinessDuration => _data.TryGetValue(FacilityKind.Business, out FacilityData d)
-                                       && d.HasEffectTable
-            ? d.BusinessDurationAt(LevelOf(FacilityKind.Business))
-            : FallbackDuration;
+        /// <summary>지금 영업 시간(초). B의 타이머가 읽는다. (+10/2) 기본 180초 + BUSINESS_TIME_ADD.</summary>
+        public float BusinessDuration => BaseBusinessDuration + EffectValue(FacilityKind.Business, FacilityEffectType.BusinessTimeAdd);
 
-        /// <summary>지금 정산 배수 (1 = 보너스 없음). B가 정산 금액에 곱한다.</summary>
-        public float SettlementBonus => _data.TryGetValue(FacilityKind.Business, out FacilityData d)
-                                      && d.HasEffectTable
-            ? d.SettlementBonusAt(LevelOf(FacilityKind.Business))
-            : FallbackBonus;
+        /// <summary>지금 정산 배수 (1 = 보너스 없음). B가 정산 금액에 곱한다. (+10/2) SETTLEMENT_MULTIPLIER, 없으면 1.</summary>
+        public float SettlementBonus
+        {
+            get
+            {
+                float m = EffectValue(FacilityKind.Business, FacilityEffectType.SettlementMultiplier);
+                return m > 0f ? m : 1f;
+            }
+        }
+
+        /// <summary>
+        /// (+10/2) 이 시설의 지금 레벨에서 그 효과의 값 (누적 총합). 없으면 0, 잠긴 시설도 0.
+        /// B가 테이블 · 직원 · 미니게임 보정을 붙일 때 이걸 읽는다 — 늘리는 건 A 마음대로, 지우는 건 먼저 말한다.
+        /// </summary>
+        public float EffectValue(FacilityKind kind, FacilityEffectType type)
+        {
+            FacilityData data = DataOf(kind);
+            if (data == null || !IsUnlocked(kind)) return 0f;
+            return data.EffectValueAt(LevelOf(kind), type);
+        }
 
         // ── 여기부터는 A만 쓴다. UI와 FacilityUpgrade(4번)가 호출자다.
 
@@ -148,7 +151,7 @@ namespace Marea.Economy
             return true;
         }
 
-        // ── 해금 (+9/28, 이슈 71). 레벨과 별개 축이다 — 잠긴 시설도 레벨은 1로 들고 있고,
+        // ── 해금 (+9/28, 이슈 71). 레벨과 별개 축이다 — 잠긴 시설도 레벨은 0으로 들고 있고,
         //    해금 뒤 업그레이드는 기존 경로 그대로다. B는 이걸 안 읽는다.
 
         /// <summary>열려 있나. 에셋이 없으면 false.</summary>

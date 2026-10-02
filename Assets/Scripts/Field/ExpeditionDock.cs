@@ -22,9 +22,17 @@ namespace Marea.Field
 
         public override bool CanInteract(IInteractor actor) => _manager != null && _manager.CanInteract;
 
-        // (+9/28, 이슈 75) 탐사 중엔 CanInteract가 false라 라벨이 안 뜬다.
+        // (+9/28, 이슈 75) (+10/2) 탐사 중에도 남은 시간 창을 열 수 있어 라벨이 뜬다.
         public override string InteractLabel(IInteractor actor)
-            => _manager != null && _manager.Current == ExpeditionManager.State.Returned ? "보상 받기" : "파견";
+        {
+            if (_manager == null) return "파견";
+            return _manager.Current switch
+            {
+                ExpeditionManager.State.Returned => "보상 받기",
+                ExpeditionManager.State.Away => "탐사 현황",
+                _ => "파견",
+            };
+        }
 
         public override void Interact(IInteractor actor)
         {

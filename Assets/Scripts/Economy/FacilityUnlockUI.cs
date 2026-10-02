@@ -1,109 +1,75 @@
+using Marea.Core;
 using Marea.Data;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace Marea.Economy
 {
     /// <summary>
-    /// 부서진 시설을 클릭하면 뜨는 해금 창. 이름 · 해금 후 쓸 수 있는 기능 · 비용 · 해금 버튼. (+9/28, 이슈 71)
+    /// 부서진 시설을 클릭하면 뜨는 해금 창의 내용. (+9/28, 이슈 71)
     ///
-    /// 기획 7-2 「해금 대상 선택」이 근거다. U 목록에서도 해금할 수 있고(이미 있음) 이 창은
+    /// 기획 7-2 「해금 대상 선택」이 근거다. 성장 창에서도 해금할 수 있고 이 창은
     /// 월드에서 들어오는 창구다. 해금 자체는 둘 다 FacilityUpgrade.TryUnlock 한 곳을 탄다.
     ///
-    /// 논블로킹이다 — 업그레이드 목록과 같은 판단 (UIStack은 B 몫인데 아직 없다).
+    /// (+10/2, 이슈 92 — 와이어프레임 「해금 / 바닥 수리」) 화면 가운데 고정 창이었다가
+    /// 시설 위에 붙는 작은 확인창(<see cref="WorldConfirmUI"/>)이 됐다. 창 자체는 바닥 수리와
+    /// 같이 쓰고, 여기는 "무엇을 보일지 · [해금]이 무엇을 하는지"만 정한다.
     /// </summary>
     public class FacilityUnlockUI : MonoBehaviour
     {
-        [Tooltip("여닫을 대상. 이 컴포넌트가 붙은 오브젝트와 따로 둔다.")]
-        [SerializeField] private GameObject panel;
-        [SerializeField] private TextMeshProUGUI nameLabel;
-        [SerializeField] private TextMeshProUGUI descriptionLabel;
-        [SerializeField] private TextMeshProUGUI costLabel;
-        [SerializeField] private Button unlockButton;
-        [SerializeField] private TextMeshProUGUI unlockButtonLabel;
-        [SerializeField] private Button closeButton;
+        [Tooltip("비워두면 같은 씬에서 찾는다.")]
+        [SerializeField] private WorldConfirmUI confirm;
 
-        private FacilityKind _kind;
-        private Wallet _wallet;
+        [Tooltip("창을 띄울 높이(m). 시설 바닥보다 위에 뜨게.")]
+        [SerializeField] private float anchorHeight = 1.5f;
 
         private void Awake()
         {
-            if (panel == null)
-                Debug.LogError($"{name}: FacilityUnlockUI.panel이 비어 있다. 해금 창이 안 뜬다.", this);
-            if (unlockButton == null)
-                Debug.LogError($"{name}: FacilityUnlockUI.unlockButton이 비어 있다. 해금할 수 없다.", this);
-
-            if (unlockButton != null) unlockButton.onClick.AddListener(HandleUnlockClicked);
-            if (closeButton != null) closeButton.onClick.AddListener(Close);
-            if (panel != null) panel.SetActive(false);
+            if (confirm == null) confirm = FindAnyObjectByType<WorldConfirmUI>(FindObjectsInactive.Include);
+            if (confirm == null)
+                Debug.LogError($"{name}: 씬에 WorldConfirmUI가 없다. 해금 창이 안 뜬다.", this);
         }
 
-        private void Start()
+        /// <summary>이 시설의 해금 창을 anchor 위에 연다.</summary>
+        public void Open(FacilityKind kind, Transform anchor)
         {
-            _wallet = Wallet.Instance;
-            if (_wallet != null) _wallet.OnGoldChanged += HandleGoldChanged;
+            if (confirm == null) return;
+            confirm.Open(anchor, Vector3.up * anchorHeight, () => BuildView(kind),
+                         () => FacilityUpgrade.TryUnlock(kind) == FacilityUpgrade.Result.Ok);
         }
 
-        private void OnDestroy()
-        {
-            if (_wallet != null) _wallet.OnGoldChanged -= HandleGoldChanged;
-        }
-
-        /// <summary>이 시설의 해금 창을 연다. 이미 열려 있으면 내용만 바꾼다.</summary>
-        public void Open(FacilityKind kind)
-        {
-            if (panel == null) return;
-
-            _kind = kind;
-            panel.SetActive(true);
-            Refresh();
-        }
-
-        public void Close()
-        {
-            if (panel != null) panel.SetActive(false);
-        }
-
-        private void HandleUnlockClicked()
-        {
-            // 실패하면 창을 두고 사유를 다시 그린다. 버튼이 이미 꺼져 있어서 드문 경로다.
-            if (FacilityUpgrade.TryUnlock(_kind) == FacilityUpgrade.Result.Ok) Close();
-            else Refresh();
-        }
-
-        // 열어둔 채 정산이 끝나 골드가 들어오면 버튼이 켜져야 한다.
-        private void HandleGoldChanged(int gold)
-        {
-            if (panel != null && panel.activeSelf) Refresh();
-        }
-
-        private void Refresh()
+        private static ConfirmView BuildView(FacilityKind kind)
         {
             FacilityLevels levels = FacilityLevels.Instance;
-            FacilityData data = levels != null ? levels.DataOf(_kind) : null;
-            FacilityUpgrade.Result state = FacilityUpgrade.CanUnlock(_kind);
+            FacilityData data = levels != null ? levels.DataOf(kind) : null;
+            FacilityUpgrade.Result state = FacilityUpgrade.CanUnlock(kind);
+            int gold = Wallet.Instance != null ? Wallet.Instance.Gold : 0;
 
-            SetText(nameLabel, data == null ? _kind.ToString()
-                : string.IsNullOrWhiteSpace(data.DisplayName) ? data.name : data.DisplayName);
-            SetText(descriptionLabel, data != null ? data.UnlockDescription : string.Empty);
-            SetText(costLabel, data != null ? $"{data.UnlockCost:N0} G" : "—");
+            string status = data == null ? "설정 오류" : $"필요 골드 {data.UnlockCost:N0} G\n보유 골드 {gold:N0} G";
+            FacilityKind? missing = FacilityUpgrade.FirstMissingPrerequisite(kind);
+            if (missing != null) status += $"\n먼저 해금: {NameOf(missing.Value)}";
 
-            if (unlockButton != null) unlockButton.interactable = state == FacilityUpgrade.Result.Ok;
-
-            SetText(unlockButtonLabel, state switch
+            return new ConfirmView
             {
-                FacilityUpgrade.Result.Ok                  => "해금",
-                FacilityUpgrade.Result.NotEnoughGold       => "골드 부족",
-                FacilityUpgrade.Result.MissingPrerequisite => "선행 필요",
-                FacilityUpgrade.Result.AlreadyUnlocked     => "해금됨",
-                _                                          => "설정 오류",
-            });
+                Title = $"{(data != null ? data.UnlockName : kind.ToString())} 해금",   // (+10/2) 기획 UnlockData.Name
+                Body = data != null ? data.UnlockDescription : string.Empty,
+                Status = status,
+                CanConfirm = state == FacilityUpgrade.Result.Ok,
+                ConfirmLabel = state switch
+                {
+                    FacilityUpgrade.Result.Ok                  => "해금",
+                    FacilityUpgrade.Result.NotEnoughGold       => "골드 부족",
+                    FacilityUpgrade.Result.MissingPrerequisite => "선행 필요",
+                    FacilityUpgrade.Result.AlreadyUnlocked     => "해금됨",
+                    _                                          => "설정 오류",
+                },
+            };
         }
 
-        private static void SetText(TextMeshProUGUI label, string value)
+        private static string NameOf(FacilityKind kind)
         {
-            if (label != null) label.text = value;
+            FacilityData data = FacilityLevels.Instance != null ? FacilityLevels.Instance.DataOf(kind) : null;
+            if (data == null) return kind.ToString();
+            return string.IsNullOrWhiteSpace(data.DisplayName) ? data.name : data.DisplayName;
         }
     }
 }

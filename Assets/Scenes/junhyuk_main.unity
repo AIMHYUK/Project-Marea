@@ -1926,9 +1926,9 @@ RectTransform:
   - {fileID: 356229276}
   m_Father: {fileID: 50705754}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 1}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -36.27, y: 0}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: 50, y: -100}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 1, y: 1}
 --- !u!1 &155746190
@@ -53755,9 +53755,9 @@ RectTransform:
   - {fileID: 1978293675}
   m_Father: {fileID: 50705754}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 1}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 30.29004, y: -35.809998}
+  m_AnchorMin: {x: 1, y: 0}
+  m_AnchorMax: {x: 1, y: 0}
+  m_AnchoredPosition: {x: 6, y: 109}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 1, y: 1}
 --- !u!1001 &1040903585
@@ -62952,6 +62952,7 @@ MonoBehaviour:
   btnStartCooking: {fileID: 1953896529}
   skewerMinigameController: {fileID: 1568201299}
   stewMinigameController: {fileID: 1939648860}
+  veggieStirFryController: {fileID: 0}
   fishGrillController: {fileID: 0}
   cookingCounter: {fileID: 8164078558985977734}
   categoryDataList:
@@ -76731,6 +76732,9 @@ MonoBehaviour:
   step3Panel: {fileID: 0}
   cameraController: {fileID: 204986631}
   cameraViewPoint: {fileID: 0}
+  step1ViewPoint: {fileID: 0}
+  step2ViewPoint: {fileID: 0}
+  step3ViewPoint: {fileID: 0}
   stepTransitionDelay: 1.5
   fishVisual: {fileID: 0}
   minigameUI: {fileID: 1640253675}

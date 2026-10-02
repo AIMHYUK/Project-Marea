@@ -120,7 +120,7 @@ namespace Marea.Cooking
 
             if (clamGrillController == null)
             {
-                // clamGrillController = FindFirstObjectByType<ClamGrillMinigameController>(FindObjectsInactive.Include);
+                clamGrillController = FindFirstObjectByType<ClamGrillMinigameController>(FindObjectsInactive.Include);
             }
         }
 
@@ -408,7 +408,7 @@ namespace Marea.Cooking
                 case FishGrillSubtype.Clam:
                     if (clamGrillController != null)
                     {
-                        // clamGrillController.StartMinigame(menu, OnMinigameFinished);
+                        clamGrillController.StartMinigame(menu, OnMinigameFinished);
                     }
                     else
                     {

@@ -1,0 +1,130 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &7646254719706748327
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2755099346149132489}
+  - component: {fileID: 1518058485511007822}
+  m_Layer: 0
+  m_Name: Clam_2rd_Junbok
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2755099346149132489
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7646254719706748327}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5817900847764163158}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &1518058485511007822
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7646254719706748327}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.20000002, y: 0.06409895, z: 0.19862403}
+  m_Center: {x: 0, y: 0.032049473, z: 0}
+--- !u!1001 &6284751849850416573
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 2755099346149132489}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.1476267
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.1476267
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.1476267
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.9077959
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.41941223
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+      propertyPath: m_Name
+      value: 2rd_Junbok
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+--- !u!4 &5817900847764163158 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: c27ea59ae4ba5e74c85896a4a315e7d0, type: 3}
+  m_PrefabInstance: {fileID: 6284751849850416573}
+  m_PrefabAsset: {fileID: 0}

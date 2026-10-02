@@ -14,9 +14,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.FacilityData
   kind: 2
   displayName: "\uCC3D\uACE0"
+  description: 
   startsUnlocked: 1
+  unlockName: 
   unlockCost: 0
   prerequisites: 
-  upgradeCosts: f4010000b0040000c4090000
-  businessDurations: []
-  settlementBonuses: []
+  unlockDescription: 
+  steps:
+  - upgradeId: STORAGE_001
+    goldCost: 500
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 0
+    effectValue: 0
+    effectChance: 0
+    effectTarget: 
+    description: "\uD6A8\uACFC \uBBF8\uC815"
+  - upgradeId: STORAGE_002
+    goldCost: 1200
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 0
+    effectValue: 0
+    effectChance: 0
+    effectTarget: 
+    description: "\uD6A8\uACFC \uBBF8\uC815"
+  - upgradeId: STORAGE_003
+    goldCost: 2500
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 0
+    effectValue: 0
+    effectChance: 0
+    effectTarget: 
+    description: "\uD6A8\uACFC \uBBF8\uC815"

@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4c146bc81828e74ca1d3adfb0e51443, type: 3}
+  m_Name: Facility_Staff
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.FacilityData
+  kind: 5
+  displayName: "\uC9C1\uC6D0 \uC6B4\uC601"
+  description: "\uC9C1\uC6D0\uC758 \uC131\uB2A5\uC744 \uAC15\uD654\uD558\uB294 \uC2DC\uC124"
+  startsUnlocked: 1
+  unlockName: 
+  unlockCost: 0
+  prerequisites: 
+  unlockDescription: 
+  steps:
+  - upgradeId: UPG_STAFF_001
+    goldCost: 1000
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 15
+    effectValue: 1
+    effectChance: 0
+    effectTarget: 
+    description: "\uC9C1\uC6D0 \uACE0\uC6A9 / \uC11C\uBE59 \uC790\uB3D9\uD654"
+  - upgradeId: UPG_STAFF_002
+    goldCost: 1500
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 16
+    effectValue: 0.05
+    effectChance: 0
+    effectTarget: 
+    description: "\uC9C1\uC6D0 \uC774\uB3D9 \uC18D\uB3C4 +5%"
+  - upgradeId: UPG_STAFF_003
+    goldCost: 2000
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 16
+    effectValue: 0.1
+    effectChance: 0
+    effectTarget: 
+    description: "\uC9C1\uC6D0 \uC774\uB3D9 \uC18D\uB3C4 \uCD1D +10%"
+  - upgradeId: UPG_STAFF_004
+    goldCost: 3000
+    resource: {fileID: 11400000, guid: befa003b74f6ede43a6aa4b2ff320644, type: 2}
+    resourceAmount: 2
+    effectType: 17
+    effectValue: 1
+    effectChance: 0
+    effectTarget: 
+    description: "\uD55C \uBC88\uC5D0 \uC6B4\uBC18\uD558\uB294 \uC74C\uC2DD \uC218
+      +1"

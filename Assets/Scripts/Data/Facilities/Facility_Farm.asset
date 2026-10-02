@@ -13,12 +13,49 @@ MonoBehaviour:
   m_Name: Facility_Farm
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.FacilityData
   kind: 3
-  displayName: "\uB18D\uC0AC \uB370\uD06C"
+  displayName: "\uC218\uAE09 \uC2DC\uC124"
+  description: "\uC0DD\uC0B0\uBB3C\uC758 \uD6A8\uC728\uC744 \uAC15\uD654\uD558\uB294
+    \uC2DC\uC124"
   startsUnlocked: 0
-  unlockCost: 100
+  unlockName: "\uB18D\uC0AC\uD130"
+  unlockCost: 10000
   prerequisites: 
-  unlockDescription: "\uBC2D\uC5D0 \uC791\uBB3C\uC744 \uC2EC\uACE0 \uAE38\uB7EC \uC2DD\uC7AC\uB8CC\uB97C
-    \uC218\uD655\uD560 \uC218 \uC788\uB2E4."
-  upgradeCosts: 6400000096000000c8000000
-  businessDurations: []
-  settlementBonuses: []
+  unlockDescription: "\uB18D\uC791\uBB3C \uC7AC\uBC30 \uBC0F \uC218\uD655 \uAE30\uB2A5
+    \uD65C\uC131\uD654"
+  steps:
+  - upgradeId: UPG_SUPPLY_001
+    goldCost: 1000
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 7
+    effectValue: 0.1
+    effectChance: 0
+    effectTarget: 
+    description: "\uC791\uBB3C \uC131\uC7A5 \uC2DC\uAC04 -10%"
+  - upgradeId: UPG_SUPPLY_002
+    goldCost: 1500
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 9
+    effectValue: 1
+    effectChance: 0
+    effectTarget: 
+    description: "\uC7AC\uBC30 \uACF5\uAC04 +1\uCE78"
+  - upgradeId: UPG_SUPPLY_003
+    goldCost: 2000
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 10
+    effectValue: 1
+    effectChance: 0
+    effectTarget: RARE
+    description: "\uACE0\uAE09(RARE) \uC7AC\uB8CC \uC218\uAE09 \uAC00\uB2A5"
+  - upgradeId: UPG_SUPPLY_004
+    goldCost: 3000
+    resource: {fileID: 11400000, guid: befa003b74f6ede43a6aa4b2ff320644, type: 2}
+    resourceAmount: 2
+    effectType: 8
+    effectValue: 1
+    effectChance: 0.2
+    effectTarget: 
+    description: "\uC218\uAE09 \uC2DC 20% \uD655\uB960\uB85C \uC7AC\uB8CC +1"
