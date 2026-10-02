@@ -9,14 +9,28 @@ namespace Marea.Cooking
         [Header("1단계: 타이밍 재료 썰기")]
         [SerializeField] private SeafoodSkewersSlicer seafoodSlicer;
 
-        [Header("2단계: 꼬치에 끼우기 (추후 구현)")]
-        [SerializeField] private GameObject step2SkewerContainer;
+        [Header("2단계: 꼬치에 끼우기")]
+        [SerializeField] private SeafoodSkewersAssembly skewersAssembly;
 
-        [Header("3단계: 양면 굽기 (추후 구현)")]
-        [SerializeField] private GameObject step3GrillContainer;
+        [Header("3단계: 양면 굽기")]
+        [SerializeField] private SeafoodSkewersGrill skewersGrill;
 
         private MenuData _currentMenu;
         private Action<CookingResult> _onCompleteCallback;
+
+        private void OnEnable()
+        {
+            if (seafoodSlicer != null) seafoodSlicer.OnSlicingCompleted += HandleStep1Completed;
+            if (skewersAssembly != null) skewersAssembly.OnAssemblyCompleted += HandleStep2Completed;
+            if (skewersGrill != null) skewersGrill.OnGrillCompleted += HandleStep3Completed;
+        }
+
+        private void OnDisable()
+        {
+            if (seafoodSlicer != null) seafoodSlicer.OnSlicingCompleted -= HandleStep1Completed;
+            if (skewersAssembly != null) skewersAssembly.OnAssemblyCompleted -= HandleStep2Completed;
+            if (skewersGrill != null) skewersGrill.OnGrillCompleted -= HandleStep3Completed;
+        }
 
         public void StartMinigame(MenuData menu, Action<CookingResult> onComplete)
         {
@@ -30,7 +44,6 @@ namespace Marea.Cooking
         // --- 1단계: 재료 썰기 ---
         protected override void OnStep1Start()
         {
-            // Step1Panel(UI + 3D)만 켜고 나머지는 끔
             if (step1Panel != null) step1Panel.SetActive(true);
             if (step2Panel != null) step2Panel.SetActive(false);
             if (step3Panel != null) step3Panel.SetActive(false);
@@ -38,46 +51,53 @@ namespace Marea.Cooking
             if (seafoodSlicer != null) seafoodSlicer.ResetSlicer();
         }
 
-        protected override void OnStep1Update()
+        private void HandleStep1Completed()
         {
-            if (seafoodSlicer != null && seafoodSlicer.IsCompleted)
-            {
-                float averageScore = seafoodSlicer.SliceScoreSum / Mathf.Max(1, seafoodSlicer.CurrentSliceCount);
-                CompleteStep1(averageScore);
-            }
+            if (seafoodSlicer == null) return;
+            float averageScore = seafoodSlicer.SliceScoreSum / Mathf.Max(1, seafoodSlicer.CurrentSliceCount);
+            CompleteStep1(averageScore);
         }
+
+        protected override void OnStep1Update() { }
 
         // --- 2단계: 꼬치에 끼우기 ---
         protected override void OnStep2Start()
         {
-            // Step2Panel(UI + 3D)만 켜고 나머지는 끔
             if (step1Panel != null) step1Panel.SetActive(false);
             if (step2Panel != null) step2Panel.SetActive(true);
             if (step3Panel != null) step3Panel.SetActive(false);
+
+            if (skewersAssembly != null) skewersAssembly.ResetAssembly();
         }
 
-        protected override void OnStep2Update()
+        private void HandleStep2Completed()
         {
-            // 2단계 완료 조건 만족 시 CompleteStep2(score) 호출
+            CompleteStep2(1.0f);
         }
+
+        protected override void OnStep2Update() { }
 
         // --- 3단계: 양면 굽기 ---
         protected override void OnStep3Start()
         {
-            // Step3Panel(UI + 3D)만 켜고 나머지는 끔
             if (step1Panel != null) step1Panel.SetActive(false);
             if (step2Panel != null) step2Panel.SetActive(false);
             if (step3Panel != null) step3Panel.SetActive(true);
+
+            if (skewersGrill != null) skewersGrill.ResetGrill();
         }
 
-        protected override void OnStep3Update()
+        private void HandleStep3Completed()
         {
-            // 3단계 완료 조건 만족 시 CompleteStep3(score) 호출
+            float step3Score = skewersGrill != null ? skewersGrill.FinalGrillScore : 1.0f;
+            CompleteStep3(step3Score);
         }
 
+        protected override void OnStep3Update() { }
+
+        // --- 전체 미니게임 완결 ---
         protected override void OnMinigameCompleted(float finalScore)
         {
-            // 미니게임 완결 시 모든 단계 오브젝트(UI + 3D) 비활성화
             if (step1Panel != null) step1Panel.SetActive(false);
             if (step2Panel != null) step2Panel.SetActive(false);
             if (step3Panel != null) step3Panel.SetActive(false);
