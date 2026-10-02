@@ -14,6 +14,7 @@ namespace Marea.Cooking
         private CameraFollow _cameraFollow;
         private Vector3 _originalPosition;
         private Quaternion _originalRotation;
+        private bool _hasOriginal; // 미니게임 중(시점에 가 있거나 가는 중)이면 true
         private Coroutine _moveRoutine;
 
         private void Awake()
@@ -41,7 +42,7 @@ namespace Marea.Cooking
         {
             if (targetViewPoint == null)
             {
-                Debug.LogError("[MinigameCameraController] targetViewPoint가 비어있습니다. StewMinigameController의 CameraViewPoint를 연결하세요.");
+                Debug.LogError("[MinigameCameraController] targetViewPoint가 비어있습니다. 미니게임 컨트롤러의 cameraViewPoint / stepNViewPoint를 연결하세요.");
                 return;
             }
 
@@ -62,8 +63,14 @@ namespace Marea.Cooking
                 StopCoroutine(_moveRoutine);
             }
 
-            _originalPosition = _cam.transform.position;
-            _originalRotation = _cam.transform.rotation;
+            // 복귀 지점은 미니게임 시작 때 한 번만 저장한다.
+            // 단계마다 시점을 옮길 때 덮어쓰면 끝나고 앞 단계 시점으로 돌아간다.
+            if (!_hasOriginal)
+            {
+                _originalPosition = _cam.transform.position;
+                _originalRotation = _cam.transform.rotation;
+                _hasOriginal = true;
+            }
 
             //Debug.Log($"[MinigameCameraController] 목표 위치로 이동 시작: {targetViewPoint.position}");
             _moveRoutine = StartCoroutine(TransitionRoutine(targetViewPoint.position, targetViewPoint.rotation));
@@ -72,6 +79,7 @@ namespace Marea.Cooking
         public void ReturnToOriginalPosition()
         {
             if (_cam == null) return;
+            if (!_hasOriginal) return; // 이미 복귀했다 — CameraFollow가 움직인 카메라를 다시 끌어오지 않는다
 
             if (_moveRoutine != null)
             {
@@ -106,6 +114,7 @@ namespace Marea.Cooking
         private IEnumerator ReturnRoutine(Vector3 destPos, Quaternion destRot)
         {
             yield return TransitionRoutine(destPos, destRot);
+            _hasOriginal = false;
 
             if (_cameraFollow != null)
             {

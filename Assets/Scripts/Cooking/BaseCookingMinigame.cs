@@ -26,6 +26,12 @@ namespace Marea.Cooking
         [SerializeField] protected MinigameCameraController cameraController;
         [SerializeField] protected Transform cameraViewPoint;
 
+        [Header("단계별 카메라 시점 (비면 cameraViewPoint)")]
+        [Tooltip("KitchenViewPoints 아래 공용 시점(화구·그릴·조리대·싱크대·창고)을 연결한다.")]
+        [SerializeField] protected Transform step1ViewPoint;
+        [SerializeField] protected Transform step2ViewPoint;
+        [SerializeField] protected Transform step3ViewPoint;
+
         [Header("단계 전환 연출 설정")]
         [SerializeField] protected float stepTransitionDelay = 1.5f; // 단계 넘어갈 때 딜레이 시간 (초)
 
@@ -42,6 +48,10 @@ namespace Marea.Cooking
         {
             EnsureDependencies();
             SetPhysicsRaycasterState(false);
+
+            // 조리대를 여러 요리가 같이 쓰므로, 평소에는 모든 단계 패널을 꺼 둔다.
+            // 지금 요리의 지금 단계 패널만 StartStepN에서 켠다.
+            SetStepPanelState(s1: false, s2: false, s3: false);
         }
 
         protected virtual void OnDisable()
@@ -84,11 +94,34 @@ namespace Marea.Cooking
             }
         }
 
-        protected virtual void MoveCameraToViewPoint()
+        protected virtual void MoveCameraToViewPoint(Transform viewPoint)
         {
-            if (cameraController != null && cameraViewPoint != null)
+            if (cameraController != null && viewPoint != null)
             {
-                cameraController.MoveToViewPoint(cameraViewPoint);
+                cameraController.MoveToViewPoint(viewPoint);
+            }
+        }
+
+        /// <summary>단계 시점이 비어 있으면 공통 cameraViewPoint를 쓴다.</summary>
+        protected Transform GetStepViewPoint(MinigameStepIndex step)
+        {
+            Transform stepPoint = step switch
+            {
+                MinigameStepIndex.Step1 => step1ViewPoint,
+                MinigameStepIndex.Step2 => step2ViewPoint,
+                MinigameStepIndex.Step3 => step3ViewPoint,
+                _ => null
+            };
+            return stepPoint != null ? stepPoint : cameraViewPoint;
+        }
+
+        // 2·3단계: 시점이 앞 단계와 같으면 움직이지 않는다.
+        private void MoveCameraForStep(MinigameStepIndex step, MinigameStepIndex previous)
+        {
+            Transform target = GetStepViewPoint(step);
+            if (target != GetStepViewPoint(previous))
+            {
+                MoveCameraToViewPoint(target);
             }
         }
 
@@ -120,7 +153,7 @@ namespace Marea.Cooking
         public virtual void StartStep1()
         {
             SetPhysicsRaycasterState(true);
-            MoveCameraToViewPoint();
+            MoveCameraToViewPoint(GetStepViewPoint(MinigameStepIndex.Step1));
 
             CurrentStepIndex = MinigameStepIndex.Step1;
             SetStepPanelState(s1: true, s2: false, s3: false);
@@ -139,6 +172,7 @@ namespace Marea.Cooking
         // --- 2단계 실행 ---
         public virtual void StartStep2()
         {
+            MoveCameraForStep(MinigameStepIndex.Step2, MinigameStepIndex.Step1);
             CurrentStepIndex = MinigameStepIndex.Step2;
             SetStepPanelState(s1: false, s2: true, s3: false);
             OnStep2Start();
@@ -156,6 +190,7 @@ namespace Marea.Cooking
         // --- 3단계 실행 ---
         public virtual void StartStep3()
         {
+            MoveCameraForStep(MinigameStepIndex.Step3, MinigameStepIndex.Step2);
             CurrentStepIndex = MinigameStepIndex.Step3;
             SetStepPanelState(s1: false, s2: false, s3: true);
             OnStep3Start();
@@ -198,6 +233,7 @@ namespace Marea.Cooking
             CurrentStepIndex = MinigameStepIndex.Completed;
             SetPhysicsRaycasterState(false);
             ReturnCameraToOriginalPosition();
+            SetStepPanelState(s1: false, s2: false, s3: false);
 
             float averageScore = (Step1Score + Step2Score + Step3Score) / 3.0f;
             OnMinigameCompleted(averageScore);
