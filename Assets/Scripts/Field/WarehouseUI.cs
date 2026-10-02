@@ -17,13 +17,9 @@ namespace Marea.Field
     /// UIStack은 B 몫인데 아직 없어서, 여기서 임시로 만들면 나중에 두 벌이 된다.
     /// 목록형은 정보 표시라 게임플레이를 막을 이유가 없다.
     /// </summary>
-    public class WarehouseUI : MonoBehaviour
+    public class WarehouseUI : UiPanel
     {
         [Header("참조")]
-        [Tooltip("켜고 끄는 대상. 이 컴포넌트가 붙은 오브젝트를 끄면 Update가 안 돌아 "
-               + "다시 열 수 없으니, 패널은 따로 지정한다.")]
-        [SerializeField] private GameObject panel;
-
         [Tooltip("셀이 쌓일 곳. VerticalLayoutGroup이 붙어 있어야 세로로 정렬된다.")]
         [SerializeField] private Transform cellParent;
 
@@ -33,20 +29,16 @@ namespace Marea.Field
         [Tooltip("비워두면 같은 씬에서 찾는다.")]
         [SerializeField] private PlayerInputReader input;
 
-        [Header("동작")]
-        [SerializeField] private bool openOnStart;
-
         // 창고와 같은 이유로 키가 id가 아니라 재료 자체다 —
         // id를 안 채운 에셋 둘이 있으면(둘 다 0) 한 줄로 합쳐진다.
         private readonly Dictionary<IngredientData, IngredientCell> _cells = new();
         private Warehouse _warehouse;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             if (input == null) input = FindAnyObjectByType<PlayerInputReader>();
 
-            if (panel == null)
-                Debug.LogError($"{name}: WarehouseUI.panel이 비어 있다. 여닫을 대상이 없다.", this);
             if (cellParent == null)
                 Debug.LogError($"{name}: WarehouseUI.cellParent가 비어 있다. 줄을 붙일 곳이 없다.", this);
             if (cellPrefab == null)
@@ -57,8 +49,9 @@ namespace Marea.Field
 
         // Warehouse.Awake가 startingStock을 넣으므로 여기서 잡으면 초기 재고를 놓친다.
         // OnEnable(Start 이후)이 아니라 Start에서 구독하고, 현재 상태를 통째로 한 번 읽는다.
-        private void Start()
+        protected override void Start()
         {
+            base.Start();
             _warehouse = Warehouse.Instance;
             if (_warehouse == null)
             {
@@ -68,8 +61,6 @@ namespace Marea.Field
 
             _warehouse.OnCountChanged += HandleCountChanged;
             RebuildAll();
-
-            if (panel != null) panel.SetActive(openOnStart);
         }
 
         private void OnDestroy()
@@ -79,10 +70,8 @@ namespace Marea.Field
 
         private void Update()
         {
-            if (input == null || panel == null) return;
-            if (!input.InventoryPressed) return;
-
-            panel.SetActive(!panel.activeSelf);
+            if (input == null) return;
+            if (input.InventoryPressed) Toggle();
         }
 
         /// <summary>구독을 걸기 전에 이미 들어와 있던 재고를 한 번에 그린다.</summary>
