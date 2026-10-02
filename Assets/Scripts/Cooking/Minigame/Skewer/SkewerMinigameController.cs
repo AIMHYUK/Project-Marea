@@ -1,22 +1,23 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using Marea.Core;
 using Marea.Data;
 using Marea.Field;
 using Marea.Restaurant;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Marea.Cooking
 {
-    public class SkewerMinigameController : MonoBehaviour
+    public class SkewerMinigameController : BaseCookingMinigame
     {
-        [Header("카메라 연출")]
-        [SerializeField] private MinigameCameraController cameraController;
-        [SerializeField] private Transform cameraViewPoint;
+        [Header("1단계: 재료 썰기")]
+        [SerializeField] private HawaiianSkewerSlicer slicerStep1;
 
-        [Header("3D 연출 및 UI")]
+        [Header("2단계: 꼬치 끼우기")]
         [SerializeField] private IngredientController ingredientController;
+
+        [Header("UI 시스템")]
         [SerializeField] private SkewerMinigameUI minigameUI;
 
         private MenuData _currentMenu;
@@ -24,22 +25,39 @@ namespace Marea.Cooking
         private int _currentIngredientIndex;
         private readonly List<HitGrade> _hitHistory = new();
         private readonly List<IngredientData> _targetIngredients = new();
-        private bool _isPlaying;
+        private bool _step3CompletionRequested;
 
-        // 메뉴 레시피에 정의된 총 개수를 반환
         public int TotalIngredients => _targetIngredients.Count;
+        public bool IsInserting => ingredientController != null && ingredientController.IsInserting;
+        public float IngredientTravelPosition => ingredientController != null ? ingredientController.TravelPosition : 0.5f;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             EnsureDependencies();
         }
 
-        private void EnsureDependencies()
+        private void OnEnable()
         {
-            if (cameraController == null)
+            if (slicerStep1 != null)
             {
-                cameraController = FindFirstObjectByType<MinigameCameraController>(FindObjectsInactive.Include);
+                slicerStep1.OnSlicingCompleted += HandleStep1Completed;
             }
+        }
+
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+
+            if (slicerStep1 != null)
+            {
+                slicerStep1.OnSlicingCompleted -= HandleStep1Completed;
+            }
+        }
+
+        protected override void EnsureDependencies()
+        {
+            base.EnsureDependencies();
 
             if (minigameUI == null)
             {
@@ -51,40 +69,18 @@ namespace Marea.Cooking
                 ingredientController = FindFirstObjectByType<IngredientController>(FindObjectsInactive.Include);
             }
 
-            if (cameraViewPoint == null)
+            if (slicerStep1 == null)
             {
-                // 씬 내 활성/비활성 오브젝트를 포함하여 이름으로 자동 탐색
-                GameObject viewPointObj = GameObject.Find("SkewerCameraViewPoint");
-                if (viewPointObj == null)
-                {
-                    viewPointObj = GameObject.Find("CameraViewPoint");
-                }
-
-                // 부모가 비활성화 상태여서 Find로 못 잡을 경우를 대비한 트랜스폼 전체 탐색
-                if (viewPointObj == null)
-                {
-                    Transform[] allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
-                    foreach (var t in allTransforms)
-                    {
-                        if (t.gameObject.scene.isLoaded &&
-                           (t.name == "Skewer_CameraTarget_Point"))
-                        {
-                            viewPointObj = t.gameObject;
-                            break;
-                        }
-                    }
-                }
-
-                if (viewPointObj != null)
-                {
-                    cameraViewPoint = viewPointObj.transform;
-                }
+                slicerStep1 = FindFirstObjectByType<HawaiianSkewerSlicer>(FindObjectsInactive.Include);
             }
         }
 
         public void StartMinigame(MenuData menu, Action<CookingResult> onComplete)
         {
             EnsureDependencies();
+            ingredientController?.HideAll();
+            _step3CompletionRequested = false;
+            Step1Score = Step2Score = Step3Score = 1f;
 
             CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
             if (customerManager != null)
@@ -98,36 +94,134 @@ namespace Marea.Cooking
             _hitHistory.Clear();
             _targetIngredients.Clear();
 
-            // MenuData의 Recipe에서 재료와 개수를 전개하여 순서 리스트 생성.
-            // 전에는 인스펙터 배열 순서를 그대로 썼다 — 행을 위아래로 옮기면 조리 순서가
-            // 조용히 바뀌었다. 이제 기획 RecipeData.InputOrder가 정한다. (+9/16, #47)
             BuildTargetIngredients(_currentMenu, _targetIngredients);
-
-            _isPlaying = true;
-
-            if (cameraController != null && cameraViewPoint != null)
-            {
-                cameraController.MoveToViewPoint(cameraViewPoint);
-            }
-
-            if (ingredientController != null)
-            {
-                ingredientController.InitializeMinigame3D(_targetIngredients);
-            }
 
             if (minigameUI != null)
             {
                 minigameUI.Setup(this);
-                minigameUI.Open();
+            }
+
+            StartStep1();
+            minigameUI?.Open();
+        }
+
+        // --- 1단계: 재료 썰기 ---
+        protected override void OnStep1Start()
+        {
+            if (slicerStep1 != null)
+            {
+                slicerStep1.ResetSlicer();
+            }
+            minigameUI?.RefreshStageInstructions();
+        }
+
+        private void HandleStep1Completed()
+        {
+            Debug.Log("[SkewerMinigameController] 1단계 재료 썰기 완료!");
+            CompleteStep1(1.0f);
+        }
+
+        protected override void OnStep1Update()
+        {
+        }
+
+        // --- 2단계: 꼬치 끼우기 ---
+        protected override void OnStep2Start()
+        {
+            Debug.Log("[SkewerMinigameController] 2단계(타이밍 꼬치 끼우기) 시작");
+
+            _currentIngredientIndex = 0;
+
+            if (ingredientController != null)
+            {
+                Transform viewPoint = GetStepViewPoint(MinigameStepIndex.Step2);
+                ingredientController.InitializeMinigame3D(_targetIngredients, viewPoint != null ? viewPoint.right : Vector3.right);
+            }
+            minigameUI?.RefreshStageInstructions();
+        }
+
+        protected override void OnStep2Update()
+        {
+        }
+
+        // --- 3단계: 2단계에서 조립한 꼬치에 소스 바르기 ---
+        protected override void OnStep3Start()
+        {
+            Debug.Log("[SkewerMinigameController] 3단계 소스 바르기 시작");
+            _step3CompletionRequested = false;
+            if (ingredientController != null)
+            {
+                ingredientController.StopMoving();
+                ingredientController.ResetSaucePainting();
+            }
+            minigameUI?.RefreshStageInstructions();
+
+            if (ingredientController != null && ingredientController.SauceTargetCount == 0)
+            {
+                CompleteStep3(0f);
             }
         }
 
-        /// <summary>
-        /// 레시피를 투입 순서대로 펼쳐 재료 한 개씩의 목록으로 만든다.
-        ///
-        /// inputOrder가 같은 줄끼리는 인스펙터에 적힌 순서를 유지한다 — List.Sort는
-        /// 불안정 정렬이라 그냥 쓰면 값이 같은 줄의 앞뒤가 실행마다 달라질 수 있다.
-        /// </summary>
+        protected override void OnStep3Update()
+        {
+        }
+
+        // --- 입력 처리 ---
+        public void ProcessHit(HitGrade grade)
+        {
+            if (CurrentStepIndex == MinigameStepIndex.NotStarted || CurrentStepIndex == MinigameStepIndex.Completed) return;
+
+            if (CurrentStepIndex == MinigameStepIndex.Step1)
+            {
+                // 1단계: 타이밍 상관없이 클릭 시 순서대로 썰기
+                if (slicerStep1 != null)
+                {
+                    slicerStep1.ExecuteSlice();
+                }
+            }
+            else if (CurrentStepIndex == MinigameStepIndex.Step2)
+            {
+                if (IsInserting) return;
+                if (grade == HitGrade.Miss)
+                {
+                    _hitHistory.Add(grade);
+                    return;
+                }
+                if (ingredientController != null &&
+                    ingredientController.AttachIngredient(_currentIngredientIndex, HandleIngredientInserted))
+                    _hitHistory.Add(grade);
+            }
+        }
+
+        private void HandleIngredientInserted()
+        {
+            _currentIngredientIndex++;
+            if (_currentIngredientIndex < TotalIngredients) return;
+            ingredientController.StopMoving();
+            CompleteStep2(CalculateSkewerScore());
+        }
+
+        public void ProcessSauceDrag(Vector2 screenPosition)
+        {
+            if (CurrentStepIndex != MinigameStepIndex.Step3 || _step3CompletionRequested || ingredientController == null)
+            {
+                return;
+            }
+
+            Camera paintingCamera = cameraController != null ? cameraController.GetComponent<Camera>() : Camera.main;
+            ingredientController.TryApplySauceAt(screenPosition, paintingCamera);
+            if (minigameUI != null)
+            {
+                minigameUI.UpdateSauceProgress(ingredientController.SaucedIngredientCount, ingredientController.SauceTargetCount);
+            }
+
+            if (ingredientController.AllIngredientsSauced)
+            {
+                _step3CompletionRequested = true;
+                CompleteStep3(1.0f);
+            }
+        }
+
         private static void BuildTargetIngredients(MenuData menu, List<IngredientData> result)
         {
             result.Clear();
@@ -158,35 +252,37 @@ namespace Marea.Cooking
             }
         }
 
-        public void ProcessHit(HitGrade grade)
+        private float CalculateSkewerScore()
         {
-            if (!_isPlaying) return;
+            if (_hitHistory.Count == 0) return 0f;
 
-            _hitHistory.Add(grade);
-
-            if (grade != HitGrade.Miss)
+            float score = 0f;
+            foreach (HitGrade grade in _hitHistory)
             {
-                if (ingredientController != null)
+                score += grade switch
                 {
-                    ingredientController.AttachIngredient(_currentIngredientIndex);
-                }
-
-                _currentIngredientIndex++;
-
-                if (_currentIngredientIndex >= TotalIngredients)
-                {
-                    FinishGame(true);
-                }
+                    HitGrade.Perfect => 1f,
+                    HitGrade.Good => 0.7f,
+                    _ => 0f
+                };
             }
+
+            return score / _hitHistory.Count;
         }
 
-        private void FinishGame(bool isSuccess)
+        // --- 미니게임 최종 완료 ---
+        protected override void OnMinigameCompleted(float finalScore)
         {
-            _isPlaying = false;
-
+            slicerStep1?.ResetSlicer();
             if (ingredientController != null)
             {
                 ingredientController.StopMoving();
+                ingredientController.HideAll();
+            }
+
+            if (minigameUI != null)
+            {
+                minigameUI.Close();
             }
 
             CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
@@ -195,48 +291,34 @@ namespace Marea.Cooking
                 customerManager.PauseSpawning(false);
             }
 
-            float multiplier = 1.0f;
-            if (_hitHistory.Contains(HitGrade.Perfect)) multiplier += 0.1f;
-            if (!isSuccess) multiplier -= 0.2f;
-
-            int finalPrice = _currentMenu != null ? Mathf.RoundToInt(_currentMenu.BasePrice * multiplier) : 0;
+            bool isSuccess = finalScore >= 0.5f;
+            int finalPrice = _currentMenu != null ? Mathf.RoundToInt(_currentMenu.BasePrice * finalScore) : 0;
+            HitGrade bestGrade = _hitHistory.Contains(HitGrade.Perfect)
+                ? HitGrade.Perfect
+                : (_hitHistory.Contains(HitGrade.Good) ? HitGrade.Good : HitGrade.Miss);
 
             CookingResult result = new CookingResult
             {
                 isSuccess = isSuccess,
                 finalPrice = finalPrice,
-                bestGrade = _hitHistory.Contains(HitGrade.Perfect) ? HitGrade.Perfect : HitGrade.Good,
+                bestGrade = bestGrade,
                 menuData = _currentMenu
             };
 
-            StartCoroutine(FinishRoutine(result));
-        }
-
-        private IEnumerator FinishRoutine(CookingResult result)
-        {
-            yield return new WaitForSeconds(0.8f);
-
-            if (minigameUI != null)
-            {
-                minigameUI.Close();
-            }
-
-            if (ingredientController != null)
-            {
-                ingredientController.HideAll();
-            }
-
-            if (cameraController != null)
-            {
-                cameraController.ReturnToOriginalPosition();
-            }
-
-            if (result.isSuccess)
+            if (isSuccess)
             {
                 DispatchCookedFood(result);
             }
 
-            _onCompleteCallback?.Invoke(result);
+            // Clear round state before the callback, which may immediately start another round.
+            Action<CookingResult> callback = _onCompleteCallback;
+            _onCompleteCallback = null;
+            _currentMenu = null;
+            _currentIngredientIndex = 0;
+            _step3CompletionRequested = false;
+            _hitHistory.Clear();
+            _targetIngredients.Clear();
+            callback?.Invoke(result);
         }
 
         private void DispatchCookedFood(CookingResult result)
@@ -287,7 +369,6 @@ namespace Marea.Cooking
 
         private void GiveFoodToPlayer(CookingResult result)
         {
-            // 플레이어 손에 직접 넣지 않고 CookingMenuUI의 _onCompleteCallback으로 넘겨 조리대에 거치하도록 위임
         }
     }
 }
