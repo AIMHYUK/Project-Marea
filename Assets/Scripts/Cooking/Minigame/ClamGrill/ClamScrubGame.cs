@@ -17,11 +17,22 @@ namespace Marea.Cooking
     /// </summary>
     public class ClamScrubGame : MonoBehaviour
     {
+        /// <summary>조개 한 종류의 닦인 정도별 모습 (+10/2 아트 적용). 0번이 가장 더러운 것.</summary>
+        [Serializable]
+        public struct StageSet
+        {
+            public string label;
+            public GameObject[] stages;
+        }
+
         [Header("조개")]
         [Tooltip("조개를 놓을 자리. 개수만큼 조개가 놓인다.")]
         [SerializeField] private Transform[] slots;
 
-        [Tooltip("닦인 정도별 모습. 0번이 가장 더러운 것, 마지막이 깨끗한 것. 비우면 임시 모양(납작한 구 · 색)으로 만든다.")]
+        [Tooltip("자리별 조개 종류. i번 자리는 slotStages[i % 개수]를 쓴다 (홍합 · 가리비 · 전복). 비우면 stagePrefabs.")]
+        [SerializeField] private StageSet[] slotStages;
+
+        [Tooltip("모든 자리가 같은 조개일 때. 0번이 가장 더러운 것, 마지막이 깨끗한 것. 둘 다 비우면 임시 모양(납작한 구 · 색).")]
         [SerializeField] private GameObject[] stagePrefabs;
 
         [Tooltip("임시 모양일 때 단계별 색 (더러움 → 깨끗함). stagePrefabs가 있으면 안 쓴다.")]
@@ -43,6 +54,7 @@ namespace Marea.Cooking
         private sealed class Clam
         {
             public Transform Slot;
+            public GameObject[] Prefabs;   // 이 조개의 단계 모습. 비면 임시 모양
             public GameObject Visual;
             public int Stage;
             public float Accum;
@@ -53,7 +65,7 @@ namespace Marea.Cooking
         private bool _running;
 
         public bool IsFinished { get; private set; }
-        public int StageCount => stagePrefabs != null && stagePrefabs.Length > 0 ? stagePrefabs.Length : placeholderColors.Length;
+        private int StageCountOf(Clam c) => c.Prefabs != null && c.Prefabs.Length > 0 ? c.Prefabs.Length : placeholderColors.Length;
         public float TimeLeft01 => timeLimit > 0f ? Mathf.Clamp01(_timeLeft / timeLimit) : 0f;
 
         /// <summary>닦인 정도 평균 (0 = 전부 더러움, 1 = 전부 깨끗함).</summary>
@@ -61,9 +73,9 @@ namespace Marea.Cooking
         {
             get
             {
-                if (_clams.Count == 0 || StageCount <= 1) return 1f;
+                if (_clams.Count == 0) return 1f;
                 float sum = 0f;
-                foreach (Clam c in _clams) sum += (float)c.Stage / (StageCount - 1);
+                foreach (Clam c in _clams) sum += StageCountOf(c) <= 1 ? 1f : (float)c.Stage / (StageCountOf(c) - 1);
                 return sum / _clams.Count;
             }
         }
@@ -81,10 +93,14 @@ namespace Marea.Cooking
                 return;
             }
 
-            foreach (Transform slot in slots)
+            for (int i = 0; i < slots.Length; i++)
             {
+                Transform slot = slots[i];
                 if (slot == null) continue;
-                var clam = new Clam { Slot = slot };
+                GameObject[] prefabs = slotStages != null && slotStages.Length > 0
+                    ? slotStages[i % slotStages.Length].stages
+                    : stagePrefabs;
+                var clam = new Clam { Slot = slot, Prefabs = prefabs };
                 _clams.Add(clam);
                 ShowStage(clam);
             }
@@ -100,7 +116,7 @@ namespace Marea.Cooking
             get
             {
                 int n = 0;
-                foreach (Clam c in _clams) if (c.Stage >= StageCount - 1) n++;
+                foreach (Clam c in _clams) if (c.Stage >= StageCountOf(c) - 1) n++;
                 return n;
             }
         }
@@ -117,7 +133,7 @@ namespace Marea.Cooking
         {
             if (!_running) return;
             Clam clam = _clams.Find(c => c.Visual != null && c.Visual == target.gameObject);
-            if (clam == null || clam.Stage >= StageCount - 1) return;
+            if (clam == null || clam.Stage >= StageCountOf(clam) - 1) return;
 
             clam.Accum += pixels;
             if (clam.Accum < dragPerStage) return;
@@ -134,9 +150,9 @@ namespace Marea.Cooking
             if (clam.Visual != null) Destroy(clam.Visual);
 
             GameObject go;
-            if (stagePrefabs != null && clam.Stage < stagePrefabs.Length && stagePrefabs[clam.Stage] != null)
+            if (clam.Prefabs != null && clam.Stage < clam.Prefabs.Length && clam.Prefabs[clam.Stage] != null)
             {
-                go = Instantiate(stagePrefabs[clam.Stage], clam.Slot.position, clam.Slot.rotation, transform);
+                go = Instantiate(clam.Prefabs[clam.Stage], clam.Slot.position, clam.Slot.rotation, transform);
             }
             else
             {
