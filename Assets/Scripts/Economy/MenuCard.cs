@@ -35,13 +35,17 @@ namespace Marea.Economy
             button.onClick.AddListener(() => onClick?.Invoke(Menu));
         }
 
-        public void Refresh(bool selected, int servings)
+        /// <param name="lockedLevel">(+10/2) 주방 업그레이드로 잠겼으면 열리는 레벨, 아니면 0.</param>
+        public void Refresh(bool selected, int servings, int lockedLevel = 0)
         {
             if (Menu == null) return;
 
             if (nameLabel != null) nameLabel.text = string.IsNullOrWhiteSpace(Menu.DisplayName) ? Menu.name : Menu.DisplayName;
             if (priceLabel != null) priceLabel.text = $"판매 가격 {Menu.BasePrice:N0} G";
-            if (recipeLabel != null) recipeLabel.text = servings <= 0 ? "<color=#B03A2E>재료 부족</color>\n" + RecipeText(Menu) : RecipeText(Menu);
+            if (recipeLabel != null)
+                recipeLabel.text = lockedLevel > 0 ? $"<color=#B03A2E>주방 시설 Lv.{lockedLevel} 필요</color>\n" + RecipeText(Menu)
+                    : servings <= 0 ? "<color=#B03A2E>재료 부족</color>\n" + RecipeText(Menu)
+                    : RecipeText(Menu);
             if (icon != null)
             {
                 icon.sprite = Menu.Icon;
@@ -49,7 +53,8 @@ namespace Marea.Economy
             }
             if (checkMark != null) checkMark.SetActive(selected);
             if (selectedFrame != null) selectedFrame.SetActive(selected);
-            if (group != null) group.alpha = selected || servings > 0 ? 1f : 0.55f;
+            // 잠김(주방 레벨) > 재료 부족 순으로 흐리게. 고른 카드는 테두리로 구분한다.
+            if (group != null) group.alpha = lockedLevel > 0 ? 0.35f : selected || servings > 0 ? 1f : 0.55f;
         }
 
         // 기호를 안 쓴다 — Pretendard-Bold SDF에 · 가 없다. "/" 는 있다.

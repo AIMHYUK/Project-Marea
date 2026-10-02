@@ -76,6 +76,7 @@ namespace Marea.Field
         private string _penaltyText;
         private WorldLabelUI _labels;
         private NavMeshAgent _agent;
+        private float _baseSpeed;   // (+10/2) 업그레이드 전 속도. AgentMover가 Awake에서 넣은 값
 
         /// <summary>
         /// 지금 상태. ServingStaffAnimator 가 이것만 읽어서 Animator 에 넘긴다 (+9/22).
@@ -104,6 +105,34 @@ namespace Marea.Field
             _agent = GetComponent<NavMeshAgent>();
             _labels = FindAnyObjectByType<WorldLabelUI>(FindObjectsInactive.Include);
             ShowIcon(null);
+        }
+
+        // (+10/2) 직원 운영 업그레이드 — 이동 속도 증가(STAFF_SPEED_ADD, 누적 총합).
+        // AgentMover.Awake가 agent.speed를 넣은 뒤라 Start에서 바닥값을 잡는다.
+        private void Start()
+        {
+            if (_agent != null) _baseSpeed = _agent.speed;
+            if (FacilityLevels.Instance != null) FacilityLevels.Instance.OnLevelChanged += HandleLevelChanged;
+            ApplySpeed();
+        }
+
+        private void OnDestroy()
+        {
+            if (FacilityLevels.Instance != null) FacilityLevels.Instance.OnLevelChanged -= HandleLevelChanged;
+        }
+
+        private void HandleLevelChanged(FacilityKind kind, int level)
+        {
+            if (kind == FacilityKind.Staff) ApplySpeed();
+        }
+
+        private void ApplySpeed()
+        {
+            if (_agent == null || _baseSpeed <= 0f) return;
+            float add = FacilityLevels.Instance != null
+                ? FacilityLevels.Instance.EffectValue(FacilityKind.Staff, Marea.Data.FacilityEffectType.StaffSpeedAdd)
+                : 0f;
+            _agent.speed = _baseSpeed * (1f + add);
         }
 
         private void OnEnable()

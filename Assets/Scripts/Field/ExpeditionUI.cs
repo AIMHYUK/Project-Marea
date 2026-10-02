@@ -88,7 +88,8 @@ namespace Marea.Field
                     : new Vector2(0f, -110f * (i - (nodePositions?.Length ?? 0)));
 
                 TextMeshProUGUI label = node.GetComponentInChildren<TextMeshProUGUI>(true);
-                if (label != null) label.text = area.DisplayName;
+                bool open = _manager.IsAreaUnlocked(area, out _);
+                if (label != null) label.text = open ? area.DisplayName : $"{area.DisplayName}\n<size=70%>잠김</size>";
 
                 node.onClick.RemoveAllListeners();
                 node.onClick.AddListener(() => Select(area));
@@ -113,12 +114,18 @@ namespace Marea.Field
                     image.sprite = on ? nodeOnSprite : nodeOffSprite;
             }
 
+            int need = 0;
+            bool open = _selected == null || _manager == null || _manager.IsAreaUnlocked(_selected, out need);
+
             if (detailName != null) detailName.text = _selected != null ? _selected.DisplayName : string.Empty;
-            if (detailTime != null) detailTime.text = _selected != null ? $"탐사 시간 {TimeText.Format(_selected.DurationSeconds)}" : string.Empty;
+            if (detailTime != null)
+                detailTime.text = _selected == null || _manager == null ? string.Empty
+                    : open ? $"탐사 시간 {TimeText.Format(_manager.DurationOf(_selected))}"
+                    : $"잠김: 탐사 시설 Lv.{need} 필요";
             if (detailRewards != null) detailRewards.text = _selected != null ? RewardText(_selected) : string.Empty;
 
             if (dispatchButton != null)
-                dispatchButton.interactable = _selected != null && _manager != null
+                dispatchButton.interactable = _selected != null && _manager != null && open
                                            && _manager.Current == ExpeditionManager.State.Idle;
         }
 
