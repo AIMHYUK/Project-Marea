@@ -208,6 +208,9 @@ namespace Marea.Cooking
                 for (int i = 0; i < _alive.Count; i++)
                 {
                     if (hits[h].collider != _alive[i].Col) continue;
+                    // (+10/2, 이슈 84) 터지는 연출이 있으면 지우기 전에 튼다.
+                    PopupBurst burst = _alive[i].T.GetComponentInChildren<PopupBurst>();
+                    if (burst != null) burst.Burst();
                     Destroy(_alive[i].T.gameObject);
                     _alive.RemoveAt(i);
                     _popped++;

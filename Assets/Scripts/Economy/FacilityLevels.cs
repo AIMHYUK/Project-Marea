@@ -124,6 +124,26 @@ namespace Marea.Economy
             return data.EffectValueAt(LevelOf(kind), type);
         }
 
+        /// <summary>(+10/2) 지금 걸려 있는 그 효과의 단계 (값 · 확률 · 대상). 잠긴 시설이거나 없으면 false.</summary>
+        public bool TryGetEffect(FacilityKind kind, FacilityEffectType type, out FacilityUpgradeStep step)
+        {
+            FacilityData data = DataOf(kind);
+            if (data == null || !IsUnlocked(kind)) { step = default; return false; }
+            return data.TryGetEffectAt(LevelOf(kind), type, out step);
+        }
+
+        /// <summary>
+        /// (+10/2) 이 대상(메뉴 · 해역 · 등급 키)이 열렸나. 그 대상을 여는 단계가 데이터에 없으면 true —
+        /// 잠글 근거가 없는 것은 막지 않는다. requiredLevel은 잠금 문구("주방 시설 Lv.3 필요")용.
+        /// </summary>
+        public bool IsTargetUnlocked(FacilityKind kind, FacilityEffectType type, string key, out int requiredLevel)
+        {
+            FacilityData data = DataOf(kind);
+            requiredLevel = data != null ? data.LevelForTarget(type, key) : 0;
+            if (requiredLevel == 0) return true;
+            return IsUnlocked(kind) && LevelOf(kind) >= requiredLevel;
+        }
+
         // ── 여기부터는 A만 쓴다. UI와 FacilityUpgrade(4번)가 호출자다.
 
         /// <summary>이 시설의 정의. 목록 UI가 이름·비용을 여기서 꺼낸다. 없으면 null.</summary>

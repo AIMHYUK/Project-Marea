@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Marea.Core;
 using Marea.Data;
+using Marea.Economy;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -143,13 +144,46 @@ namespace Marea.Field
             }
         }
 
-        /// <summary>이 해역으로 보낸다. 대기가 아니면 false.</summary>
+        // ── (+10/2) 탐사 시설 업그레이드 효과 (기획 업그레이드 테이블) ──
+
+        /// <summary>업그레이드가 반영된 탐사 시간. 탐사 시간 감소(EXPLORE_TIME_REDUCE, 누적 총합).</summary>
+        public float DurationOf(ExpeditionAreaData area)
+        {
+            if (area == null) return 0f;
+            float reduce = FacilityLevels.Instance != null
+                ? FacilityLevels.Instance.EffectValue(FacilityKind.Explorer, FacilityEffectType.ExploreTimeReduce)
+                : 0f;
+            return area.DurationSeconds * Mathf.Clamp01(1f - reduce);
+        }
+
+        /// <summary>해역 해금(REGION_UNLOCK). 키가 없는 해역은 늘 열려 있다. 잠겼으면 열리는 레벨을 준다.</summary>
+        public bool IsAreaUnlocked(ExpeditionAreaData area, out int requiredLevel)
+        {
+            requiredLevel = 0;
+            if (area == null || string.IsNullOrWhiteSpace(area.UnlockKey) || FacilityLevels.Instance == null) return true;
+            return FacilityLevels.Instance.IsTargetUnlocked(FacilityKind.Explorer, FacilityEffectType.RegionUnlock, area.UnlockKey, out requiredLevel);
+        }
+
+        /// <summary>탐사 획득량 증가(EXPLORE_REWARD_ADD) — 수량 × (1 + 값). 소수점은 그 확률로 1개 더.</summary>
+        private static int ApplyRewardBonus(int amount)
+        {
+            float add = FacilityLevels.Instance != null
+                ? FacilityLevels.Instance.EffectValue(FacilityKind.Explorer, FacilityEffectType.ExploreRewardAdd)
+                : 0f;
+            if (add <= 0f) return amount;
+            float total = amount * (1f + add);
+            int whole = Mathf.FloorToInt(total);
+            return whole + (UnityEngine.Random.value < total - whole ? 1 : 0);
+        }
+
+        /// <summary>이 해역으로 보낸다. 대기가 아니거나 잠긴 해역이면 false.</summary>
         public bool TryDispatch(ExpeditionAreaData area)
         {
             if (Current != State.Idle || area == null) return false;
+            if (!IsAreaUnlocked(area, out _)) return false;
 
             _current = area;
-            _returnAt = Time.time + area.DurationSeconds;
+            _returnAt = Time.time + DurationOf(area);
             Current = State.Away;
             Show();
             return true;
@@ -166,7 +200,7 @@ namespace Marea.Field
             if (group != null && group.TryPick(UnityEngine.Random.value, out ExpeditionRewardEntry picked))
             {
                 int max = Mathf.Max(picked.amountMin, picked.amountMax);
-                _pending.Add((picked.item, UnityEngine.Random.Range(picked.amountMin, max + 1)));
+                _pending.Add((picked.item, ApplyRewardBonus(UnityEngine.Random.Range(picked.amountMin, max + 1))));
             }
             else
             {

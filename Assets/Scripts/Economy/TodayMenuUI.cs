@@ -97,7 +97,10 @@ namespace Marea.Economy
 
             foreach (MenuCard card in _cards)
                 if (card.gameObject.activeSelf)
-                    card.Refresh(_menu.IsSelected(card.Menu), TodayMenu.ServingsAvailable(card.Menu));
+                {
+                    bool open = _menu.IsMenuUnlocked(card.Menu, out int need);
+                    card.Refresh(_menu.IsSelected(card.Menu), TodayMenu.ServingsAvailable(card.Menu), open ? 0 : need);
+                }
 
             if (goldLabel != null && _wallet != null) goldLabel.text = $"보유 골드 {_wallet.Gold:N0} G";
             if (countLabel != null) countLabel.text = $"판매할 메뉴 선택  {_menu.Selected.Count} / {_menu.MaxCount}";
