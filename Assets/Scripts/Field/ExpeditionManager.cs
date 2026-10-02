@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using Marea.Core;
 using Marea.Data;
@@ -60,6 +61,9 @@ namespace Marea.Field
 
         public State Current { get; private set; } = State.Idle;
         public ExpeditionAreaData[] Areas => areas;
+
+        /// <summary>대기·탐사 중·귀환이 바뀔 때. 메인 HUD 알람이 구독한다. (+10/2, 이슈 92)</summary>
+        public event Action<State> OnStateChanged;
 
         private void Awake()
         {
@@ -138,10 +142,10 @@ namespace Marea.Field
 
             // 보상 그룹에서 가중치로 한 줄을 뽑는다. 몇 번 뽑는지는 기획에 없어서 한 번이다 (ExpeditionRewardData).
             ExpeditionRewardData group = _current.RewardGroup;
-            if (group != null && group.TryPick(Random.value, out ExpeditionRewardEntry picked))
+            if (group != null && group.TryPick(UnityEngine.Random.value, out ExpeditionRewardEntry picked))
             {
                 int max = Mathf.Max(picked.amountMin, picked.amountMax);
-                warehouse.Add(picked.item, Random.Range(picked.amountMin, max + 1));
+                warehouse.Add(picked.item, UnityEngine.Random.Range(picked.amountMin, max + 1));
             }
             else
             {
@@ -170,6 +174,7 @@ namespace Marea.Field
                 }
             }
             if (returnedMarker != null) returnedMarker.SetActive(Current == State.Returned);
+            OnStateChanged?.Invoke(Current);
         }
 
         /// <summary>바라보는 방향으로 가속하며 나아가다 끝에 가라앉고 꺼진다. (+9/30)</summary>

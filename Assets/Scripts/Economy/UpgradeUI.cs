@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Marea.Core;
 using Marea.Player;
 using TMPro;
 using UnityEngine;
@@ -19,13 +20,9 @@ namespace Marea.Economy
     /// 없기 때문이다. 나중에 탐사정처럼 실물이 있는 시설이 생기면 그때 그 오브젝트가
     /// 이 패널을 여는 창구가 된다 — 목록 자체는 그대로 쓴다.
     /// </summary>
-    public class UpgradeUI : MonoBehaviour
+    public class UpgradeUI : UiPanel
     {
         [Header("참조")]
-        [Tooltip("여닫을 대상. 이 컴포넌트가 붙은 오브젝트를 끄면 Update가 안 돌아 "
-               + "다시 열 수 없으니, 패널은 따로 지정한다.")]
-        [SerializeField] private GameObject panel;
-
         [Tooltip("줄이 쌓일 곳. VerticalLayoutGroup이 붙어 있어야 세로로 정렬된다.")]
         [SerializeField] private Transform cellParent;
 
@@ -38,19 +35,15 @@ namespace Marea.Economy
         [Tooltip("비워두면 같은 씬에서 찾는다.")]
         [SerializeField] private PlayerInputReader input;
 
-        [Header("동작")]
-        [SerializeField] private bool openOnStart;
-
         private readonly List<FacilityCell> _cells = new();
         private FacilityLevels _levels;
         private Wallet _wallet;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             if (input == null) input = FindAnyObjectByType<PlayerInputReader>();
 
-            if (panel == null)
-                Debug.LogError($"{name}: UpgradeUI.panel이 비어 있다. 여닫을 대상이 없다.", this);
             if (cellParent == null)
                 Debug.LogError($"{name}: UpgradeUI.cellParent가 비어 있다. 줄을 붙일 곳이 없다.", this);
             if (cellPrefab == null)
@@ -61,8 +54,9 @@ namespace Marea.Economy
 
         // FacilityLevels.Awake가 에셋 표를 만든 뒤라야 DataOf가 값을 준다. Awake에서
         // 줄을 만들면 실행 순서에 따라 빈 목록이 나온다.
-        private void Start()
+        protected override void Start()
         {
+            base.Start();
             _levels = FacilityLevels.Instance;
             _wallet = Wallet.Instance;
 
@@ -82,8 +76,6 @@ namespace Marea.Economy
             if (_wallet != null) _wallet.OnGoldChanged += HandleGoldChanged;
 
             RefreshAll();
-
-            if (panel != null) panel.SetActive(openOnStart);
         }
 
         private void OnDestroy()
@@ -95,14 +87,12 @@ namespace Marea.Economy
 
         private void Update()
         {
-            if (input == null || panel == null) return;
-            if (!input.UpgradePressed) return;
-
-            panel.SetActive(!panel.activeSelf);
-
-            // 닫혀 있는 동안에도 골드는 변한다(정산). 열 때 한 번 맞춰준다.
-            if (panel.activeSelf) RefreshAll();
+            if (input == null) return;
+            if (input.UpgradePressed) Toggle();
         }
+
+        // 닫혀 있는 동안에도 골드는 변한다(정산). 열 때 한 번 맞춰준다.
+        protected override void OnOpened() => RefreshAll();
 
         /// <summary>enum에 선언된 순서대로 줄을 만든다. 에셋이 빠진 시설은 건너뛴다.</summary>
         private void BuildCells()
