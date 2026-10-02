@@ -15,9 +15,6 @@ namespace Marea.Cooking
         [Header("초점 흐림 (+10/2) — 비워 두면 안 쓴다")]
         [Tooltip("Depth of Field만 든 Volume. 평소 weight 0, 미니게임 시점에 있는 동안 1.")]
         [SerializeField] private Volume focusVolume;
-        [Tooltip("시점 정면으로 레이를 쏴 닿은 곳까지를 초점으로 잡는다. 안 닿으면 이 거리.")]
-        [SerializeField, Min(0.1f)] private float fallbackFocusDistance = 3f;
-        [SerializeField, Min(0.5f)] private float focusRayLength = 20f;
 
         private Camera _cam;
         private DepthOfField _dof;
@@ -68,12 +65,15 @@ namespace Marea.Cooking
         {
             if (focusVolume == null || _dof == null) return;
 
-            float distance = fallbackFocusDistance;
+            // (+10/2) 초점 대상을 정한 시점에서만 흐린다. 주방 가구엔 콜라이더가 없어 정면 레이가 요리를 지나
+            // 뒷벽 · 바닥에 닿았고, 그러면 정작 요리가 흐려졌다. 모르는 시점은 흐림을 끄는 게 안전하다.
             ViewPointFocus focus = viewPoint.GetComponent<ViewPointFocus>();
-            if (focus != null && focus.Target != null)
-                distance = Mathf.Max(0.1f, Vector3.Dot(focus.Target.position - viewPoint.position, viewPoint.forward));
-            else if (Physics.Raycast(viewPoint.position, viewPoint.forward, out RaycastHit hit, focusRayLength, ~0, QueryTriggerInteraction.Ignore))
-                distance = hit.distance;
+            if (focus == null || focus.Target == null)
+            {
+                ClearFocus();
+                return;
+            }
+            float distance = Mathf.Max(0.1f, Vector3.Dot(focus.Target.position - viewPoint.position, viewPoint.forward));
 
             _dof.focusDistance.Override(distance);
             _dof.aperture.Override(focus != null && focus.Aperture > 0f ? focus.Aperture : _defaultAperture);

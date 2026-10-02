@@ -455,6 +455,9 @@ namespace Marea.Cooking
         {
             Debug.Log($"[CookingMenuUI] 요리 완료 결과: 성공여부={result.isSuccess}, 최종가격={result.finalPrice}G, 판정={result.bestGrade}");
 
+            // (+10/2, A) 공통 완성 팝업 — 만든 요리 · 이름 · 랭크 · 판매가.
+            DishRevealUI.TryShow(result, result.menuData != null ? result.menuData : _cookingMenu);
+
             if (result.isSuccess)
             {
                 MenuData completedMenu = result.menuData != null ? result.menuData : _cookingMenu;

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 namespace Marea.Cooking
 {
@@ -9,9 +9,11 @@ namespace Marea.Cooking
     /// 조개구이 1단계 — 싱크대에서 조개 닦기. 기획 MG_SURFACE_DRAG. (+10/2, 이슈 85)
     ///
     /// 조개는 움직이지 않는다. 조개 위에서 드래그한 거리만 쌓이고, 쌓인 양이 문턱을 넘을 때마다
-    /// 다음 단계 모습(더러움 1 → 깨끗함 4)으로 바뀐다. 그래서 조개마다 <see cref="ClamScrubTarget"/>
-    /// (IDragHandler)이 붙어 이동량을 여기로 넘긴다 — 집어서 옮기는 드래그가 아니다.
-    /// 드래그 이벤트는 PhysicsRaycaster가 켜져 있어야 온다 (BaseCookingMinigame이 단계 동안 켠다).
+    /// 다음 단계 모습(더러움 1 → 깨끗함 4)으로 바뀐다 — 집어서 옮기는 드래그가 아니다.
+    ///
+    /// (+10/2) 입력은 마우스를 직접 읽는다: 누르고 있는 동안 매 프레임 커서 아래 조개를 레이로 찾아
+    /// 마우스 이동량을 쌓는다. 예전엔 조개마다 IDragHandler를 붙였는데, 단계가 넘어갈 때 모습을 갈아 끼우면
+    /// 드래그가 처음 누른 오브젝트에 묶여 있어 끊겼다(떼고 다시 눌러야 했다). 판정 콜라이더도 모습보다 넉넉하게.
     ///
     /// 단계 진행 · 결과는 모른다 — 컨트롤러가 Begin으로 시작하고 IsFinished/Score를 읽는다 (CatchGame과 같은 모양).
     /// </summary>
@@ -51,11 +53,15 @@ namespace Marea.Cooking
         [Tooltip("제한시간(초). 기획 MG_SURFACE_DRAG = 10.")]
         [SerializeField, Min(1f)] private float timeLimit = 10f;
 
+        [Tooltip("판정 범위를 모습보다 이만큼 키운다. 조금 빗나가도 닦인다.")]
+        [SerializeField, Min(1f)] private float hitPadding = 1.3f;
+
         private sealed class Clam
         {
             public Transform Slot;
             public GameObject[] Prefabs;   // 이 조개의 단계 모습. 비면 임시 모양
             public GameObject Visual;
+            public Collider Hit;           // 판정용 — 모습을 갈아 끼워도 자리에 그대로 남는다
             public int Stage;
             public float Accum;
         }
@@ -103,6 +109,7 @@ namespace Marea.Cooking
                 var clam = new Clam { Slot = slot, Prefabs = prefabs };
                 _clams.Add(clam);
                 ShowStage(clam);
+                clam.Hit = MakeHitBox(clam);
             }
 
             _timeLeft = timeLimit;
@@ -125,15 +132,32 @@ namespace Marea.Cooking
         {
             if (!_running) return;
             _timeLeft -= Time.deltaTime;
+            ReadMouse();
             if (_timeLeft <= 0f || CleanCount == _clams.Count) Finish();
         }
 
-        /// <summary>ClamScrubTarget이 드래그 이동량(화면 px)을 넘긴다.</summary>
-        internal void AddScrub(ClamScrubTarget target, float pixels)
+        private void ReadMouse()
         {
-            if (!_running) return;
-            Clam clam = _clams.Find(c => c.Visual != null && c.Visual == target.gameObject);
-            if (clam == null || clam.Stage >= StageCountOf(clam) - 1) return;
+            Mouse mouse = Mouse.current;
+            Camera cam = Camera.main;
+            if (mouse == null || cam == null || !mouse.leftButton.isPressed) return;
+
+            float pixels = mouse.delta.ReadValue().magnitude;
+            if (pixels <= 0f) return;
+
+            Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
+            foreach (RaycastHit hit in Physics.RaycastAll(ray, 100f, ~0, QueryTriggerInteraction.Collide))
+            {
+                Clam clam = _clams.Find(c => c.Hit == hit.collider);
+                if (clam == null) continue;
+                AddScrub(clam, pixels);
+                return;
+            }
+        }
+
+        private void AddScrub(Clam clam, float pixels)
+        {
+            if (clam.Stage >= StageCountOf(clam) - 1) return;
 
             clam.Accum += pixels;
             if (clam.Accum < dragPerStage) return;
@@ -165,11 +189,31 @@ namespace Marea.Cooking
                 if (r != null && clam.Stage < placeholderColors.Length) r.material.color = placeholderColors[clam.Stage];
             }
 
-            if (go.GetComponentInChildren<Collider>() == null) go.AddComponent<SphereCollider>();
-            var target = go.GetComponent<ClamScrubTarget>();
-            if (target == null) target = go.AddComponent<ClamScrubTarget>();
-            target.Game = this;
+            // 모습의 콜라이더는 끈다 — 판정은 자리에 고정된 Hit 상자로 한다(갈아 끼워도 안 끊긴다).
+            foreach (Collider c in go.GetComponentsInChildren<Collider>()) c.enabled = false;
             clam.Visual = go;
+        }
+
+        /// <summary>첫 모습 크기보다 hitPadding만큼 큰 판정 상자를 자리에 둔다.</summary>
+        private Collider MakeHitBox(Clam clam)
+        {
+            var box = new GameObject("ScrubHit").AddComponent<BoxCollider>();
+            box.transform.SetParent(transform, false);
+            box.transform.SetPositionAndRotation(clam.Slot.position, clam.Slot.rotation);
+            box.isTrigger = true;
+
+            Bounds b = new Bounds(clam.Slot.position, placeholderSize);
+            bool has = false;
+            if (clam.Visual != null)
+                foreach (Renderer r in clam.Visual.GetComponentsInChildren<Renderer>())
+                {
+                    if (!has) { b = r.bounds; has = true; }
+                    else b.Encapsulate(r.bounds);
+                }
+            box.center = box.transform.InverseTransformPoint(b.center);
+            box.size = box.transform.InverseTransformVector(b.size * hitPadding);
+            box.size = new Vector3(Mathf.Abs(box.size.x), Mathf.Abs(box.size.y), Mathf.Abs(box.size.z));
+            return box;
         }
 
         private void Finish()
@@ -186,7 +230,11 @@ namespace Marea.Cooking
 
         private void Cleanup()
         {
-            foreach (Clam c in _clams) if (c.Visual != null) Destroy(c.Visual);
+            foreach (Clam c in _clams)
+            {
+                if (c.Visual != null) Destroy(c.Visual);
+                if (c.Hit != null) Destroy(c.Hit.gameObject);
+            }
             _clams.Clear();
         }
     }
