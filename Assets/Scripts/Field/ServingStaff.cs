@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Marea.Core;
 using Marea.Economy;
 using UnityEngine;
@@ -46,10 +47,9 @@ namespace Marea.Field
         [Tooltip("대상 발밑이 NavMesh 밖일 때, 이 반경 안에서 가장 가까운 NavMesh 점을 목적지로 삼는다.")]
         [SerializeField, Min(0.1f)] private float navSampleRadius = 4f;
 
+        // (+9/30) 넘어질 확률은 파손된 장판(TripHazard)이 든다. 예전의 "배달마다 15%"는 기획이
+        // "바닥 돌출부에 걸리면 25%"로 바뀌어 지웠다.
         [Header("넘어짐 (+9/28, 이슈 76)")]
-        [Tooltip("음식을 들고 가는 배달 한 번마다 넘어질 확률 (0~1). 한 번만 판정한다.")]
-        [SerializeField, Range(0f, 1f)] private float tripChance = 0.15f;
-
         [Tooltip("넘어지면 지갑에서 빠지는 골드. 잔액이 모자라면 있는 만큼만 빠진다.")]
         [SerializeField, Min(0)] private int tripPenalty = 50;
 
@@ -68,9 +68,9 @@ namespace Marea.Field
         /// </summary>
         private bool _expectTarget;
 
-        // 넘어짐 (+9/28). 판정은 픽업을 마치고 배달을 떠날 때 한 번 한다.
-        private bool _tripPending;
-        private float _tripAt;
+        // 넘어짐 (+9/28). (+9/30) 음식을 든 채 밟은 장판마다 한 번 판정한다 — 같은 장판에서 매 프레임 굴리면
+        // 25%가 사실상 100%가 된다. 배달을 새로 떠날 때 비운다.
+        private readonly HashSet<TripHazard> _rolledHazards = new();
         private float _tripEndsAt;
         private float _penaltyLabelUntil;
         private string _penaltyText;
@@ -141,11 +141,6 @@ namespace Marea.Field
                 return;
             }
 
-            if (_state == State.ToTarget && _tripPending && Time.time >= _tripAt)
-            {
-                Trip();
-                return;
-            }
 
             if (_state != State.ToTarget || !_expectTarget) return;
 
@@ -239,7 +234,7 @@ namespace Marea.Field
             }
 
             Vector3 deliverPoint = ResolveDeliverPoint();
-            RollTrip(deliverPoint);
+            _rolledHazards.Clear();
 
             _mover.GoTo(deliverPoint,
                 onArrived: OnDeliverArrived,
@@ -247,18 +242,14 @@ namespace Marea.Field
         }
 
         /// <summary>
-        /// 이번 배달에서 넘어질지 한 번 정한다 (+9/28, 이슈 76). 넘어진다면 가는 길 30~70% 지점쯤.
-        /// 경로 길이 대신 직선거리를 쓴다 — 경로는 GoTo 뒤에야 나오고, 시점이 조금 어긋나도 상관없다.
-        /// 도착이 먼저 오면 CompleteDelivery가 _tripPending을 지워서 안 넘어진다.
+        /// 파손된 장판을 밟았다 — TripHazard의 트리거가 부른다. (+9/30)
+        /// 음식을 들고 갈 때만, 장판 하나당 이번 배달에서 한 번만 굴린다.
         /// </summary>
-        private void RollTrip(Vector3 deliverPoint)
+        public void OnSteppedHazard(TripHazard hazard)
         {
-            _tripPending = Random.value < tripChance;
-            if (!_tripPending) return;
-
-            float speed = _agent != null && _agent.speed > 0.01f ? _agent.speed : 3.5f;
-            float travel = Vector3.Distance(transform.position, deliverPoint) / speed;
-            _tripAt = Time.time + travel * Random.Range(0.3f, 0.7f);
+            if (_state != State.ToTarget || hazard == null) return;
+            if (!_rolledHazards.Add(hazard)) return;
+            if (Random.value < hazard.TripChance) Trip();
         }
 
         /// <summary>
@@ -268,7 +259,6 @@ namespace Marea.Field
         /// </summary>
         private void Trip()
         {
-            _tripPending = false;
             _mover.Stop();
             ShowIcon(null);
             _task = default;
@@ -363,7 +353,6 @@ namespace Marea.Field
         {
             ServeTask done = _task;
 
-            _tripPending = false;   // (+9/28) 넘어지기 전에 도착했다
             _mover.Stop();
             ShowIcon(null);
             _task = default;
@@ -422,7 +411,6 @@ namespace Marea.Field
         /// </summary>
         private void DropTask()
         {
-            _tripPending = false;
             _mover.Stop();
             ShowIcon(null);
             _task = default;

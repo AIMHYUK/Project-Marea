@@ -4,6 +4,7 @@ using Marea.Field;
 using Marea.Restaurant;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -17,12 +18,19 @@ namespace Marea.Cooking
         Right
     }
 
-    public class StewMinigameController : MonoBehaviour
+    /// <summary>
+    /// 해물스튜 — 3단계. (+9/30) BaseCookingMinigame으로 옮겼다 (생선구이와 같은 틀).
+    ///   1 준비  MG_OBJECT_CATCH : 냄비를 좌우로 움직여 떨어지는 재료를 받는다 (CatchGame 부품)
+    ///   2 핵심  MG_GAUGE_KEEP   : 방향대로 저어 게이지를 안전 구간에 유지 (예전 스튜 로직 그대로)
+    ///   3 마무리 MG_POPUP_TOUCH : 국물 위 거품을 터뜨린다 (PopupTouchGame 부품)
+    /// 판매가는 2단계 배율만 쓴다 (생선구이와 같다). 1·3단계 점수는 Step1Score/Step3Score에만 남는다.
+    ///
+    /// 컨트롤러는 미니게임 뷰(CookingTable_MinigameView)의 StewCookingStation 하나뿐이다.
+    /// 예전엔 UI/StewMinigameUI에도 하나 더 있었고, 냄비·시점을 이름·타입으로 찾아서 식당 장식 냄비가
+    /// 잡힐 수 있었다 → 냄비·시점·단계 부품은 프리팹 안에서 직접 연결한다. UI만 씬 오브젝트라 찾는다.
+    /// </summary>
+    public class StewMinigameController : BaseCookingMinigame
     {
-        [Header("카메라 시스템")]
-        [SerializeField] private MinigameCameraController cameraController;
-        [SerializeField] private Transform cameraViewPoint;
-
         [Header("3D 냄비 컨트롤러")]
         [SerializeField] private StewPot stewPot;
 
@@ -58,8 +66,15 @@ namespace Marea.Cooking
         [Header("UI 바인딩")]
         [SerializeField] private StewMinigameUI minigameUI;
 
+        [Header("1단계: 재료 받기 (+9/30)")]
+        [SerializeField] private CatchGame catchGame;
+
+        [Header("3단계: 거품 터뜨리기 (+9/30)")]
+        [SerializeField] private PopupTouchGame popupTouch;
+
         private MenuData _targetMenu;
         private Action<CookingResult> _onCompleteCallback;
+        private readonly List<GameObject> _catchItems = new();
 
         private float _currentGauge;
         private float _timeRemaining;
@@ -67,7 +82,7 @@ namespace Marea.Cooking
         private float _outOfSafeZoneDuration;
         private float _safeStreakTimer;
         private int _changedCount;
-        private bool _isPlaying;
+        private HitGrade _stirGrade = HitGrade.Miss;
 
         private StirDirection _requiredDirection;
         private Vector2 _lastMousePosition;
@@ -77,70 +92,93 @@ namespace Marea.Cooking
         public float SafeZoneMax => safeZoneMax;
         public float OutOfSafeZoneDuration => _outOfSafeZoneDuration;
 
-        private void Awake()
+        protected override void EnsureDependencies()
         {
-            EnsureDependencies();
-        }
+            base.EnsureDependencies();
 
-        private void EnsureDependencies()
-        {
-            if (cameraController == null)
-            {
-                cameraController = FindFirstObjectByType<MinigameCameraController>(FindObjectsInactive.Include);
-            }
-
-            if (stewPot == null)
-            {
-                stewPot = FindFirstObjectByType<StewPot>(FindObjectsInactive.Include);
-            }
-
-            if (cameraViewPoint == null)
-            {
-                GameObject viewPointObj = GameObject.Find("CameraViewPoint");
-                if (viewPointObj == null)
-                {
-                    Transform[] allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
-                    foreach (var t in allTransforms)
-                    {
-                        if (t.gameObject.scene.isLoaded && t.name == "Stew_CameraViewPoint")
-                        {
-                            viewPointObj = t.gameObject;
-                            break;
-                        }
-                    }
-                }
-
-                if (viewPointObj != null)
-                {
-                    cameraViewPoint = viewPointObj.transform;
-                }
-            }
-
+            // UI는 씬 오브젝트라 프리팹이 못 든다 — 한 번 찾는다 (생선구이와 같다).
             if (minigameUI == null)
-            {
                 minigameUI = FindFirstObjectByType<StewMinigameUI>(FindObjectsInactive.Include);
-            }
         }
 
         public void StartMinigame(MenuData menu, Action<CookingResult> onComplete)
         {
             EnsureDependencies();
 
+            if (stewPot == null)
+                Debug.LogError($"{name}: StewMinigameController.stewPot이 비어 있다. 냄비가 안 움직인다. "
+                             + "StewCookingStation 아래 PF_Soup_Set을 연결할 것.", this);
+            if (cameraViewPoint == null)
+                Debug.LogError($"{name}: cameraViewPoint가 비어 있다. 카메라가 냄비로 안 간다.", this);
+            if (minigameUI == null)
+                Debug.LogError($"{name}: 씬에 StewMinigameUI가 없다. 게이지·안내가 안 보인다.", this);
+
             CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
-            if (customerManager != null)
-            {
-                customerManager.PauseSpawning(true);
-            }
+            if (customerManager != null) customerManager.PauseSpawning(true);
 
             _targetMenu = menu;
             _onCompleteCallback = onComplete;
+            _stirGrade = HitGrade.Miss;
 
-            // 국물을 도는 건 씬에 놓인 PF_Soup_Set 의 StewPot 이다. 없으면 RotateSoup 이
-            // 첫 줄에서 빠지는데, 그게 #48 전까지 아무도 모르던 실패 모양이었다.
-            if (stewPot == null)
-                Debug.LogError($"{name}: 씬에 StewPot이 없다. 국물이 돌지 않는다. "
-                             + "PF_Soup_Set을 씬에 놓을 것.", this);
+            if (stewPot != null) stewPot.ResetPosition();
 
+            if (minigameUI != null)
+            {
+                minigameUI.Setup(this);
+                minigameUI.Open();
+            }
+
+            StartStep1();
+        }
+
+        // ==========================================
+        // 1단계: 재료 받기
+        // ==========================================
+        protected override void OnStep1Start()
+        {
+            if (minigameUI != null)
+            {
+                minigameUI.SetGaugeVisible(false);
+                minigameUI.SetGuide("냄비를 움직여 재료를 받으세요!", "마우스를 좌우로");
+            }
+
+            if (catchGame == null)
+            {
+                Debug.LogError($"{name}: catchGame이 비어 있다. 1단계를 건너뛴다.", this);
+                return;
+            }
+
+            // 레시피 재료를 필요한 수만큼 떨어뜨린다. 재료 모델은 IngredientData.MinigamePrefab (없으면 구).
+            _catchItems.Clear();
+            if (_targetMenu != null && _targetMenu.Recipe != null)
+            {
+                foreach (RecipeEntry entry in _targetMenu.Recipe)
+                {
+                    GameObject model = entry.ingredient != null ? entry.ingredient.MinigamePrefab : null;
+                    for (int i = 0; i < Mathf.Max(1, entry.requiredAmount); i++) _catchItems.Add(model);
+                }
+            }
+            catchGame.Begin(_catchItems);
+        }
+
+        protected override void OnStep1Update()
+        {
+            if (catchGame == null) { CompleteStep1(1f); return; }
+
+            if (minigameUI != null)
+            {
+                minigameUI.UpdateTimer(catchGame.TimeLeft01);
+                minigameUI.SetGuide("냄비를 움직여 재료를 받으세요!", $"{catchGame.Caught} / {catchGame.Total}");
+            }
+
+            if (catchGame.IsFinished) CompleteStep1(catchGame.Score);
+        }
+
+        // ==========================================
+        // 2단계: 젓기 (예전 스튜 미니게임)
+        // ==========================================
+        protected override void OnStep2Start()
+        {
             // 시작 즉시 세이프 존 중앙에서 시작 (초반 손실 방지)
             _currentGauge = (safeZoneMin + safeZoneMax) * 0.5f;
             _timeRemaining = gameDuration;
@@ -148,33 +186,19 @@ namespace Marea.Cooking
             _outOfSafeZoneDuration = 0f;
             _safeStreakTimer = 0f;
             _changedCount = 0;
+            _isDragging = false;
 
             PickRandomDirection();
 
-            if (stewPot != null)
-            {
-                stewPot.ResetPosition();
-            }
-
-            if (cameraController != null && cameraViewPoint != null)
-            {
-                cameraController.MoveToViewPoint(cameraViewPoint);
-            }
-
             if (minigameUI != null)
             {
-                minigameUI.Setup(this);
+                minigameUI.SetGaugeVisible(true);
                 minigameUI.UpdateDirectionGuide(_requiredDirection);
-                minigameUI.Open();
             }
-
-            _isPlaying = true;
         }
 
-        private void Update()
+        protected override void OnStep2Update()
         {
-            if (!_isPlaying) return;
-
             ProcessInput();
             SimulateGaugeDecay();
             EvaluateSafeZone();
@@ -186,10 +210,7 @@ namespace Marea.Cooking
                 minigameUI.UpdateGauge(_currentGauge);
             }
 
-            if (_timeRemaining <= 0f)
-            {
-                FinishMinigame();
-            }
+            if (_timeRemaining <= 0f) FinishStir();
         }
 
         private void ProcessInput()
@@ -313,51 +334,84 @@ namespace Marea.Cooking
             _requiredDirection = nextDir;
         }
 
-        private void FinishMinigame()
+        /// <summary>2단계 끝 — 체류 비율로 판정하고 배율을 Step2Score로 넘긴다.</summary>
+        private void FinishStir()
         {
-            _isPlaying = false;
-
-            CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
-            if (customerManager != null)
-            {
-                customerManager.PauseSpawning(false);
-            }
-
             float ratio = Mathf.Clamp01(_safeZoneStayDuration / gameDuration);
-            HitGrade grade;
             float multiplier;
 
             if (ratio >= perfectRatio)
             {
-                grade = HitGrade.Perfect;
+                _stirGrade = HitGrade.Perfect;
                 multiplier = 1.2f;
             }
             else if (ratio >= goodRatio)
             {
-                grade = HitGrade.Good;
+                _stirGrade = HitGrade.Good;
                 multiplier = 1.0f;
             }
             else if (ratio >= badRatio)
             {
-                grade = HitGrade.Bad;
+                _stirGrade = HitGrade.Bad;
                 multiplier = 0.8f;
             }
             else
             {
-                grade = HitGrade.Miss;
+                _stirGrade = HitGrade.Miss;
                 multiplier = 0f;
             }
 
-            Debug.LogWarning($"[컨트롤러 판정] 체류율: {ratio * 100f:F1}% | 판정된 등급: {grade}");
+            Debug.LogWarning($"[컨트롤러 판정] 체류율: {ratio * 100f:F1}% | 판정된 등급: {_stirGrade}");
+            if (stewPot != null) stewPot.ResetPosition();
+            CompleteStep2(multiplier);
+        }
+
+        // ==========================================
+        // 3단계: 거품 터뜨리기
+        // ==========================================
+        protected override void OnStep3Start()
+        {
+            if (minigameUI != null)
+            {
+                minigameUI.SetGaugeVisible(false);
+                minigameUI.SetGuide("거품을 터뜨리세요!", "거품을 클릭");
+            }
+
+            if (popupTouch == null)
+            {
+                Debug.LogError($"{name}: popupTouch가 비어 있다. 3단계를 건너뛴다.", this);
+                return;
+            }
+            popupTouch.Begin();
+        }
+
+        protected override void OnStep3Update()
+        {
+            if (popupTouch == null) { CompleteStep3(1f); return; }
+
+            if (minigameUI != null)
+            {
+                minigameUI.UpdateTimer(popupTouch.TimeLeft01);
+                minigameUI.SetGuide("거품을 터뜨리세요!", $"{popupTouch.Popped} 개");
+            }
+
+            if (popupTouch.IsFinished) CompleteStep3(popupTouch.Score);
+        }
+
+        // ==========================================
+        // 최종 결과 — 판매가는 2단계 배율만 (생선구이와 같다)
+        // ==========================================
+        protected override void OnMinigameCompleted(float finalScore)
+        {
+            CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
+            if (customerManager != null) customerManager.PauseSpawning(false);
 
             int basePrice = _targetMenu != null ? _targetMenu.BasePrice : 0;
-            int finalCalculatedPrice = Mathf.RoundToInt(basePrice * multiplier);
-
             CookingResult result = new CookingResult
             {
-                isSuccess = (grade != HitGrade.Miss),
-                finalPrice = finalCalculatedPrice,
-                bestGrade = grade,
+                isSuccess = (_stirGrade != HitGrade.Miss),
+                finalPrice = Mathf.RoundToInt(basePrice * Step2Score),
+                bestGrade = _stirGrade,
                 menuData = _targetMenu
             };
 
@@ -366,32 +420,20 @@ namespace Marea.Cooking
 
         private IEnumerator ShowResultRoutine(CookingResult result)
         {
-            if (minigameUI != null)
-            {
-                minigameUI.ShowResult(result.bestGrade);
-            }
+            if (minigameUI != null) minigameUI.ShowResult(result.bestGrade);
 
             yield return new WaitForSeconds(1.2f);
 
             if (minigameUI != null)
             {
+                minigameUI.SetGaugeVisible(true);
                 minigameUI.Close();
             }
 
-            if (cameraController != null)
-            {
-                cameraController.ReturnToOriginalPosition();
-            }
+            // 카메라 원복 · 클릭 레이 끄기는 BaseCookingMinigame.FinishMinigame이 이미 했다.
+            if (stewPot != null) stewPot.ResetPosition();
 
-            if (stewPot != null)
-            {
-                stewPot.ResetPosition();
-            }
-
-            if (result.isSuccess)
-            {
-                DispatchCookedFood(result);
-            }
+            if (result.isSuccess) DispatchCookedFood(result);
 
             _onCompleteCallback?.Invoke(result);
         }

@@ -1,3 +1,4 @@
+using System.Collections;
 using Marea.Core;
 using Marea.Data;
 using UnityEngine;
@@ -11,6 +12,10 @@ namespace Marea.Field
     /// 선착장(ExpeditionDock)은 클릭을 받아 여기로 넘기기만 한다.
     /// 기획 8페이지의 첫 구현 그대로다 — 귀환한 탐사정을 클릭하면 보상이 자동으로 들어오고,
     /// 연출은 배가 월드에서 사라졌다가 다시 나타나는 것. 결과창은 없다.
+    ///
+    /// (+9/30) 떠날 때만 연출이 있다 — 배가 바라보는 방향으로 가속하며 나아가다 끝에 가라앉아 사라진다.
+    /// 타이머는 파견한 순간부터 돈다. 연출보다 탐사가 먼저 끝나면 연출을 끊고 제자리로 돌려놓는다.
+    /// 귀환은 여전히 제자리에 바로 나타난다.
     ///
     /// 저장·로드는 없다. 씬을 다시 켜면 대기 상태다 (보류).
     /// </summary>
@@ -33,10 +38,25 @@ namespace Marea.Field
         [Tooltip("귀환했을 때 켜는 표식(느낌표).")]
         [SerializeField] private GameObject returnedMarker;
 
+        [Header("떠날 때 연출 (+9/30)")]
+        [Tooltip("파견하고 배가 사라질 때까지 걸리는 초.")]
+        [SerializeField, Min(0f)] private float departSeconds = 2.5f;
+
+        [Tooltip("그동안 배가 바라보는 방향으로 나아가는 거리(m). 서서히 가속한다.")]
+        [SerializeField, Min(0f)] private float departDistance = 8f;
+
+        [Tooltip("끝의 몇 초 동안 가라앉는가. departSeconds보다 길면 처음부터 가라앉는다.")]
+        [SerializeField, Min(0f)] private float sinkSeconds = 1f;
+
+        [Tooltip("가라앉는 깊이(m). 배 높이보다 깊어야 물속으로 완전히 들어간다.")]
+        [SerializeField, Min(0f)] private float sinkDepth = 3f;
+
         private ExpeditionUI _ui;
         private WorldLabelUI _labels;
         private ExpeditionAreaData _current;
         private float _returnAt;
+        private Vector3 _boatHome;      // 배의 제자리(로컬). 연출이 끝나거나 끊기면 여기로 돌린다.
+        private Coroutine _depart;
 
         public State Current { get; private set; } = State.Idle;
         public ExpeditionAreaData[] Areas => areas;
@@ -55,6 +75,7 @@ namespace Marea.Field
             if (_labels == null)
                 Debug.LogError($"{name}: 씬에 WorldLabelUI가 없다. 남은 시간과 귀환 표시가 안 뜬다.", this);
 
+            if (boat != null) _boatHome = boat.transform.localPosition;
             Show();
         }
 
@@ -135,8 +156,51 @@ namespace Marea.Field
 
         private void Show()
         {
-            if (boat != null) boat.SetActive(Current != State.Away);
+            if (boat != null)
+            {
+                if (Current == State.Away)
+                {
+                    // 떠나는 중이면 그대로 둔다. 이미 꺼져 있으면(연출이 끝났으면) 다시 틀지 않는다.
+                    if (_depart == null && boat.activeSelf) _depart = StartCoroutine(Depart());
+                }
+                else
+                {
+                    StopDepart();
+                    boat.SetActive(true);
+                }
+            }
             if (returnedMarker != null) returnedMarker.SetActive(Current == State.Returned);
+        }
+
+        /// <summary>바라보는 방향으로 가속하며 나아가다 끝에 가라앉고 꺼진다. (+9/30)</summary>
+        private IEnumerator Depart()
+        {
+            Transform t = boat.transform;
+            Vector3 start = t.position;
+            Vector3 dir = Vector3.ProjectOnPlane(t.forward, Vector3.up).normalized;
+            float sinkFrom = Mathf.Max(0f, departSeconds - sinkSeconds);
+
+            for (float e = 0f; e < departSeconds; e += Time.deltaTime)
+            {
+                float k = e / departSeconds;
+                float sink = sinkSeconds > 0f ? Mathf.Clamp01((e - sinkFrom) / sinkSeconds) : 0f;
+                t.position = start + dir * (departDistance * k * k) + Vector3.down * (sinkDepth * sink * sink);
+                yield return null;
+            }
+
+            boat.SetActive(false);
+            t.localPosition = _boatHome;
+            _depart = null;
+        }
+
+        private void StopDepart()
+        {
+            if (_depart != null)
+            {
+                StopCoroutine(_depart);
+                _depart = null;
+            }
+            if (boat != null) boat.transform.localPosition = _boatHome;
         }
     }
 }

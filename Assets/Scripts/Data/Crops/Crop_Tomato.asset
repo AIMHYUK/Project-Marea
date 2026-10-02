@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f0cda049c1a62b4e9e472baa177a3fe, type: 3}
+  m_Name: Crop_Tomato
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.CropData
+  id: 5
+  growSeconds: 25
+  harvest: {fileID: 11400000, guid: 46f9c7ee50f01ae448a1859ba9ea3bcb, type: 2}
+  harvestCount: 3
+  seedPrice: 140
+  stagePrefabs:
+  - {fileID: 2641549745656799859, guid: 6f76a6c2a5698b64a8f40e1279ab9f8c, type: 3}
+  - {fileID: 2979208586728934775, guid: ea4724582efcaf643ac4308f8950c7da, type: 3}
+  - {fileID: 8074509317050771111, guid: df486ecad9cd3f04290eabcfa968f647, type: 3}
+  - {fileID: 4109559426852196025, guid: 975506acf79562b49bc85c44da070ea4, type: 3}
