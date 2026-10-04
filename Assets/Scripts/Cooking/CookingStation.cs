@@ -1,30 +1,91 @@
 using Marea.Core;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Marea.Cooking
 {
     public class CookingStation : InteractableBase
     {
-        [Header("UI ¿¬°á")]
-        [Tooltip("»óÈ£ÀÛ¿ë ½Ã ¶ç¿ï ¸Ş´º ¼±ÅÃ UI")]
+        [Header("UI ì—°ê²°")]
+        [Tooltip("ìƒí˜¸ì‘ìš© ì‹œ ë„ìš¸ ë©”ë‰´ ì„ íƒ UI")]
         [SerializeField] private CookingMenuUI menuUI;
 
-        [Header("È£¹ö ¿¬Ãâ (¼±ÅÃ »çÇ×)")]
+        [Header("í˜¸ë²„ ì—°ì¶œ (ì„ íƒ ì‚¬í•­)")]
         [SerializeField] private GameObject highlightEffect;
+
+        [Header("í‚¤ë³´ë“œ ìƒí˜¸ì‘ìš©")]
+        [Tooltip("í”Œë ˆì´ì–´ê°€ ì´ ë²”ìœ„ ì•ˆì— ìˆì„ ë•Œ Eí‚¤ë¡œ ìƒí˜¸ì‘ìš©í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.")]
+        [SerializeField] private Collider interactionRange;
+
+        private IInteractor _nearbyInteractor;
+        private bool _isPlayerInRange;
+
+        private void Awake()
+        {
+            if (interactionRange != null)
+            {
+                interactionRange.isTrigger = true;
+            }
+        }
+
+        private void Update()
+        {
+            if (!_isPlayerInRange || _nearbyInteractor == null) return;
+
+            if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+            {
+                Interact(_nearbyInteractor);
+            }
+        }
 
         public override void Interact(IInteractor actor)
         {
             if (menuUI == null)
             {
-                Debug.LogWarning("[CookingStation] MenuUI°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+                Debug.LogWarning("[CookingStation] MenuUIê°€ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
                 return;
             }
 
-            // ÇÃ·¹ÀÌ¾î Á¶ÀÛ Àá±İ
+            // í”Œë ˆì´ì–´ ì¡°ì‘ ì ê¸ˆ
             actor.BeginBusy();
 
-            // ¸Ş´º ¼±ÅÃ ÆË¾÷ ¿­±â
+            // ë©”ë‰´ ì„ íƒ íŒì—… ì—´ê¸°
             menuUI.Open(actor);
+        }
+
+        private void OnTriggerEnter(Collider other)
+        {
+            IInteractor interactor = FindInteractor(other);
+
+            if (interactor == null) return;
+
+            _nearbyInteractor = interactor;
+            _isPlayerInRange = true;
+        }
+
+        private void OnTriggerExit(Collider other)
+        {
+            IInteractor interactor = FindInteractor(other);
+
+            if (interactor == null || interactor != _nearbyInteractor) return;
+
+            _nearbyInteractor = null;
+            _isPlayerInRange = false;
+        }
+
+        private IInteractor FindInteractor(Collider other)
+        {
+            MonoBehaviour[] behaviours = other.GetComponentsInParent<MonoBehaviour>(true);
+
+            for (int i = 0; i < behaviours.Length; i++)
+            {
+                if (behaviours[i] is IInteractor interactor)
+                {
+                    return interactor;
+                }
+            }
+
+            return null;
         }
 
         public override void OnHoverEnter()

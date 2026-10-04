@@ -82,6 +82,36 @@ namespace Marea.Cooking
             UpdateUI();
         }
 
+        public void ResetGrillState()
+        {
+            StopAllCoroutines();
+
+            _frontDoneness = 0f;
+            _backDoneness = 0f;
+            _isFlipped = false;
+            _isCooking = false;
+            _isCompleted = false;
+            _isAnimating = false;
+            FinalGrillScore = 0f;
+
+            if (donenessSlider != null) donenessSlider.value = 0f;
+
+            if (skewer3DModel != null)
+            {
+                skewer3DModel.transform.localPosition = _frontPosition;
+                skewer3DModel.transform.localRotation = _frontRotation;
+            }
+
+            if (smokeEffect != null)
+            {
+                smokeEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+
+            SetupTargetZoneUI();
+            UpdateGaugeColor();
+            UpdateUI();
+        }
+
         private void SetupTargetZoneUI()
         {
             if (donenessSlider == null || targetZoneRect == null) return;

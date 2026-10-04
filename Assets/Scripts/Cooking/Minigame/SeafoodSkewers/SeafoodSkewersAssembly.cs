@@ -25,6 +25,8 @@ namespace Marea.Cooking
             {
                 if (draggableIngredients[i] != null)
                 {
+                    draggableIngredients[i].ResetDraggable();
+
                     Transform targetSlot = (i < targetSlots.Count) ? targetSlots[i] : null;
                     draggableIngredients[i].Setup(targetSlot);
                     draggableIngredients[i].OnPlacedSuccess -= HandleIngredientPlaced;

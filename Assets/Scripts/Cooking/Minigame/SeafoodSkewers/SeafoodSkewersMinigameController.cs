@@ -41,6 +41,29 @@ namespace Marea.Cooking
             StartStep1();
         }
 
+        protected override void ResetMinigame()
+        {
+            base.ResetMinigame();
+
+            if (seafoodSlicer != null)
+            {
+                seafoodSlicer.ResetSlicerState();
+            }
+
+            if (skewersAssembly != null)
+            {
+                skewersAssembly.ResetAssembly();
+            }
+
+            if (skewersGrill != null)
+            {
+                skewersGrill.ResetGrillState();
+            }
+
+            _currentMenu = null;
+            _onCompleteCallback = null;
+        }
+
         // --- 1단계: 재료 썰기 ---
         protected override void OnStep1Start()
         {
@@ -112,6 +135,8 @@ namespace Marea.Cooking
 
             SetPhysicsRaycasterState(false);
             _onCompleteCallback?.Invoke(result);
+
+            ResetMinigame();
         }
     }
 }
