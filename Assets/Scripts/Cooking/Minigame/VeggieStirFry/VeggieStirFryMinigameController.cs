@@ -23,10 +23,38 @@ namespace Marea.Cooking
         public void StartMinigame(MenuData menu, Action<CookingResult> onComplete)
         {
             EnsureDependencies();
+
+            ResetMinigame();
+
             _currentMenu = menu;
             _onCompleteCallback = onComplete;
 
             StartStep1();
+        }
+
+        protected override void ResetMinigame()
+        {
+            base.ResetMinigame();
+
+            _isStep3Completed = false;
+
+            // 1단계는 StartStep1 → OnStep1Start에서 ResetSlicer를 호출하므로
+            // 여기서 다시 호출하지 않는다.
+
+            if (panStirController != null)
+            {
+                panStirController.ResetStep();
+            }
+
+            if (seasoningQTE != null)
+            {
+                seasoningQTE.ResetQTE();
+            }
+
+            if (railUI != null)
+            {
+                railUI.ResetRail();
+            }
         }
 
         // --- 1단계 ---
