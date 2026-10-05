@@ -143,6 +143,46 @@ namespace Marea.Field
             }
         }
 
+        /// <summary>지금 헤엄치는 중인가(떠오름 ~ 잠수 끝). 숨어 있으면 false. (+10/5)</summary>
+        public bool IsSwimming => _swimming;
+
+        public float SeaLevel => seaLevel;
+
+        /// <summary>
+        /// (+10/5) 화면 조건 없이 카메라에서 가장 가까운 경로로 바로 한 번 지나가게 한다 — 개발용 단축키(WhaleDebugKey)가 부른다.
+        /// 지나간 뒤엔 평소 루프(intervalRange 간격)로 돌아간다.
+        /// </summary>
+        public void AppearNearest()
+        {
+            if (!Application.isPlaying || paths == null || paths.Length == 0) return;
+            Camera cam = Camera.main;
+            Vector3 eye = cam != null ? cam.transform.position : transform.position;
+
+            SwimPath best = paths[0];
+            float bestDist = float.MaxValue;
+            foreach (SwimPath p in paths)
+            {
+                if (p.from == null || p.to == null) continue;
+                // 선분 위 가장 가까운 점까지의 수평 거리
+                Vector3 a = Flat(p.from.position), ab = Flat(p.to.position) - a, e = Flat(eye);
+                float s = ab.sqrMagnitude > 0f ? Mathf.Clamp01(Vector3.Dot(e - a, ab) / ab.sqrMagnitude) : 0f;
+                float d = Vector3.Distance(e, a + ab * s);
+                if (d < bestDist) { bestDist = d; best = p; }
+            }
+
+            StopAllCoroutines();
+            _swimming = false;
+            ResetBones();
+            StartCoroutine(AppearThenLoop(best));
+        }
+
+        // 중간에 끊고 다시 나타날 때 뼈가 굽은 채로 시작하지 않게.
+        private void ResetBones()
+        {
+            for (int i = 0; i < spine.Length; i++) if (spine[i] != null) spine[i].localRotation = _spineBase[i];
+            for (int i = 0; i < fins.Length; i++) if (fins[i] != null) fins[i].localRotation = _finBase[i];
+        }
+
         private IEnumerator AppearThenLoop(SwimPath p)
         {
             yield return Appear(p);

@@ -1393,6 +1393,7 @@ GameObject:
   m_Component:
   - component: {fileID: 124079499}
   - component: {fileID: 124079498}
+  - component: {fileID: 124079500}
   m_Layer: 0
   m_Name: WhaleSwimmer
   m_TagString: Untagged
@@ -214387,3 +214388,20 @@ SceneRoots:
   - {fileID: 1800107847}
   - {fileID: 1492413832}
   - {fileID: 124079499}
+--- !u!114 &124079500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 124079497}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cf4ed4d61e27744fa6924e52fcda3ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.WhaleDebugKey
+  key: 102
+  sideDistance: 28
+  height: 10
+  lookUp: 3
+  smoothTime: 0.4
