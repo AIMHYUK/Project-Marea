@@ -1,6 +1,9 @@
 using Marea.Player;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace Marea.Cooking
 {
@@ -9,10 +12,19 @@ namespace Marea.Cooking
         [Header("설정")]
         [SerializeField] private float transitionDuration = 0.4f;
 
+        [Header("초점 흐림 (+10/2) — 비워 두면 안 쓴다")]
+        [Tooltip("Depth of Field만 든 Volume. 평소 weight 0, 미니게임 시점에 있는 동안 1.")]
+        [SerializeField] private Volume focusVolume;
+
         private Camera _cam;
+        private DepthOfField _dof;
+        private float _defaultAperture;
+        private UniversalAdditionalCameraData _camData;
+        private bool _postFxDefault; // 평소엔 포스트프로세싱을 안 켠다 — 흐림을 쓰는 동안만 켜고 돌려놓는다
         private CameraFollow _cameraFollow;
         private Vector3 _originalPosition;
         private Quaternion _originalRotation;
+        private bool _hasOriginal; // 미니게임 중(시점에 가 있거나 가는 중)이면 true
         private Coroutine _moveRoutine;
 
         private void Awake()
@@ -25,13 +37,61 @@ namespace Marea.Cooking
             {
                 Debug.LogError("[MinigameCameraController] 같은 오브젝트에서 CameraFollow 컴포넌트를 찾지 못했습니다!");
             }
+
+            PhysicsRaycaster raycaster = GetComponent<PhysicsRaycaster>();
+            if (raycaster == null)
+            {
+                raycaster = gameObject.AddComponent<PhysicsRaycaster>();
+            }
+
+            // 게임 시작 시 무조건 비활성화
+            raycaster.enabled = false;
+
+            if (focusVolume != null)
+            {
+                _camData = _cam.GetComponent<UniversalAdditionalCameraData>();
+                if (_camData != null) _postFxDefault = _camData.renderPostProcessing;
+                // .profile은 인스턴스 사본이라 런타임에 초점을 바꿔도 에셋이 안 바뀐다.
+                if (!focusVolume.profile.TryGet(out _dof))
+                    Debug.LogError($"{name}: focusVolume 프로필에 Depth Of Field가 없다. 초점 흐림이 안 된다.", focusVolume);
+                else
+                    _defaultAperture = _dof.aperture.value;
+                focusVolume.weight = 0f;
+            }
+        }
+
+        /// <summary>시점 정면에 닿는 곳(냄비 · 도마 등)에 초점을 맞추고 흐림을 켠다.</summary>
+        private void FocusOn(Transform viewPoint)
+        {
+            if (focusVolume == null || _dof == null) return;
+
+            // (+10/2) 초점 대상을 정한 시점에서만 흐린다. 주방 가구엔 콜라이더가 없어 정면 레이가 요리를 지나
+            // 뒷벽 · 바닥에 닿았고, 그러면 정작 요리가 흐려졌다. 모르는 시점은 흐림을 끄는 게 안전하다.
+            ViewPointFocus focus = viewPoint.GetComponent<ViewPointFocus>();
+            if (focus == null || focus.Target == null)
+            {
+                ClearFocus();
+                return;
+            }
+            float distance = Mathf.Max(0.1f, Vector3.Dot(focus.Target.position - viewPoint.position, viewPoint.forward));
+
+            _dof.focusDistance.Override(distance);
+            _dof.aperture.Override(focus != null && focus.Aperture > 0f ? focus.Aperture : _defaultAperture);
+            focusVolume.weight = 1f;
+            if (_camData != null) _camData.renderPostProcessing = true;
+        }
+
+        private void ClearFocus()
+        {
+            if (focusVolume != null) focusVolume.weight = 0f;
+            if (_camData != null) _camData.renderPostProcessing = _postFxDefault;
         }
 
         public void MoveToViewPoint(Transform targetViewPoint)
         {
             if (targetViewPoint == null)
             {
-                Debug.LogError("[MinigameCameraController] targetViewPoint가 비어있습니다. StewMinigameController의 CameraViewPoint를 연결하세요.");
+                Debug.LogError("[MinigameCameraController] targetViewPoint가 비어있습니다. 미니게임 컨트롤러의 cameraViewPoint / stepNViewPoint를 연결하세요.");
                 return;
             }
 
@@ -52,16 +112,24 @@ namespace Marea.Cooking
                 StopCoroutine(_moveRoutine);
             }
 
-            _originalPosition = _cam.transform.position;
-            _originalRotation = _cam.transform.rotation;
+            // 복귀 지점은 미니게임 시작 때 한 번만 저장한다.
+            // 단계마다 시점을 옮길 때 덮어쓰면 끝나고 앞 단계 시점으로 돌아간다.
+            if (!_hasOriginal)
+            {
+                _originalPosition = _cam.transform.position;
+                _originalRotation = _cam.transform.rotation;
+                _hasOriginal = true;
+            }
 
             //Debug.Log($"[MinigameCameraController] 목표 위치로 이동 시작: {targetViewPoint.position}");
             _moveRoutine = StartCoroutine(TransitionRoutine(targetViewPoint.position, targetViewPoint.rotation));
+            FocusOn(targetViewPoint);
         }
 
         public void ReturnToOriginalPosition()
         {
             if (_cam == null) return;
+            if (!_hasOriginal) return; // 이미 복귀했다 — CameraFollow가 움직인 카메라를 다시 끌어오지 않는다
 
             if (_moveRoutine != null)
             {
@@ -69,6 +137,7 @@ namespace Marea.Cooking
             }
 
             //Debug.Log("[MinigameCameraController] 원래 카메라 위치로 복귀 시작");
+            ClearFocus();
             _moveRoutine = StartCoroutine(ReturnRoutine(_originalPosition, _originalRotation));
         }
 
@@ -96,6 +165,7 @@ namespace Marea.Cooking
         private IEnumerator ReturnRoutine(Vector3 destPos, Quaternion destRot)
         {
             yield return TransitionRoutine(destPos, destRot);
+            _hasOriginal = false;
 
             if (_cameraFollow != null)
             {

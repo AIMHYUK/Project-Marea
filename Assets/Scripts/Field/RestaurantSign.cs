@@ -1,4 +1,5 @@
 using Marea.Core;
+using Marea.Economy;
 using Marea.Restaurant;
 using UnityEngine;
 
@@ -16,6 +17,9 @@ namespace Marea.Field
     ///
     /// 기존 UI 버튼을 지우지 않았다. 둘 다 같은 <c>StartBusiness()</c>로 가고
     /// 그쪽이 Ready가 아니면 그냥 빠지므로, 두 번 열려도 두 번 시작되지 않는다.
+    ///
+    /// (+10/2, 이슈 92 — 와이어프레임 「오늘의 메뉴」) 바로 영업을 열지 않고 오늘의 메뉴 창을 연다.
+    /// 메뉴를 고르고 창의 [영업 시작]을 누르면 그때 StartBusiness가 불린다.
     /// </summary>
     public class RestaurantSign : InteractableBase
     {
@@ -23,8 +27,12 @@ namespace Marea.Field
         [Tooltip("영업 중·정산 중처럼 지금 열 수 없을 때 끄는 것. 비워둬도 동작한다.")]
         [SerializeField] private Renderer readyVisual;
 
+        private TodayMenuUI _menuUI;
+
         private void Start()
         {
+            _menuUI = FindAnyObjectByType<TodayMenuUI>(FindObjectsInactive.Include);
+
             // Awake에서 보면 안 된다 — BusinessManager도 Awake에서 Instance를 잡아서
             // 둘 중 누가 먼저인지가 정해져 있지 않다.
             //
@@ -48,18 +56,18 @@ namespace Marea.Field
         // ClickSelector가 바닥 이동으로도 흘려보내지 않는다(설계상 클릭 하나에 뜻 하나).
         public override bool CanInteract(IInteractor actor) => IsReady;
 
+        public override string InteractLabel(IInteractor actor) => "영업 시작";   // (+9/28, 이슈 75)
+
         public override void Interact(IInteractor actor)
         {
-            BusinessManager manager = BusinessManager.Instance;
-            if (manager == null)
-            {
-                Debug.LogError($"{name}: 씬에 BusinessManager가 없다. 영업을 시작할 수 없다.", this);
-                return;
-            }
-
             // 여러 프레임 이어지는 상호작용이 아니라 BeginBusy를 하지 않는다.
             // 감싸면 EndBusy를 부를 자리가 없어서 플레이어가 그대로 잠긴다.
-            manager.StartBusiness();
+            if (_menuUI == null)
+            {
+                Debug.LogError($"{name}: 씬에 TodayMenuUI가 없다. 오늘의 메뉴를 고를 수 없다.", this);
+                return;
+            }
+            _menuUI.Open();
         }
 
         private void ShowReady(bool on)

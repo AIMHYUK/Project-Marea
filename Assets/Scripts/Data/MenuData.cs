@@ -12,6 +12,35 @@ namespace Marea.Data
         Advanced,
     }
 
+    // 구조 변경으로 FishGrillSubtype, StewSubtype, SkewerSubtype 이렇게 타입을 나누는게 아니라 요리방식에 따라
+    // 타입을 나눌 예정 (프라이팬, 단지, 조리대)
+    // 아니면 그냥 이대로 두고 UI에서만 설명 수정 할 수도 있음
+    /// <summary>
+    /// FishGrill(구이) 카테고리 내부 세부 요리 식별용.
+    /// </summary>
+    public enum FishGrillSubtype
+    {
+        None,
+        fish, // 생선 구이
+        Clam, // 조개 구이
+    }
+
+    /// <summary>
+    /// Stew(스튜/볶음) 카테고리 내부 세부 요리 식별용.
+    /// </summary>
+    public enum StewSubtype
+    {
+        None,
+        VeggieStirFry,      // 야채 볶음
+        SeafoodStew,  // 해물 스튜
+    }
+
+    public enum SkewerSubtype
+    {
+        None,
+        SeafoodSkewers,      // 해물 꼬치
+        HawaiianSkewers,  // 하와이안 꼬치
+    }
     /// <summary>
     /// 어느 요리 미니게임을 쓰는가. 기획 MenuData.MiniGameID. (+9/16)
     ///
@@ -92,6 +121,15 @@ namespace Marea.Data
         [Tooltip("기획 MenuData.MiniGameID. 지금은 씬 카테고리와 대조만 한다.")]
         [SerializeField] private MiniGameId miniGameId = MiniGameId.None;
 
+        [Tooltip("FishGrill(구이) 카테고리 내부 세부 미니게임 식별자.")]
+        [SerializeField] private FishGrillSubtype fishGrillSubtype = FishGrillSubtype.None;
+
+        [Tooltip("Stew(스튜/볶음) 카테고리 내부 세부 미니게임 식별자.")]
+        [SerializeField] private StewSubtype stewSubtype = StewSubtype.None;
+
+        [Tooltip("Skewer(꼬치) 카테고리 내부 세부 미니게임 식별자.")]
+        [SerializeField] private SkewerSubtype skewerSubtype = SkewerSubtype.None;
+
         [Tooltip("기획 RecipeData. 투입 순서는 inputOrder가 정한다 — 배열 순서가 아니다.")]
         [SerializeField] private RecipeEntry[] recipe;
 
@@ -109,6 +147,9 @@ namespace Marea.Data
         public int BasePrice => basePrice;
         public bool IsActive => isActive;
         public MiniGameId MiniGameId => miniGameId;
+        public FishGrillSubtype FishGrillSubtype => fishGrillSubtype;
+        public StewSubtype StewSubtype => stewSubtype;
+        public SkewerSubtype SkewerSubtype => skewerSubtype;
 
         /// <summary>
         /// 레시피 줄 전부. 인스펙터에 적힌 순서 그대로다 — 투입 순서가 필요하면
@@ -118,5 +159,25 @@ namespace Marea.Data
 
         public GameObject ServingPrefab => servingPrefab;
         public Sprite Icon => icon;
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            if (miniGameId != MiniGameId.FishGrill)
+            {
+                fishGrillSubtype = FishGrillSubtype.None;
+            }
+
+            if (miniGameId != MiniGameId.Stew)
+            {
+                stewSubtype = StewSubtype.None;
+            }
+
+            if (miniGameId != MiniGameId.Skewer)
+            {
+                skewerSubtype = SkewerSubtype.None;
+            }
+        }
+#endif
     }
 }

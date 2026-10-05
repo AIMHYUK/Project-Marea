@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Marea.Core;
+using Marea.Economy;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -16,7 +18,20 @@ namespace Marea.Field
     [RequireComponent(typeof(AgentMover))]
     public class ServingStaff : MonoBehaviour
     {
-        private enum State { Idle, ToPickup, ToTarget }
+        /// <summary>
+        /// 직원이 지금 무엇을 하는 중인가.
+        ///
+        /// 값이 AC_ServingStaff 의 State 파라미터로 그대로 넘어간다 (+9/22).
+        /// 그래서 순서를 바꾸거나 중간에 끼워 넣으면 애니메이션이 어긋난다 —
+        /// 늘릴 때는 뒤에 붙이고 컨트롤러에도 상태를 같이 추가할 것.
+        ///
+        /// Returning 은 배달을 끝내고 픽업대로 빈손으로 걸어 돌아가는 중이다. (+9/23)
+        /// 일이 없는 상태이므로 여기서도 새 작업을 받는다 — Idle 과 같이 취급하는 자리가 있다.
+        ///
+        /// Tripped 는 배달 중에 넘어져 음식을 잃고 일어나는 중이다. (+9/28, 이슈 76)
+        /// DeliverTarget 이 null이라 B는 그 손님에게 다시 조리한 음식을 배정할 수 있다.
+        /// </summary>
+        public enum State { Idle = 0, ToPickup = 1, ToTarget = 2, Returning = 3, Tripped = 4 }
 
         [Tooltip("작업을 받아올 게시판. 자동으로 못 찾으니 반드시 넣어야 한다 — "
                + "비면 OnEnable에서 에러를 내고 이 직원은 서빙을 하지 않는다. (+9/8)")]
@@ -32,6 +47,16 @@ namespace Marea.Field
         [Tooltip("대상 발밑이 NavMesh 밖일 때, 이 반경 안에서 가장 가까운 NavMesh 점을 목적지로 삼는다.")]
         [SerializeField, Min(0.1f)] private float navSampleRadius = 4f;
 
+        // (+9/30) 넘어질 확률은 파손된 장판(TripHazard)이 든다. 예전의 "배달마다 15%"는 기획이
+        // "바닥 돌출부에 걸리면 25%"로 바뀌어 지웠다.
+        [Header("넘어짐 (+9/28, 이슈 76)")]
+        [Tooltip("넘어지면 지갑에서 빠지는 골드. 잔액이 모자라면 있는 만큼만 빠진다.")]
+        [SerializeField, Min(0)] private int tripPenalty = 50;
+
+        [Tooltip("넘어져서 다시 움직일 때까지 초. AC_ServingStaff 의 Tripping(2.8초) + "
+               + "Standing Up(11.4초, 3배속 ≈ 3.8초)에 맞췄다.")]
+        [SerializeField, Min(0.1f)] private float tripSeconds = 6.6f;
+
         private AgentMover _mover;
         private State _state = State.Idle;
         private ServeTask _task;
@@ -42,6 +67,21 @@ namespace Marea.Field
         /// 처음부터 좌표 배달이었던 것을 구분할 수 없다.
         /// </summary>
         private bool _expectTarget;
+
+        // 넘어짐 (+9/28). (+9/30) 음식을 든 채 밟은 장판마다 한 번 판정한다 — 같은 장판에서 매 프레임 굴리면
+        // 25%가 사실상 100%가 된다. 배달을 새로 떠날 때 비운다.
+        private readonly HashSet<TripHazard> _rolledHazards = new();
+        private float _tripEndsAt;
+        private float _penaltyLabelUntil;
+        private string _penaltyText;
+        private WorldLabelUI _labels;
+        private NavMeshAgent _agent;
+        private float _baseSpeed;   // (+10/2) 업그레이드 전 속도. AgentMover가 Awake에서 넣은 값
+
+        /// <summary>
+        /// 지금 상태. ServingStaffAnimator 가 이것만 읽어서 Animator 에 넘긴다 (+9/22).
+        /// </summary>
+        public State Current => _state;
 
         public bool IsIdle => _state == State.Idle;
 
@@ -56,12 +96,43 @@ namespace Marea.Field
         /// 같은 손님이 한 번 더 배정된다. 실제로 그렇게 짰다가 배달 하나를 날렸다.
         /// 건네는 것 자체는 TryHandOff가 ToTarget으로 따로 막는다.
         /// </summary>
-        public Transform DeliverTarget => _state == State.Idle ? null : _task.DeliverTarget;
+        public Transform DeliverTarget =>
+            _state == State.ToPickup || _state == State.ToTarget ? _task.DeliverTarget : null;
 
         private void Awake()
         {
             _mover = GetComponent<AgentMover>();
+            _agent = GetComponent<NavMeshAgent>();
+            _labels = FindAnyObjectByType<WorldLabelUI>(FindObjectsInactive.Include);
             ShowIcon(null);
+        }
+
+        // (+10/2) 직원 운영 업그레이드 — 이동 속도 증가(STAFF_SPEED_ADD, 누적 총합).
+        // AgentMover.Awake가 agent.speed를 넣은 뒤라 Start에서 바닥값을 잡는다.
+        private void Start()
+        {
+            if (_agent != null) _baseSpeed = _agent.speed;
+            if (FacilityLevels.Instance != null) FacilityLevels.Instance.OnLevelChanged += HandleLevelChanged;
+            ApplySpeed();
+        }
+
+        private void OnDestroy()
+        {
+            if (FacilityLevels.Instance != null) FacilityLevels.Instance.OnLevelChanged -= HandleLevelChanged;
+        }
+
+        private void HandleLevelChanged(FacilityKind kind, int level)
+        {
+            if (kind == FacilityKind.Staff) ApplySpeed();
+        }
+
+        private void ApplySpeed()
+        {
+            if (_agent == null || _baseSpeed <= 0f) return;
+            float add = FacilityLevels.Instance != null
+                ? FacilityLevels.Instance.EffectValue(FacilityKind.Staff, Marea.Data.FacilityEffectType.StaffSpeedAdd)
+                : 0f;
+            _agent.speed = _baseSpeed * (1f + add);
         }
 
         private void OnEnable()
@@ -89,6 +160,17 @@ namespace Marea.Field
 
         private void Update()
         {
+            // 차감 표시는 상태와 상관없이 잠깐 띄운다. 씬에 WorldLabelUI가 없으면 표시만 빠진다.
+            if (_labels != null && Time.time < _penaltyLabelUntil)
+                _labels.Set(this, transform.position + Vector3.up * 2.2f, _penaltyText);
+
+            if (_state == State.Tripped)
+            {
+                if (Time.time >= _tripEndsAt) EndTrip();
+                return;
+            }
+
+
             if (_state != State.ToTarget || !_expectTarget) return;
 
             // 손님이 식사를 끝내고 Destroy됐다. 들고 있던 음식은 버린다.
@@ -142,7 +224,10 @@ namespace Marea.Field
         /// </summary>
         private void TryStartNext()
         {
-            if (_state != State.Idle) return;
+            // 복귀 중에도 받는다. 빈손으로 걸어가는 중일 뿐이라 일을 못 할 이유가 없고,
+            // 다 돌아갈 때까지 기다리면 손님이 그만큼 더 기다린다. (+9/23)
+            // GoTo가 내부에서 Stop()을 부르므로 복귀 콜백은 여기서 알아서 버려진다.
+            if (_state != State.Idle && _state != State.Returning) return;
             if (board == null) return;   // OnEnable에서 이미 에러를 냈다. 여기선 조용히 빠진다
             if (!board.TryTake(out _task)) return;
 
@@ -177,9 +262,60 @@ namespace Marea.Field
                 return;
             }
 
-            _mover.GoTo(ResolveDeliverPoint(),
+            Vector3 deliverPoint = ResolveDeliverPoint();
+            _rolledHazards.Clear();
+
+            _mover.GoTo(deliverPoint,
                 onArrived: OnDeliverArrived,
                 onFailed: OnPathFailed);
+        }
+
+        /// <summary>
+        /// 파손된 장판을 밟았다 — TripHazard의 트리거가 부른다. (+9/30)
+        /// 음식을 들고 갈 때만, 장판 하나당 이번 배달에서 한 번만 굴린다.
+        /// </summary>
+        public void OnSteppedHazard(TripHazard hazard)
+        {
+            if (_state != State.ToTarget || hazard == null) return;
+            if (!_rolledHazards.Add(hazard)) return;
+            if (Random.value < hazard.TripChance) Trip();
+        }
+
+        /// <summary>
+        /// 넘어졌다. 음식을 잃는다 — 작업을 버리면 DeliverTarget이 null이 되어, B가 다음 조리분을
+        /// 그 손님에게 다시 배정한다. 손님은 OnDelivered가 올 때까지 그냥 기다린다. (+9/28, 이슈 76)
+        /// 골드는 넘어지는 순간 뺀다. Wallet은 0 아래로 안 가서 모자라면 있는 만큼만.
+        /// </summary>
+        private void Trip()
+        {
+            _mover.Stop();
+            ShowIcon(null);
+            _task = default;
+            _expectTarget = false;
+            _state = State.Tripped;
+            _tripEndsAt = Time.time + tripSeconds;
+
+            Wallet wallet = Wallet.Instance;
+            if (wallet == null)
+            {
+                Debug.LogError("[ServingStaff] 씬에 Wallet이 없다. 넘어졌는데 골드를 못 뺐다.", this);
+                return;
+            }
+
+            int paid = Mathf.Min(wallet.Gold, tripPenalty);
+            if (paid > 0 && wallet.TrySpend(paid))
+            {
+                _penaltyText = $"-{paid}G";
+                _penaltyLabelUntil = Time.time + 2f;
+            }
+        }
+
+        /// <summary>일어났다. 큐에 다음 일이 있으면 받고, 없으면 픽업대로 돌아간다 (CompleteDelivery와 같은 끝).</summary>
+        private void EndTrip()
+        {
+            _state = State.Idle;
+            TryStartNext();
+            if (_state == State.Idle) GoReturn();
         }
 
         /// <summary>
@@ -255,6 +391,47 @@ namespace Marea.Field
             board.Complete(done);
 
             TryStartNext();   // 큐에 남은 게 있으면 이어서
+
+            // 이어받은 게 없으면 손님 옆에 그대로 서 있게 된다. 픽업대로 걸어 돌아간다. (+9/23)
+            // TryStartNext가 이미 일을 집었으면 여기는 Idle이 아니라서 건너뛴다.
+            if (_state == State.Idle) GoReturn();
+        }
+
+        /// <summary>
+        /// 빈손으로 픽업대까지 걸어 돌아간다. 배달을 성공으로 끝냈을 때만 탄다. (+9/23)
+        /// (+9/28) 넘어졌다 일어난 뒤에도 탄다(EndTrip) — 경로 실패가 아니라 돌아갈 길은 있다.
+        ///
+        /// 실패(DropTask)에서는 부르지 않는다. 경로를 못 만들어서 버린 상황이라면
+        /// 돌아가는 경로도 대개 실패하고, 그때마다 로그가 두 번씩 쌓인다.
+        ///
+        /// allowPartialPath를 켠다 — 여기는 "그 자리에 정확히 서 있어야" 하는 일이 아니다.
+        /// 픽업대 앞이 막혀 있으면 갈 수 있는 데까지만 가고 유휴로 돌아가면 그만이다.
+        /// </summary>
+        private void GoReturn()
+        {
+            if (board == null) return;
+
+            // GoTo가 SetDestination에 실패하면 onFailed를 그 자리에서 부른다.
+            // 그래서 상태를 먼저 Returning으로 올려둬야 콜백의 검사가 맞아떨어진다.
+            _state = State.Returning;
+
+            _mover.GoTo(board.PickupPosition,
+                onArrived: EndReturn,
+                onFailed: EndReturn,
+                allowPartialPath: true);
+        }
+
+        /// <summary>
+        /// 복귀가 끝났다. 도착이든 실패든 할 일은 같다 — 유휴로 돌아간다.
+        ///
+        /// 돌아가는 사이에 새 작업을 집었을 수 있다. 그때는 이미 Returning이 아니므로
+        /// 건드리지 않는다. AgentMover가 콜백을 버리긴 하지만, 상태를 되돌리는 쪽에서
+        /// 한 번 더 보는 편이 나중에 경로가 늘어나도 안전하다.
+        /// </summary>
+        private void EndReturn()
+        {
+            if (_state != State.Returning) return;
+            _state = State.Idle;
         }
 
         /// <summary>

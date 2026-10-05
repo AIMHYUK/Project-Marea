@@ -32651,6 +32651,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd01c4f8d99c0f145901acc68faa27a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Restaurant.Seat
+  sitPoint: {fileID: 0}
 --- !u!23 &579248784
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -39622,6 +39623,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd01c4f8d99c0f145901acc68faa27a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Restaurant.Seat
+  sitPoint: {fileID: 0}
 --- !u!23 &654352137
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -75030,6 +75032,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd01c4f8d99c0f145901acc68faa27a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Restaurant.Seat
+  sitPoint: {fileID: 0}
 --- !u!23 &1179091581
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -80675,8 +80678,8 @@ MonoBehaviour:
   btnBackToCategory: {fileID: 897791415}
   btnStartCooking: {fileID: 1953896529}
   skewerMinigameController: {fileID: 1568201299}
-  stewMinigameController: {fileID: 1413466269}
-  fishGrillMinigameController: {fileID: 1640253674}
+  stewMinigameController: {fileID: 1939648860}
+  fishGrillController: {fileID: 0}
   cookingCounter: {fileID: 8164078558985977734}
   categoryDataList:
   - cookingType: 0
@@ -90583,7 +90586,6 @@ GameObject:
   - component: {fileID: 1413466268}
   - component: {fileID: 1413466267}
   - component: {fileID: 1413466266}
-  - component: {fileID: 1413466269}
   - component: {fileID: 1413466265}
   m_Layer: 5
   m_Name: StewMinigameUI
@@ -90699,34 +90701,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1413466263}
   m_CullTransparentMesh: 1
---- !u!114 &1413466269
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1413466263}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 966d34788e81cd041b5dfaff38b82c35, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.StewMinigameController
-  cameraController: {fileID: 0}
-  cameraViewPoint: {fileID: 0}
-  stewPot: {fileID: 0}
-  soupRotationSpeed: 80
-  gameDuration: 10
-  dragPower: 1
-  gaugeDecaySpeed: 0.45
-  dragSensitivity: 7
-  safeZoneMin: 0.4
-  safeZoneMax: 0.75
-  maxDirectionChanges: 2
-  requiredSafeTimeForChange: 1.5
-  perfectRatio: 0.75
-  goodRatio: 0.45
-  badRatio: 0.2
-  minigameUI: {fileID: 1413466266}
 --- !u!1 &1414299761
 GameObject:
   m_ObjectHideFlags: 0
@@ -100190,10 +100164,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2fa86250e93d504488738eadd03af96b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.FishGrillMinigameController
+  step1Panel: {fileID: 0}
+  step2Panel: {fileID: 0}
+  step3Panel: {fileID: 0}
   cameraController: {fileID: 204986631}
   cameraViewPoint: {fileID: 0}
+  stepTransitionDelay: 1.5
   fishVisual: {fileID: 0}
   minigameUI: {fileID: 1640253675}
+  cutGuides: []
   totalBakeDuration: 6.5
   perfectMin: 0.65
   perfectMax: 0.8
@@ -100201,6 +100180,7 @@ MonoBehaviour:
   goodMax: 0.9
   badMin: 0.3
   badMax: 0.97
+  platingItems: []
 --- !u!114 &1640253675
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -111888,6 +111868,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+--- !u!114 &1939648860 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6299923845307585416, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+  m_PrefabInstance: {fileID: 1939648859}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 966d34788e81cd041b5dfaff38b82c35, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.StewMinigameController
 --- !u!1 &1939858135
 GameObject:
   m_ObjectHideFlags: 0

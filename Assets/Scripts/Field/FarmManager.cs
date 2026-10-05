@@ -21,7 +21,7 @@ namespace Marea.Field
     {
         public enum PlotState { Empty, Growing, Ready }
 
-        public enum PlantResult { Ok, NotEmpty, NotEnoughGold, Misconfigured }
+        public enum PlantResult { Ok, NotEmpty, NotEnoughGold, Misconfigured, Locked }   // (+10/2) Locked: 고급 작물 해금 전
 
         [Tooltip("이 데크에서 심을 수 있는 작물. 작물 선택 창에 이 순서대로 뜬다.")]
         [SerializeField] private CropData[] crops;
@@ -34,6 +34,41 @@ namespace Marea.Field
             public PlotState State;
             public CropData Crop;
             public float PlantedAt;
+            public float GrowSeconds;   // (+10/2) 심을 때의 업그레이드로 정한다 — 자라는 중에 레벨이 올라도 이 밭은 그대로
+        }
+
+        // ── (+10/2) 수급 시설 업그레이드 효과 (기획 업그레이드 테이블) ──
+
+        /// <summary>업그레이드가 반영된 성장 시간. 작물 성장 시간 감소(CROP_GROW_TIME_REDUCE).</summary>
+        public float GrowSecondsOf(CropData crop)
+        {
+            if (crop == null) return 0f;
+            float reduce = FacilityLevels.Instance != null
+                ? FacilityLevels.Instance.EffectValue(FacilityKind.Farm, FacilityEffectType.CropGrowTimeReduce)
+                : 0f;
+            return crop.GrowSeconds * Mathf.Clamp01(1f - reduce);
+        }
+
+        /// <summary>
+        /// 고급(RARE 이상) 작물은 CROP_GRADE_UNLOCK RARE 전까지 못 심는다. 잠겼으면 열리는 레벨을 준다.
+        /// 수확물 등급으로 본다 — 작물 자체엔 등급 칸이 없다 (토마토 · 파인애플이 RARE).
+        /// </summary>
+        public bool IsCropUnlocked(CropData crop, out int requiredLevel)
+        {
+            requiredLevel = 0;
+            if (crop == null || crop.Harvest == null || crop.Harvest.Grade < ItemGrade.Rare) return true;
+            return FacilityLevels.Instance == null
+                || FacilityLevels.Instance.IsTargetUnlocked(FacilityKind.Farm, FacilityEffectType.CropGradeUnlock, "RARE", out requiredLevel);
+        }
+
+        /// <summary>수확량 증가(HARVEST_BONUS) — 확률(없으면 항상)로 값만큼 더한다.</summary>
+        private int HarvestBonus()
+        {
+            if (FacilityLevels.Instance == null
+                || !FacilityLevels.Instance.TryGetEffect(FacilityKind.Farm, FacilityEffectType.HarvestBonus, out FacilityUpgradeStep step))
+                return 0;
+            bool hit = step.effectChance <= 0f || Random.value < step.effectChance;
+            return hit ? Mathf.RoundToInt(step.effectValue) : 0;
         }
 
         private readonly Dictionary<FarmPlotCell, Plot> _plots = new();
@@ -72,7 +107,7 @@ namespace Marea.Field
                 Plot plot = pair.Value;
                 if (plot.State != PlotState.Growing) continue;
 
-                float t = (Time.time - plot.PlantedAt) / plot.Crop.GrowSeconds;
+                float t = (Time.time - plot.PlantedAt) / plot.GrowSeconds;
                 if (t < 1f)
                 {
                     pair.Key.ShowGrowing(t);
@@ -80,7 +115,7 @@ namespace Marea.Field
                     // (+9/28) 남은 시간. 성장 중인 동안만 부른다 — 다 자라면 수확 표식이 대신한다.
                     if (_labels != null)
                         _labels.Set(pair.Key, pair.Key.transform.position + Vector3.up * 1.2f,
-                                    TimeText.Format(plot.PlantedAt + plot.Crop.GrowSeconds - Time.time));
+                                    TimeText.Format(plot.PlantedAt + plot.GrowSeconds - Time.time));
                     continue;
                 }
 
@@ -115,6 +150,7 @@ namespace Marea.Field
         {
             if (crop == null || Wallet.Instance == null) return PlantResult.Misconfigured;
             if (StateOf(cell) != PlotState.Empty) return PlantResult.NotEmpty;
+            if (!IsCropUnlocked(crop, out _)) return PlantResult.Locked;
             if (Wallet.Instance.Gold < crop.SeedPrice) return PlantResult.NotEnoughGold;
             return PlantResult.Ok;
         }
@@ -130,6 +166,8 @@ namespace Marea.Field
             plot.State = PlotState.Growing;
             plot.Crop = crop;
             plot.PlantedAt = Time.time;
+            plot.GrowSeconds = Mathf.Max(0.1f, GrowSecondsOf(crop));
+            cell.Plant(crop.StagePrefabs);   // (+9/30) 단계 모델을 한 번에 만들어 둔다
             cell.ShowGrowing(0f);
             return PlantResult.Ok;
         }
@@ -151,7 +189,7 @@ namespace Marea.Field
                 return;
             }
 
-            warehouse.Add(plot.Crop.Harvest, plot.Crop.HarvestCount);
+            warehouse.Add(plot.Crop.Harvest, plot.Crop.HarvestCount + HarvestBonus());
 
             plot.State = PlotState.Empty;
             plot.Crop = null;

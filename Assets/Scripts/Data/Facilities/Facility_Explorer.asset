@@ -13,13 +13,48 @@ MonoBehaviour:
   m_Name: Facility_Explorer
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.FacilityData
   kind: 4
-  displayName: "\uD0D0\uC0AC \uC120\uCC29\uC7A5"
+  displayName: "\uD0D0\uC0AC \uC2DC\uC124"
+  description: "\uD0D0\uC0AC \uC131\uB2A5\uC744 \uAC15\uD654\uD558\uB294 \uC2DC\uC124"
   startsUnlocked: 0
-  unlockCost: 200
+  unlockName: "\uD0D0\uC0AC\uC815"
+  unlockCost: 6000
   prerequisites: 
-  unlockDescription: "\uC120\uCC29\uC7A5\uC744 \uACE0\uCE58\uBA74 \uD0D0\uC0AC\uC815\uC744
-    \uBC14\uB2E4\uB85C \uBCF4\uB0B4 \uC2DD\uC7AC\uB8CC\uB97C \uAD6C\uD574 \uC62C
-    \uC218 \uC788\uB2E4."
-  upgradeCosts: 
-  businessDurations: []
-  settlementBonuses: []
+  unlockDescription: "\uD0D0\uC0AC \uC9C0\uC5ED \uC120\uD0DD \uBC0F \uC790\uB3D9
+    \uD0D0\uC0AC \uAE30\uB2A5 \uD65C\uC131\uD654"
+  steps:
+  - upgradeId: UPG_EXPLORE_001
+    goldCost: 1000
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 11
+    effectValue: 0.1
+    effectChance: 0
+    effectTarget: 
+    description: "\uD0D0\uC0AC \uC2DC\uAC04 -10%"
+  - upgradeId: UPG_EXPLORE_002
+    goldCost: 1500
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 12
+    effectValue: 0.1
+    effectChance: 0
+    effectTarget: 
+    description: "\uD0D0\uC0AC \uD68D\uB4DD\uB7C9 +10%"
+  - upgradeId: UPG_EXPLORE_003
+    goldCost: 2000
+    resource: {fileID: 0}
+    resourceAmount: 0
+    effectType: 11
+    effectValue: 0.2
+    effectChance: 0
+    effectTarget: 
+    description: "\uD0D0\uC0AC \uC2DC\uAC04 \uCD1D -20%"
+  - upgradeId: UPG_EXPLORE_004
+    goldCost: 3000
+    resource: {fileID: 11400000, guid: befa003b74f6ede43a6aa4b2ff320644, type: 2}
+    resourceAmount: 2
+    effectType: 13
+    effectValue: 1
+    effectChance: 0
+    effectTarget: AREA_SEA_01
+    description: "\uC2E0\uADDC \uD574\uC5ED \uD574\uAE08"

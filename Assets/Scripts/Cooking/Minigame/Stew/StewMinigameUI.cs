@@ -92,6 +92,24 @@ namespace Marea.Cooking
             }
         }
 
+        /// <summary>
+        /// 게이지·방향 화살표를 보이거나 숨긴다. 1·3단계(받기·거품)에선 숨기고 2단계(젓기)에서만 보인다. (+9/30)
+        /// </summary>
+        public void SetGaugeVisible(bool visible)
+        {
+            if (gaugeFillBar != null) gaugeFillBar.gameObject.SetActive(visible);
+            if (ladleIcon != null) ladleIcon.gameObject.SetActive(visible);
+            if (safeZoneRect != null) safeZoneRect.gameObject.SetActive(visible);
+            if (arrowIcon != null) arrowIcon.gameObject.SetActive(visible);
+        }
+
+        /// <summary>안내 문구를 직접 쓴다. 2단계는 UpdateDirectionGuide가 방향 문구를 쓴다. (+9/30)</summary>
+        public void SetGuide(string main, string sub)
+        {
+            if (txtGuideDirection != null) txtGuideDirection.text = main;
+            if (txtSubGuide != null) txtSubGuide.text = sub;
+        }
+
         public void PlayDirectionChangeAlert()
         {
             if (arrowIcon != null)
