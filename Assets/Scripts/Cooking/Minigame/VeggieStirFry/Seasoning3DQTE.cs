@@ -39,45 +39,133 @@ namespace Marea.Cooking
         {
             _mainCamera = Camera.main;
 
-            if (salt3DObject != null) _initialRotations[salt3DObject] = salt3DObject.transform.localRotation;
-            if (pepper3DObject != null) _initialRotations[pepper3DObject] = pepper3DObject.transform.localRotation;
+            if (salt3DObject != null)
+            {
+                _initialRotations[salt3DObject] =
+                    salt3DObject.transform.localRotation;
+            }
+
+            if (pepper3DObject != null)
+            {
+                _initialRotations[pepper3DObject] =
+                    pepper3DObject.transform.localRotation;
+            }
+        }
+
+        public void ResetQTE()
+        {
+            StopAllCoroutines();
+
+            IsQTECompleted = false;
+            SuccessCount = 0;
+            MissCount = 0;
+
+            _onQTEFinishedCallback = null;
+
+            if (railUI != null)
+            {
+                railUI.ResetRail();
+            }
+
+            if (salt3DObject != null &&
+                _initialRotations.TryGetValue(
+                    salt3DObject,
+                    out Quaternion saltRotation))
+            {
+                salt3DObject.transform.localRotation =
+                    saltRotation;
+            }
+
+            if (pepper3DObject != null &&
+                _initialRotations.TryGetValue(
+                    pepper3DObject,
+                    out Quaternion pepperRotation))
+            {
+                pepper3DObject.transform.localRotation =
+                    pepperRotation;
+            }
+
+            if (saltParticle != null)
+            {
+                saltParticle.Stop(
+                    true,
+                    ParticleSystemStopBehavior.StopEmittingAndClear
+                );
+            }
+
+            if (pepperParticle != null)
+            {
+                pepperParticle.Stop(
+                    true,
+                    ParticleSystemStopBehavior.StopEmittingAndClear
+                );
+            }
+
+            if (shakeAudioSource != null)
+            {
+                shakeAudioSource.Stop();
+            }
         }
 
         public void StartQTEGame(Action onQTEComplete = null)
         {
+            ResetQTE();
+
             IsQTECompleted = false;
             SuccessCount = 0;
             MissCount = 0;
             _onQTEFinishedCallback = onQTEComplete;
 
-            List<SequenceNoteData> generatedNotes = GenerateRandomNotes();
+            List<SequenceNoteData> generatedNotes =
+                GenerateRandomNotes();
 
-            if (railUI != null && generatedNotes.Count > 0)
+            if (railUI != null &&
+                generatedNotes.Count > 0)
             {
-                railUI.StartRail(generatedNotes, OnHitResultReceived, OnQTEFinished);
+                railUI.StartRail(
+                    generatedNotes,
+                    OnHitResultReceived,
+                    OnQTEFinished
+                );
             }
             else
             {
-                Debug.LogWarning("[Seasoning3DQTE] Rail UI 연결 상태를 확인해주세요.");
+                Debug.LogWarning(
+                    "[Seasoning3DQTE] Rail UI 연결 상태를 확인해주세요."
+                );
             }
         }
 
         private List<SequenceNoteData> GenerateRandomNotes()
         {
-            List<SequenceNoteData> randomNotes = new List<SequenceNoteData>();
-            float currentSpawnTime = initialDelay;
+            List<SequenceNoteData> randomNotes =
+                new List<SequenceNoteData>();
+
+            float currentSpawnTime =
+                initialDelay;
 
             for (int i = 0; i < totalNoteCount; i++)
             {
-                SequenceNoteData noteData = new SequenceNoteData
-                {
-                    // 💡 UnityEngine.Random 명시
-                    keyType = (UnityEngine.Random.value > 0.5f) ? SeasoningKey.Salt : SeasoningKey.Pepper,
-                    spawnTime = currentSpawnTime
-                };
+                SequenceNoteData noteData =
+                    new SequenceNoteData
+                    {
+                        // 💡 UnityEngine.Random 명시
+                        keyType =
+                            (UnityEngine.Random.value > 0.5f)
+                                ? SeasoningKey.Salt
+                                : SeasoningKey.Pepper,
+
+                        spawnTime =
+                            currentSpawnTime
+                    };
 
                 randomNotes.Add(noteData);
-                currentSpawnTime += UnityEngine.Random.Range(minInterval, maxInterval);
+
+                currentSpawnTime +=
+                    UnityEngine.Random.Range(
+                        minInterval,
+                        maxInterval
+                    );
             }
 
             return randomNotes;
@@ -85,91 +173,186 @@ namespace Marea.Cooking
 
         private void Update()
         {
-            if (IsQTECompleted) return;
-
-            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+            if (IsQTECompleted)
             {
-                if (_mainCamera == null) _mainCamera = Camera.main;
-                if (_mainCamera == null) return;
+                return;
+            }
 
-                Vector2 mousePosition = Mouse.current.position.ReadValue();
-                Ray ray = _mainCamera.ScreenPointToRay(mousePosition);
-
-                if (Physics.Raycast(ray, out RaycastHit hit))
+            if (Mouse.current != null &&
+                Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                if (_mainCamera == null)
                 {
-                    if (hit.transform.gameObject == salt3DObject)
+                    _mainCamera = Camera.main;
+                }
+
+                if (_mainCamera == null)
+                {
+                    return;
+                }
+
+                Vector2 mousePosition =
+                    Mouse.current.position.ReadValue();
+
+                Ray ray =
+                    _mainCamera.ScreenPointToRay(
+                        mousePosition
+                    );
+
+                if (Physics.Raycast(
+                    ray,
+                    out RaycastHit hit))
+                {
+                    if (hit.transform.gameObject ==
+                        salt3DObject)
                     {
-                        AnimateSeasoning(salt3DObject, saltParticle);
-                        railUI?.CheckInput(SeasoningKey.Salt, OnHitResultReceived);
+                        AnimateSeasoning(
+                            salt3DObject,
+                            saltParticle
+                        );
+
+                        railUI?.CheckInput(
+                            SeasoningKey.Salt,
+                            OnHitResultReceived
+                        );
                     }
-                    else if (hit.transform.gameObject == pepper3DObject)
+                    else if (hit.transform.gameObject ==
+                             pepper3DObject)
                     {
-                        AnimateSeasoning(pepper3DObject, pepperParticle);
-                        railUI?.CheckInput(SeasoningKey.Pepper, OnHitResultReceived);
+                        AnimateSeasoning(
+                            pepper3DObject,
+                            pepperParticle
+                        );
+
+                        railUI?.CheckInput(
+                            SeasoningKey.Pepper,
+                            OnHitResultReceived
+                        );
                     }
                 }
             }
         }
 
-        private void AnimateSeasoning(GameObject obj, ParticleSystem particle)
+        private void AnimateSeasoning(
+            GameObject obj,
+            ParticleSystem particle)
         {
-            if (obj == null) return;
+            if (obj == null)
+            {
+                return;
+            }
 
-            StartCoroutine(CoShakeAnimation(obj));
+            StartCoroutine(
+                CoShakeAnimation(obj)
+            );
 
-            if (particle != null) particle.Play();
-            if (shakeAudioSource != null) shakeAudioSource.Play();
+            if (particle != null)
+            {
+                particle.Play();
+            }
+
+            if (shakeAudioSource != null)
+            {
+                shakeAudioSource.Play();
+            }
         }
 
-        private IEnumerator CoShakeAnimation(GameObject obj)
+        private IEnumerator CoShakeAnimation(
+            GameObject obj)
         {
-            Transform targetTransform = obj.transform;
-            Quaternion originalRot = _initialRotations.ContainsKey(obj) ? _initialRotations[obj] : targetTransform.localRotation;
+            Transform targetTransform =
+                obj.transform;
 
-            Quaternion tiltRot = originalRot * Quaternion.Euler(0f, 0f, -30f);
+            Quaternion originalRot =
+                _initialRotations.ContainsKey(obj)
+                    ? _initialRotations[obj]
+                    : targetTransform.localRotation;
+
+            Quaternion tiltRot =
+                originalRot *
+                Quaternion.Euler(
+                    0f,
+                    0f,
+                    -30f
+                );
+
             float elapsed = 0f;
             float duration = 0.08f;
 
             while (elapsed < duration)
             {
-                targetTransform.localRotation = Quaternion.Slerp(originalRot, tiltRot, elapsed / duration);
-                elapsed += Time.deltaTime;
+                targetTransform.localRotation =
+                    Quaternion.Slerp(
+                        originalRot,
+                        tiltRot,
+                        elapsed / duration
+                    );
+
+                elapsed +=
+                    Time.deltaTime;
+
                 yield return null;
             }
 
             elapsed = 0f;
+
             while (elapsed < duration)
             {
-                targetTransform.localRotation = Quaternion.Slerp(tiltRot, originalRot, elapsed / duration);
-                elapsed += Time.deltaTime;
+                targetTransform.localRotation =
+                    Quaternion.Slerp(
+                        tiltRot,
+                        originalRot,
+                        elapsed / duration
+                    );
+
+                elapsed +=
+                    Time.deltaTime;
+
                 yield return null;
             }
 
-            targetTransform.localRotation = originalRot;
+            targetTransform.localRotation =
+                originalRot;
         }
 
-        private void OnHitResultReceived(HitGrade grade)
+        private void OnHitResultReceived(
+            HitGrade grade)
         {
             switch (grade)
             {
                 case HitGrade.Perfect:
                 case HitGrade.Good:
                     SuccessCount++;
-                    Debug.Log($"[SeasoningQTE] {grade}! (성공: {SuccessCount})");
+
+                    Debug.Log(
+                        $"[SeasoningQTE] {grade}! (성공: {SuccessCount})"
+                    );
+
                     break;
+
                 case HitGrade.Miss:
                     MissCount++;
-                    Debug.Log($"[SeasoningQTE] Miss! (실패: {MissCount})");
+
+                    Debug.Log(
+                        $"[SeasoningQTE] Miss! (실패: {MissCount})"
+                    );
+
                     break;
             }
         }
 
         private void OnQTEFinished()
         {
-            if (IsQTECompleted) return;
+            if (IsQTECompleted)
+            {
+                return;
+            }
 
             IsQTECompleted = true;
-            Debug.Log($"[SeasoningQTE] 3단계 양념 미니게임 완료! 성공: {SuccessCount}, 실패: {MissCount}");
+
+            Debug.Log(
+                $"[SeasoningQTE] 3단계 양념 미니게임 완료! 성공: {SuccessCount}, 실패: {MissCount}"
+            );
 
             _onQTEFinishedCallback?.Invoke();
         }
