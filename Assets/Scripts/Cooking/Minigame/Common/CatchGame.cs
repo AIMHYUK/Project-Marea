@@ -48,15 +48,52 @@ namespace Marea.Cooking
         [Tooltip("재료 모델이 없을 때 대신 쓸 구의 지름(m).")]
         [SerializeField, Min(0.05f)] private float fallbackSize = 0.3f;
 
+        [Tooltip("(+10/2) 떨어뜨릴 개수. 받은 재료 목록보다 크면 섞어서 반복한다. 0이면 목록 그대로.")]
+        [SerializeField, Min(0)] private int dropCount;
+
+        [Header("움직임 (+10/2) — 재료마다 가중치로 하나를 뽑는다. 기본은 곧게만")]
+        [SerializeField, Min(0f)] private float straightWeight = 1f;
+        [Tooltip("좌우로 흔들리며 떨어진다.")]
+        [SerializeField, Min(0f)] private float zigzagWeight;
+        [Tooltip("입구 위까지 내려오다 멈칫, 다시 튀어 올랐다가 옆으로 비켜 다시 떨어진다.")]
+        [SerializeField, Min(0f)] private float feintWeight;
+        [Tooltip("떨어지다 갑자기 옆으로 휙 비켜선다.")]
+        [SerializeField, Min(0f)] private float dashWeight;
+        [SerializeField] private Vector2 zigzagAmplitude = new Vector2(0.3f, 0.7f);
+        [SerializeField] private Vector2 zigzagFrequency = new Vector2(1.2f, 2.4f);
+        [Tooltip("속임수가 멈칫하는 높이(입구 위, m).")]
+        [SerializeField] private Vector2 feintHeight = new Vector2(0.5f, 1.0f);
+        [Tooltip("속임수가 다시 튀어 오르는 속도(m/s).")]
+        [SerializeField, Min(0f)] private float feintBounce = 3.5f;
+        [Tooltip("옆걸음 거리(m).")]
+        [SerializeField] private Vector2 dashDistance = new Vector2(0.6f, 1.2f);
+        [Tooltip("빙글빙글 도는 속도(도/초).")]
+        [SerializeField] private Vector2 spinSpeed = new Vector2(90f, 90f);
+
         [Header("시간")]
         [Tooltip("제한시간(초). 기획 CookingMiniGameData MG_OBJECT_CATCH = 10.")]
         [SerializeField, Min(1f)] private float timeLimit = 10f;
+
+        private enum Motion { Straight, Zigzag, Feint, Dash }
 
         private sealed class Falling
         {
             public Transform T;
             public float Speed;
             public bool Resolved;
+            public Motion Kind;
+            public float Y;          // 입구 높이 기준 높이(m)
+            public float Along;      // 좌우 축 위치(m, 입구 기준)
+            public float Age;
+            public float SwayAmp, SwayFreq, Phase;
+            public Vector3 SpinAxis;
+            public float Spin;
+            // 속임수
+            public int FeintState;   // 0 내려옴 · 1 튀어 오름 · 2 다시 떨어짐
+            public float FeintY, VY, FeintFrom, FeintTo;
+            // 옆걸음
+            public bool Dashed;
+            public float DashY, DashFrom, DashTo, DashT = -1f;
         }
 
         private readonly List<GameObject> _queue = new();
@@ -102,6 +139,9 @@ namespace Marea.Cooking
 
             _queue.Clear();
             if (items != null) _queue.AddRange(items);
+            // (+10/2) 개수를 채운다 — 받은 목록을 돌려 쓴다(비었으면 대체 구).
+            int baseCount = _queue.Count;
+            for (int i = baseCount; i < dropCount; i++) _queue.Add(baseCount > 0 ? _queue[i % baseCount] : null);
             for (int i = _queue.Count - 1; i > 0; i--)
             {
                 int j = UnityEngine.Random.Range(0, i + 1);
@@ -139,8 +179,9 @@ namespace Marea.Cooking
                 if (f.T == null) continue;
 
                 float prevY = f.T.position.y;
-                f.T.position += Vector3.down * (f.Speed * Time.deltaTime);
-                f.T.Rotate(Vector3.up, 90f * Time.deltaTime, Space.World);
+                Move(f, Time.deltaTime);
+                f.T.position = _mouthHome + _axis * f.Along + Vector3.up * f.Y;
+                f.T.Rotate(f.SpinAxis, f.Spin * Time.deltaTime, Space.World);
 
                 if (f.Resolved)
                 {
@@ -185,10 +226,74 @@ namespace Marea.Cooking
             catcher.position = Vector3.Lerp(catcher.position, target, 1f - Mathf.Exp(-followSpeed * Time.deltaTime));
         }
 
+        /// <summary>재료 하나를 한 프레임 움직인다 — Y(높이)와 Along(좌우)만 바꾼다.</summary>
+        private void Move(Falling f, float dt)
+        {
+            f.Age += dt;
+            switch (f.Kind)
+            {
+                case Motion.Zigzag:
+                    f.Y -= f.Speed * 0.85f * dt;   // 흔들리는 만큼 조금 느리게
+                    f.Along = f.FeintFrom + Mathf.Sin(f.Age * f.SwayFreq * Mathf.PI * 2f + f.Phase) * f.SwayAmp;
+                    break;
+
+                case Motion.Feint:
+                    if (f.FeintState == 0)
+                    {
+                        f.Y -= f.Speed * dt;
+                        if (f.Y <= f.FeintY) { f.FeintState = 1; f.VY = feintBounce; f.Age = 0f; }
+                    }
+                    else
+                    {
+                        // 튀어 올랐다가 중력으로 다시 떨어진다. 그동안 옆으로 비켜 선다.
+                        f.VY = Mathf.Max(f.VY - 12f * dt, -f.Speed * 1.15f);
+                        f.Y += f.VY * dt;
+                        f.Along = Mathf.Lerp(f.FeintFrom, f.FeintTo, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(f.Age / 0.45f)));
+                        if (f.VY < 0f) f.FeintState = 2;
+                    }
+                    break;
+
+                case Motion.Dash:
+                    f.Y -= f.Speed * dt;
+                    if (!f.Dashed && f.Y <= f.DashY) { f.Dashed = true; f.DashT = 0f; }
+                    if (f.DashT >= 0f && f.DashT < 1f)
+                    {
+                        f.DashT = Mathf.Min(1f, f.DashT + dt / 0.16f);
+                        f.Along = Mathf.Lerp(f.DashFrom, f.DashTo, 1f - (1f - f.DashT) * (1f - f.DashT));
+                    }
+                    break;
+
+                default:
+                    f.Y -= f.Speed * dt;
+                    break;
+            }
+            f.Along = Mathf.Clamp(f.Along, -moveRange, moveRange);
+        }
+
+        private Motion PickMotion()
+        {
+            float total = straightWeight + zigzagWeight + feintWeight + dashWeight;
+            if (total <= 0f) return Motion.Straight;
+            float r = UnityEngine.Random.value * total;
+            if ((r -= straightWeight) < 0f) return Motion.Straight;
+            if ((r -= zigzagWeight) < 0f) return Motion.Zigzag;
+            if ((r -= feintWeight) < 0f) return Motion.Feint;
+            return Motion.Dash;
+        }
+
+        // 반대쪽으로 비켜 선다 — 범위 끝이면 안쪽으로.
+        private float SideStep(float from, Vector2 range)
+        {
+            float d = UnityEngine.Random.Range(range.x, Mathf.Max(range.x, range.y)) * (UnityEngine.Random.value < 0.5f ? -1f : 1f);
+            float to = from + d;
+            if (Mathf.Abs(to) > moveRange) to = from - d;
+            return Mathf.Clamp(to, -moveRange, moveRange);
+        }
+
         private void Spawn(GameObject prefab)
         {
-            Vector3 pos = _mouthHome + _axis * UnityEngine.Random.Range(-moveRange, moveRange)
-                        + Vector3.up * spawnHeight;
+            float along = UnityEngine.Random.Range(-moveRange, moveRange);
+            Vector3 pos = _mouthHome + _axis * along + Vector3.up * spawnHeight;
 
             GameObject go;
             if (prefab != null)
@@ -207,11 +312,27 @@ namespace Marea.Cooking
                 go.transform.localScale = Vector3.one * fallbackSize;
             }
 
-            _falling.Add(new Falling
+            var f = new Falling
             {
                 T = go.transform,
                 Speed = UnityEngine.Random.Range(fallSpeedRange.x, Mathf.Max(fallSpeedRange.x, fallSpeedRange.y)),
-            });
+                Kind = PickMotion(),
+                Y = spawnHeight,
+                Along = along,
+                FeintFrom = along,
+                Phase = UnityEngine.Random.value * Mathf.PI * 2f,
+                SwayAmp = UnityEngine.Random.Range(zigzagAmplitude.x, Mathf.Max(zigzagAmplitude.x, zigzagAmplitude.y)),
+                SwayFreq = UnityEngine.Random.Range(zigzagFrequency.x, Mathf.Max(zigzagFrequency.x, zigzagFrequency.y)),
+                SpinAxis = UnityEngine.Random.onUnitSphere,
+                Spin = UnityEngine.Random.Range(spinSpeed.x, Mathf.Max(spinSpeed.x, spinSpeed.y)),
+            };
+            if (f.Kind == Motion.Straight) f.SpinAxis = Vector3.up;   // 예전 모습 그대로(제자리 회전)
+            f.FeintY = UnityEngine.Random.Range(feintHeight.x, Mathf.Max(feintHeight.x, feintHeight.y));
+            f.FeintTo = SideStep(along, dashDistance);
+            f.DashY = UnityEngine.Random.Range(spawnHeight * 0.35f, spawnHeight * 0.75f);
+            f.DashFrom = along;
+            f.DashTo = SideStep(along, dashDistance);
+            _falling.Add(f);
         }
 
         private void Finish()

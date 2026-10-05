@@ -103,7 +103,7 @@ namespace Marea.Cooking
             if (arrowIcon != null) arrowIcon.gameObject.SetActive(visible);
         }
 
-        /// <summary>안내 문구를 직접 쓴다. 2단계는 UpdateDirectionGuide가 방향 문구를 쓴다. (+9/30)</summary>
+        /// <summary>안내 문구를 직접 쓴다. 1 · 2 · 3단계 모두 이걸로 쓴다. (+9/30, +10/2)</summary>
         public void SetGuide(string main, string sub)
         {
             if (txtGuideDirection != null) txtGuideDirection.text = main;

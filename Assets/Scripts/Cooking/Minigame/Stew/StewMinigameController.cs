@@ -21,7 +21,7 @@ namespace Marea.Cooking
     /// <summary>
     /// 해물스튜 — 3단계. (+9/30) BaseCookingMinigame으로 옮겼다 (생선구이와 같은 틀).
     ///   1 준비  MG_OBJECT_CATCH : 냄비를 좌우로 움직여 떨어지는 재료를 받는다 (CatchGame 부품)
-    ///   2 핵심  MG_GAUGE_KEEP   : 방향대로 저어 게이지를 안전 구간에 유지 (예전 스튜 로직 그대로)
+    ///   2 핵심  MG_GAUGE_KEEP   : 원을 그려 저어 게이지를 안전 구간에 유지, 중간에 시계 ↔ 반시계가 바뀐다 (+10/2, 예전엔 상하좌우 직선)
     ///   3 마무리 MG_POPUP_TOUCH : 국물 위 거품을 터뜨린다 (PopupTouchGame 부품)
     /// 판매가는 2단계 배율만 쓴다 (생선구이와 같다). 1·3단계 점수는 Step1Score/Step3Score에만 남는다.
     ///
@@ -34,29 +34,17 @@ namespace Marea.Cooking
         [Header("3D 냄비 컨트롤러")]
         [SerializeField] private StewPot stewPot;
 
-        [Header("국물 연출")]
         // soupTransform을 지웠다 (#48). 국물은 StewPot이 프리팹 안에서 이미 알고 있다 —
         // 컨트롤러가 이름으로 뒤질 이유가 없었고, 뒤져봤자 그 이름의 오브젝트가 없었다.
-        [Tooltip("드래그 시 국물이 회전하는 속도/감도")]
-        [SerializeField] private float soupRotationSpeed = 80f;
 
-        [Header("미니게임 시간 설정")]
-        [SerializeField] private float gameDuration = 8f;
+        [Header("2단계: 세이프존 따라 젓기 (+10/2)")]
+        [Tooltip("냄비 안에서 움직이는 세이프존을 국자로 따라간다. 시간 · 원 크기 · 움직임은 이 부품에서.")]
+        [SerializeField] private StirZoneGame stirZone;
 
-        [Header("게이지 물리 감도")]
-        [Tooltip("드래그 상승력 (기존 1.2 -> 2.5로 상향)")]
-        [SerializeField] private float dragPower = 2.5f;
-        [Tooltip("자연 감쇠 속도 (기존 0.45 -> 0.22로 완화하여 마우스 재위치 시간 확보)")]
-        [SerializeField] private float gaugeDecaySpeed = 0.22f;
-        [SerializeField] private float dragSensitivity = 8f;
-
-        [Header("세이프 존 범위 (0.0 ~ 1.0)")]
+        // UI가 게이지 막대 위치를 잡을 때 읽는다. 2단계는 이제 막대를 숨기고 냄비 안 원으로 보여 준다.
+        [Header("세이프 존 범위 (0.0 ~ 1.0) — 게이지 막대 표시용")]
         [Range(0f, 1f)][SerializeField] private float safeZoneMin = 0.35f;
         [Range(0f, 1f)][SerializeField] private float safeZoneMax = 0.75f;
-
-        [Header("방향 전환 이벤트 설정")]
-        [SerializeField] private int maxDirectionChanges = 2;
-        [SerializeField] private float requiredSafeTimeForChange = 1.8f;
 
         [Header("판정 기준 (세이프 존 체류 비율)")]
         [Range(0f, 1f)][SerializeField] private float perfectRatio = 0.55f; // 55% (약 4.4초) 이상 유지 시 PERFECT
@@ -76,21 +64,10 @@ namespace Marea.Cooking
         private Action<CookingResult> _onCompleteCallback;
         private readonly List<GameObject> _catchItems = new();
 
-        private float _currentGauge;
-        private float _timeRemaining;
-        private float _safeZoneStayDuration;
-        private float _outOfSafeZoneDuration;
-        private float _safeStreakTimer;
-        private int _changedCount;
         private HitGrade _stirGrade = HitGrade.Miss;
-
-        private StirDirection _requiredDirection;
-        private Vector2 _lastMousePosition;
-        private bool _isDragging;
 
         public float SafeZoneMin => safeZoneMin;
         public float SafeZoneMax => safeZoneMax;
-        public float OutOfSafeZoneDuration => _outOfSafeZoneDuration;
 
         protected override void EnsureDependencies()
         {
@@ -175,169 +152,42 @@ namespace Marea.Cooking
         }
 
         // ==========================================
-        // 2단계: 젓기 (예전 스튜 미니게임)
+        // 2단계: 세이프존 따라 젓기 (+10/2 — 예전엔 상하좌우 드래그로 게이지 유지)
         // ==========================================
         protected override void OnStep2Start()
         {
-            // 시작 즉시 세이프 존 중앙에서 시작 (초반 손실 방지)
-            _currentGauge = (safeZoneMin + safeZoneMax) * 0.5f;
-            _timeRemaining = gameDuration;
-            _safeZoneStayDuration = 0f;
-            _outOfSafeZoneDuration = 0f;
-            _safeStreakTimer = 0f;
-            _changedCount = 0;
-            _isDragging = false;
-
-            PickRandomDirection();
-
             if (minigameUI != null)
             {
-                minigameUI.SetGaugeVisible(true);
-                minigameUI.UpdateDirectionGuide(_requiredDirection);
+                minigameUI.SetGaugeVisible(false);
+                minigameUI.SetGuide("국자를 초록 원 안에 두세요!", "원을 따라 저으세요");
             }
+
+            if (stirZone == null)
+            {
+                Debug.LogError($"{name}: stirZone이 비어 있다. 2단계를 건너뛴다.", this);
+                return;
+            }
+            stirZone.Begin();
         }
 
         protected override void OnStep2Update()
         {
-            ProcessInput();
-            SimulateGaugeDecay();
-            EvaluateSafeZone();
-
-            _timeRemaining -= Time.deltaTime;
-            if (minigameUI != null)
-            {
-                minigameUI.UpdateTimer(_timeRemaining / gameDuration);
-                minigameUI.UpdateGauge(_currentGauge);
-            }
-
-            if (_timeRemaining <= 0f) FinishStir();
-        }
-
-        private void ProcessInput()
-        {
-            var mouse = Mouse.current;
-            if (mouse == null) return;
-
-            if (mouse.leftButton.wasPressedThisFrame)
-            {
-                _isDragging = true;
-                _lastMousePosition = mouse.position.ReadValue();
-            }
-            else if (mouse.leftButton.wasReleasedThisFrame)
-            {
-                _isDragging = false;
-            }
-
-            if (!_isDragging) return;
-
-            Vector2 currentPos = mouse.position.ReadValue();
-            Vector2 delta = currentPos - _lastMousePosition;
-            _lastMousePosition = currentPos;
-
-            if (delta.sqrMagnitude < dragSensitivity * dragSensitivity) return;
-
-            bool isCorrectDirection = false;
-            switch (_requiredDirection)
-            {
-                case StirDirection.Up:
-                    if (delta.y > 0f && delta.y >= Mathf.Abs(delta.x) * 0.35f) isCorrectDirection = true;
-                    break;
-                case StirDirection.Down:
-                    if (delta.y < 0f && -delta.y >= Mathf.Abs(delta.x) * 0.35f) isCorrectDirection = true;
-                    break;
-                case StirDirection.Left:
-                    if (delta.x < 0f && -delta.x >= Mathf.Abs(delta.y) * 0.35f) isCorrectDirection = true;
-                    break;
-                case StirDirection.Right:
-                    if (delta.x > 0f && delta.x >= Mathf.Abs(delta.y) * 0.35f) isCorrectDirection = true;
-                    break;
-            }
-
-            if (isCorrectDirection)
-            {
-                float pushDelta = (delta.magnitude / Screen.height) * dragPower;
-                _currentGauge = Mathf.Clamp01(_currentGauge + pushDelta);
-
-                if (stewPot != null)
-                {
-                    stewPot.AnimateStir(_requiredDirection);
-                }
-
-                // 국자 젓는 방향 및 마우스 드래그 거리에 비례하여 국물 오브젝트 Y축 회전
-                RotateSoup(delta.magnitude);
-            }
-        }
-
-        private void RotateSoup(float dragMagnitude)
-        {
-            if (stewPot == null) return;
-
-            // 좌/하 방향이면 반시계(-), 우/상 방향이면 시계(+) 방향 회전
-            float directionSign = (_requiredDirection == StirDirection.Left || _requiredDirection == StirDirection.Down) ? -1f : 1f;
-            float rotationAmount = (dragMagnitude / Screen.height) * soupRotationSpeed * directionSign;
-
-            stewPot.RotateLiquid(rotationAmount);
-        }
-
-        private void SimulateGaugeDecay()
-        {
-            _currentGauge = Mathf.Clamp01(_currentGauge - gaugeDecaySpeed * Time.deltaTime);
-        }
-
-        private void EvaluateSafeZone()
-        {
-            bool inSafeZone = _currentGauge >= safeZoneMin && _currentGauge <= safeZoneMax;
-
-            if (inSafeZone)
-            {
-                _safeZoneStayDuration += Time.deltaTime;
-                _safeStreakTimer += Time.deltaTime;
-
-                if (_changedCount < maxDirectionChanges && _safeStreakTimer >= requiredSafeTimeForChange)
-                {
-                    TriggerDirectionChangeEvent();
-                }
-            }
-            else
-            {
-                _outOfSafeZoneDuration += Time.deltaTime;
-                _safeStreakTimer = 0f;
-            }
+            if (stirZone == null) { FinishStir(1f); return; }
 
             if (minigameUI != null)
             {
-                minigameUI.SetSafeZoneStatus(inSafeZone);
+                minigameUI.UpdateTimer(stirZone.TimeLeft01);
+                minigameUI.SetGuide(stirZone.IsInside ? "좋아요! 계속 따라가세요" : "국자를 초록 원 안에 두세요!",
+                                    $"유지 {stirZone.Score * 100f:F0}%");
             }
-        }
 
-        private void TriggerDirectionChangeEvent()
-        {
-            _changedCount++;
-            _safeStreakTimer = 0f;
-            PickRandomDirection();
-
-            if (minigameUI != null)
-            {
-                minigameUI.UpdateDirectionGuide(_requiredDirection);
-                minigameUI.PlayDirectionChangeAlert();
-            }
-        }
-
-        private void PickRandomDirection()
-        {
-            StirDirection nextDir;
-            do
-            {
-                nextDir = (StirDirection)UnityEngine.Random.Range(0, 4);
-            } while (nextDir == _requiredDirection);
-
-            _requiredDirection = nextDir;
+            if (stirZone.IsFinished) FinishStir(stirZone.Score);
         }
 
         /// <summary>2단계 끝 — 체류 비율로 판정하고 배율을 Step2Score로 넘긴다.</summary>
-        private void FinishStir()
+        private void FinishStir(float ratio)
         {
-            float ratio = Mathf.Clamp01(_safeZoneStayDuration / gameDuration);
+            ratio = Mathf.Clamp01(ratio);
             float multiplier;
 
             if (ratio >= perfectRatio)
