@@ -31,6 +31,18 @@ namespace Marea.Cooking
         private Camera _mainCamera;
         private bool _isSlicingCompleted;
 
+        private GameObject _originalIngredientTemplate;
+        private Transform _originalIngredientParent;
+        private Vector3 _originalIngredientLocalPosition;
+        private Quaternion _originalIngredientLocalRotation;
+        private Vector3 _originalIngredientLocalScale;
+
+        private readonly List<GameObject> _runtimeSlicePieces = new List<GameObject>();
+
+        private Vector3 _knifeInitialPosition;
+        private Quaternion _knifeInitialRotation;
+        private bool _hasKnifeInitialTransform;
+
         // --- 컨트롤러 연동용 이벤트 추가 ---
         public event Action OnSlicingCompleted;
 
@@ -43,6 +55,8 @@ namespace Marea.Cooking
             _currentGuideIndex = 0;
             _isSlicingCompleted = false;
             SliceScoreSum = 0f;
+
+            RestoreOriginalIngredient();
 
             if (targetIngredientObject != null && targetIngredientObject.TryGetComponent<Rigidbody>(out var rb))
             {
@@ -57,9 +71,48 @@ namespace Marea.Cooking
             UpdateGuideVisuals();
         }
 
+        public void ResetSlicerState()
+        {
+            _currentGuideIndex = 0;
+            _isSlicingCompleted = false;
+            SliceScoreSum = 0f;
+
+            RestoreOriginalIngredient();
+
+            if (targetIngredientObject != null && targetIngredientObject.TryGetComponent<Rigidbody>(out var rb))
+            {
+                rb.isKinematic = true;
+            }
+
+            if (timingUI != null)
+            {
+                timingUI.HideGauge();
+            }
+
+            UpdateGuideVisuals();
+        }
+
         private void Awake()
         {
             _mainCamera = Camera.main;
+
+            if (targetIngredientObject != null)
+            {
+                _originalIngredientTemplate = targetIngredientObject;
+                _originalIngredientParent = targetIngredientObject.transform.parent;
+                _originalIngredientLocalPosition = targetIngredientObject.transform.localPosition;
+                _originalIngredientLocalRotation = targetIngredientObject.transform.localRotation;
+                _originalIngredientLocalScale = targetIngredientObject.transform.localScale;
+
+                _originalIngredientTemplate.SetActive(false);
+            }
+
+            if (knifeVisual != null)
+            {
+                _knifeInitialPosition = knifeVisual.transform.localPosition;
+                _knifeInitialRotation = knifeVisual.transform.localRotation;
+                _hasKnifeInitialTransform = true;
+            }
         }
 
         private void Start()
@@ -179,6 +232,9 @@ namespace Marea.Cooking
 
                 if (upperHull != null && lowerHull != null)
                 {
+                    _runtimeSlicePieces.Add(upperHull);
+                    _runtimeSlicePieces.Add(lowerHull);
+
                     MatchTransform(upperHull, originalParent, originalWorldPos, originalWorldRot, originalLocalScale);
                     MatchTransform(lowerHull, originalParent, originalWorldPos, originalWorldRot, originalLocalScale);
 
@@ -211,6 +267,49 @@ namespace Marea.Cooking
                     Destroy(objectToCut);
                     targetIngredientObject = remainingPiece;
                 }
+            }
+        }
+
+        private void RestoreOriginalIngredient()
+        {
+            GameObject currentTarget = targetIngredientObject;
+
+            if (currentTarget != null && currentTarget != _originalIngredientTemplate)
+            {
+                Destroy(currentTarget);
+            }
+
+            for (int i = 0; i < _runtimeSlicePieces.Count; i++)
+            {
+                GameObject piece = _runtimeSlicePieces[i];
+
+                if (piece != null && piece != currentTarget)
+                {
+                    Destroy(piece);
+                }
+            }
+
+            _runtimeSlicePieces.Clear();
+
+            if (_originalIngredientTemplate != null)
+            {
+                targetIngredientObject = Instantiate(_originalIngredientTemplate, _originalIngredientParent);
+                targetIngredientObject.name = _originalIngredientTemplate.name;
+                targetIngredientObject.transform.localPosition = _originalIngredientLocalPosition;
+                targetIngredientObject.transform.localRotation = _originalIngredientLocalRotation;
+                targetIngredientObject.transform.localScale = _originalIngredientLocalScale;
+                targetIngredientObject.SetActive(true);
+            }
+
+            if (_hasKnifeInitialTransform && knifeVisual != null)
+            {
+                knifeVisual.transform.localPosition = _knifeInitialPosition;
+                knifeVisual.transform.localRotation = _knifeInitialRotation;
+            }
+
+            if (sliceEffect != null)
+            {
+                sliceEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             }
         }
 

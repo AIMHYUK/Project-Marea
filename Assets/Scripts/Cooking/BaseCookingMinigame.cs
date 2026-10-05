@@ -64,6 +64,24 @@ namespace Marea.Cooking
             }
         }
 
+        protected virtual void ResetMinigame()
+        {
+            if (_stepTransitionRoutine != null)
+            {
+                StopCoroutine(_stepTransitionRoutine);
+                _stepTransitionRoutine = null;
+            }
+
+            CurrentStepIndex = MinigameStepIndex.NotStarted;
+
+            Step1Score = 1.0f;
+            Step2Score = 1.0f;
+            Step3Score = 1.0f;
+
+            SetPhysicsRaycasterState(false);
+            SetStepPanelState(s1: false, s2: false, s3: false);
+        }
+
         protected virtual void EnsureDependencies()
         {
             if (cameraController == null)

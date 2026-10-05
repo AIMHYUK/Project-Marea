@@ -16,6 +16,9 @@ namespace Marea.Cooking
         private Transform _currentTargetSlot;
         private float _snapDistance = 1.5f;
 
+        private Vector3 _initialPosition;
+        private Quaternion _initialRotation;
+
         public int IngredientId => ingredientId;
         public bool IsPlaced => _isPlaced;
 
@@ -25,6 +28,9 @@ namespace Marea.Cooking
         {
             _mainCamera = Camera.main;
             _startPosition = transform.position;
+
+            _initialPosition = transform.position;
+            _initialRotation = transform.rotation;
         }
 
         public void Setup(Transform targetSlot, float snapDistance = 1.5f)
@@ -34,6 +40,18 @@ namespace Marea.Cooking
             _isPlaced = false;
             _isDragging = false;
             _startPosition = transform.position;
+        }
+
+        public void ResetDraggable()
+        {
+            _isPlaced = false;
+            _isDragging = false;
+            _currentTargetSlot = null;
+
+            transform.position = _initialPosition;
+            transform.rotation = _initialRotation;
+
+            _startPosition = _initialPosition;
         }
 
         private void Update()

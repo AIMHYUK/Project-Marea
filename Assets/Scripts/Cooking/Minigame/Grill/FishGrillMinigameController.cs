@@ -75,12 +75,14 @@ namespace Marea.Cooking
                 GameObject viewPointObj = GameObject.Find("FishGrillCameraViewPoint");
                 if (viewPointObj != null) cameraViewPoint = viewPointObj.transform;
             }
-        
+
         }
 
         public void StartMinigame(MenuData menu, Action<CookingResult> onComplete)
         {
             EnsureDependencies();
+
+            ResetMinigame();
 
             CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
             if (customerManager != null) customerManager.PauseSpawning(true);
@@ -103,6 +105,38 @@ namespace Marea.Cooking
 
             // 1단계 시작 (내부에서 카메라 이동도 함께 실행됨)
             StartStep1();
+        }
+
+        protected override void ResetMinigame()
+        {
+            base.ResetMinigame();
+
+            _elapsedTime = 0f;
+            _isPlaying = false;
+            _hasFlipped = false;
+            _finalHitGrade = HitGrade.Miss;
+
+            if (cutGuides != null)
+            {
+                for (int i = 0; i < cutGuides.Count; i++)
+                {
+                    if (cutGuides[i] != null)
+                    {
+                        cutGuides[i].ResetGuide();
+                    }
+                }
+            }
+
+            if (platingItems != null)
+            {
+                for (int i = 0; i < platingItems.Count; i++)
+                {
+                    if (platingItems[i] != null)
+                    {
+                        platingItems[i].ResetObject();
+                    }
+                }
+            }
         }
 
         // ==========================================
@@ -271,6 +305,8 @@ namespace Marea.Cooking
             if (result.isSuccess) DispatchCookedFood(result);
 
             _onCompleteCallback?.Invoke(result);
+
+            ResetMinigame();
         }
 
         private void DispatchCookedFood(CookingResult result)
