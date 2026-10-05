@@ -32,9 +32,14 @@ namespace Marea.Economy
         [SerializeField] private Button startButton;
         [SerializeField] private TextMeshProUGUI startButtonLabel;
 
+        [Tooltip("(+10/6, 이슈 117) 지난번에 못 보던 새로 열린 메뉴 카드에서 터지는 효과. 기획 「레시피·기능 해금」 VFX_02.")]
+        [SerializeField] private VfxId newMenuVfx = VfxId.Sparkle;
+
         private readonly List<MenuCard> _cards = new();
         private TodayMenu _menu;
         private Wallet _wallet;
+        // (+10/6) 이미 열린 걸 본 메뉴. 시작할 때 열려 있던 것은 처음부터 본 것으로 친다 — 새로 열린 것만 반짝인다.
+        private readonly HashSet<MenuData> _seenUnlocked = new();
 
         protected override void Awake()
         {
@@ -55,7 +60,11 @@ namespace Marea.Economy
             if (_menu == null)
                 Debug.LogError($"{name}: 씬에 TodayMenu가 없다. 메뉴를 고를 수 없다.", this);
             else
+            {
                 _menu.OnSelectionChanged += Refresh;
+                foreach (MenuData m in _menu.Candidates)
+                    if (m != null && _menu.IsMenuUnlocked(m, out _)) _seenUnlocked.Add(m);
+            }
             if (_wallet != null) _wallet.OnGoldChanged += HandleGoldChanged;
         }
 
@@ -83,6 +92,20 @@ namespace Marea.Economy
             for (int i = 0; i < candidates.Count; i++) _cards[i].Bind(candidates[i], HandleCardClicked);
 
             Refresh();
+            SparkleNewlyUnlocked();
+        }
+
+        /// <summary>(+10/6) 주방 레벨이 올라 새로 열린 메뉴 — 창을 열었을 때 그 카드에서 한 번 반짝인다.</summary>
+        private void SparkleNewlyUnlocked()
+        {
+            bool layoutDone = false;
+            foreach (MenuCard card in _cards)
+            {
+                if (!card.gameObject.activeSelf || card.Menu == null) continue;
+                if (!_menu.IsMenuUnlocked(card.Menu, out _) || !_seenUnlocked.Add(card.Menu)) continue;
+                if (!layoutDone) { Canvas.ForceUpdateCanvases(); layoutDone = true; }   // 방금 만든 카드는 아직 제자리가 아니다
+                Vfx.PlayOnUI(newMenuVfx, (RectTransform)card.transform);
+            }
         }
 
         private void HandleCardClicked(MenuData menu)

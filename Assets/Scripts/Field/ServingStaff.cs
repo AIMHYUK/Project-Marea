@@ -57,6 +57,10 @@ namespace Marea.Field
                + "Standing Up(11.4초, 3배속 ≈ 3.8초)에 맞췄다.")]
         [SerializeField, Min(0.1f)] private float tripSeconds = 6.6f;
 
+        [Header("연출 (+10/6, 이슈 117) — 기획 「파손 바닥에서 음식 떨어뜨림」 VFX_10 / VFX_13")]
+        [SerializeField] private Marea.Data.VfxId tripDustVfx = Marea.Data.VfxId.Dust;
+        [SerializeField] private Marea.Data.VfxId tripFailVfx = Marea.Data.VfxId.Fail;
+
         private AgentMover _mover;
         private State _state = State.Idle;
         private ServeTask _task;
@@ -294,6 +298,11 @@ namespace Marea.Field
             _expectTarget = false;
             _state = State.Tripped;
             _tripEndsAt = Time.time + tripSeconds;
+
+            // (+10/6) 음식이 떨어진 자리 — 직원 앞 바닥.
+            Vector3 drop = transform.position + transform.forward * 0.6f;
+            Vfx.Play(tripDustVfx, drop, 0.6f);
+            Vfx.Play(tripFailVfx, drop + Vector3.up * 0.3f, 0.6f);
 
             Wallet wallet = Wallet.Instance;
             if (wallet == null)

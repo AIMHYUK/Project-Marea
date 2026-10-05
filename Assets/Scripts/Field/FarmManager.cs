@@ -29,6 +29,10 @@ namespace Marea.Field
         [Tooltip("관리할 밭 칸. 비워두면 자식에서 전부 찾는다.")]
         [SerializeField] private FarmPlotCell[] plots;
 
+        [Header("연출 (+10/6, 이슈 117) — 기획 「작물 수확」 VFX_10 / VFX_02")]
+        [SerializeField] private VfxId harvestDustVfx = VfxId.Dust;
+        [SerializeField] private VfxId harvestSparkleVfx = VfxId.Sparkle;
+
         private sealed class Plot
         {
             public PlotState State;
@@ -190,6 +194,11 @@ namespace Marea.Field
             }
 
             warehouse.Add(plot.Crop.Harvest, plot.Crop.HarvestCount + HarvestBonus());
+
+            // (+10/6) 흙 조각 + 획득 반짝임
+            Vector3 at = cell.transform.position;
+            Vfx.Play(harvestDustVfx, at, 0.6f);
+            Vfx.Play(harvestSparkleVfx, at + Vector3.up * 0.6f, 0.5f);
 
             plot.State = PlotState.Empty;
             plot.Crop = null;

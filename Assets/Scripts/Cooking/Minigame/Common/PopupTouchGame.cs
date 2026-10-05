@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Marea.Core;
+using Marea.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -44,6 +46,16 @@ namespace Marea.Cooking
         [Tooltip("동시에 떠 있을 수 있는 최대 개수.")]
         [SerializeField, Min(1)] private int maxAlive = 4;
 
+        [Header("연출 (+10/6, 이슈 117) — 기획 「정확한 타이밍·위치 입력」 VFX_08/12 · 「보통 판정」 VFX_08")]
+        [Tooltip("맞힌 자리에 퍼지는 링. 모든 성공에.")]
+        [SerializeField] private VfxId hitRingVfx = VfxId.Ping;
+        [Tooltip("빨리 맞혀 점수가 perfectScore 이상이면 더하는 반짝임. 무작위 모드는 늘 더한다.")]
+        [SerializeField] private VfxId perfectVfx = VfxId.HitSpark;
+        [SerializeField, Range(0f, 1f)] private float perfectScore = 0.75f;
+        [Tooltip("놓쳤을 때. 기획 「잘못된 입력·입력 놓침」은 파티클 없음(—)이라 기본은 비운다.")]
+        [SerializeField] private VfxId missVfx = VfxId.None;
+        [SerializeField, Min(0.1f)] private float vfxScale = 1f;
+
         [Header("시간")]
         [Tooltip("제한시간(초). 기획 CookingMiniGameData MG_POPUP_TOUCH = 10.")]
         [SerializeField, Min(1f)] private float timeLimit = 10f;
@@ -51,6 +63,9 @@ namespace Marea.Cooking
         [Header("고정 슬롯 모드 (+10/2) — 비우면 위 무작위 모드")]
         [Tooltip("하나씩 놓을 자리. 조개구이는 그릴 위 조개 자리.")]
         [SerializeField] private Transform[] slots;
+
+        /// <summary>(+10/6) 고정 슬롯 자리. 컨트롤러가 그릴 위치를 잡을 때 읽는다(불꽃 · 증기).</summary>
+        public IReadOnlyList<Transform> SlotAnchors => slots;
 
         [Tooltip("열리기 전 모습(닫힌 조개). 비우면 임시 모양.")]
         [SerializeField] private GameObject idlePrefab;
@@ -185,6 +200,7 @@ namespace Marea.Cooking
 
                 if (p.Age >= p.Life)
                 {
+                    Vfx.Play(missVfx, p.T.position, vfxScale);   // (+10/6)
                     Destroy(p.T.gameObject);   // 놓쳤다
                     _alive.RemoveAt(i);
                     OnProgress?.Invoke(_popped, _spawned);
@@ -211,6 +227,7 @@ namespace Marea.Cooking
                     // (+10/2, 이슈 84) 터지는 연출이 있으면 지우기 전에 튼다.
                     PopupBurst burst = _alive[i].T.GetComponentInChildren<PopupBurst>();
                     if (burst != null) burst.Burst();
+                    PlayHit(_alive[i].T.position, 1f);   // (+10/6)
                     Destroy(_alive[i].T.gameObject);
                     _alive.RemoveAt(i);
                     _popped++;
@@ -299,6 +316,7 @@ namespace Marea.Cooking
                 {
                     sl.State = SlotState.Done;   // 탔다
                     sl.Score = 0f;
+                    if (sl.Anchor != null) Vfx.Play(missVfx, sl.Anchor.position, vfxScale);   // (+10/6)
                     GameObject burnt = Pick(slotBurntPrefabs, sl.Index, null);
                     if (burnt != null) ShowSlot(sl, burnt, burntColor, false);
                     else Tint(sl.Visual, burntColor);
@@ -333,6 +351,7 @@ namespace Marea.Cooking
                 float t = Mathf.Clamp01((_elapsed - sl.OpenedAt) / reactionWindow);
                 sl.Score = Mathf.Lerp(1f, minReactionScore, t);
                 sl.State = SlotState.Done;
+                PlayHit(sl.Anchor != null ? sl.Anchor.position : hit.point, sl.Score);   // (+10/6)
                 if (sl.Col != null) sl.Col.enabled = false;
                 _popped++;
                 OnProgress?.Invoke(_popped, _spawned);
@@ -381,6 +400,13 @@ namespace Marea.Cooking
         {
             if (go == null) return;
             foreach (Renderer r in go.GetComponentsInChildren<Renderer>()) r.material.color = color;
+        }
+
+        /// <summary>(+10/6) 성공 — 링은 늘, 반짝임은 점수가 perfectScore 이상일 때만(보통 판정은 링만).</summary>
+        private void PlayHit(Vector3 at, float score)
+        {
+            Vfx.Play(hitRingVfx, at, vfxScale);
+            if (score >= perfectScore) Vfx.Play(perfectVfx, at + Vector3.up * 0.05f, vfxScale);
         }
 
         private void Finish()

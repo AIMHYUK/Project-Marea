@@ -60,6 +60,16 @@ namespace Marea.Cooking
         [Header("3단계: 거품 터뜨리기 (+9/30)")]
         [SerializeField] private PopupTouchGame popupTouch;
 
+        [Header("연출 (+10/6, 이슈 117) — 기획 「화구 사용」 VFX_01 · 「스튜 등 끓이기」 VFX_03")]
+        [Tooltip("미니게임 내내 냄비 밑 화구에서 나는 작은 불꽃. 냄비가 움직여도 화구에 남는다.")]
+        [SerializeField] private VfxId burnerVfx = VfxId.Flame;
+        [Tooltip("미니게임 내내 국물 위로 올라오는 증기. 냄비를 따라다닌다.")]
+        [SerializeField] private VfxId steamVfx = VfxId.Steam;
+        [SerializeField, Min(0.1f)] private float burnerScale = 1f;
+        [SerializeField, Min(0.1f)] private float steamScale = 1f;
+
+        private VfxLoop _burner, _steam;
+
         private MenuData _targetMenu;
         private Action<CookingResult> _onCompleteCallback;
         private readonly List<GameObject> _catchItems = new();
@@ -98,6 +108,7 @@ namespace Marea.Cooking
             _stirGrade = HitGrade.Miss;
 
             if (stewPot != null) stewPot.ResetPosition();
+            StartAmbience();
 
             if (minigameUI != null)
             {
@@ -253,6 +264,7 @@ namespace Marea.Cooking
         // ==========================================
         protected override void OnMinigameCompleted(float finalScore)
         {
+            StopAmbience();
             CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
             if (customerManager != null) customerManager.PauseSpawning(false);
 
@@ -266,6 +278,36 @@ namespace Marea.Cooking
             };
 
             StartCoroutine(ShowResultRoutine(result));
+        }
+
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            StopAmbience();
+        }
+
+        /// <summary>(+10/6) 화구 불꽃은 냄비 제자리 바닥 — 냄비의 부모(조리대)에 단다. 증기는 국물 면 위 — 냄비에 단다.</summary>
+        private void StartAmbience()
+        {
+            StopAmbience();
+            if (stewPot == null) return;
+            Bounds b = new Bounds(stewPot.transform.position, Vector3.zero);
+            bool has = false;
+            foreach (Renderer r in stewPot.GetComponentsInChildren<Renderer>())
+            {
+                if (r is ParticleSystemRenderer) continue;
+                if (!has) { b = r.bounds; has = true; } else b.Encapsulate(r.bounds);
+            }
+            Transform station = stewPot.transform.parent != null ? stewPot.transform.parent : stewPot.transform;
+            _burner = Vfx.PlayLoop(burnerVfx, station, station.InverseTransformPoint(new Vector3(b.center.x, b.min.y, b.center.z)), burnerScale);
+            Vector3 surface = stewPot.HasLiquid ? stewPot.StirCenter : b.center;
+            _steam = Vfx.PlayLoop(steamVfx, stewPot.transform, stewPot.transform.InverseTransformPoint(surface + Vector3.up * 0.05f), steamScale);
+        }
+
+        private void StopAmbience()
+        {
+            _burner.Stop();
+            _steam.Stop();
         }
 
         private IEnumerator ShowResultRoutine(CookingResult result)

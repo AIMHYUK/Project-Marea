@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Marea.Core;
+using Marea.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -69,6 +71,13 @@ namespace Marea.Cooking
         [SerializeField] private Vector2 dashDistance = new Vector2(0.6f, 1.2f);
         [Tooltip("빙글빙글 도는 속도(도/초).")]
         [SerializeField] private Vector2 spinSpeed = new Vector2(90f, 90f);
+
+        [Header("연출 (+10/6, 이슈 117) — 기획 「냄비·팬에 재료 투입」 VFX_04")]
+        [Tooltip("재료가 그릇에 들어간 자리에서 튀는 방울.")]
+        [SerializeField] private VfxId catchVfx = VfxId.Splash;
+        [Tooltip("방울 색 — 국물 · 기름 색에 맞춘다.")]
+        [SerializeField] private Color catchTint = new Color(0.85f, 0.7f, 0.5f, 1f);
+        [SerializeField, Min(0.1f)] private float catchVfxScale = 1f;
 
         [Header("시간")]
         [Tooltip("제한시간(초). 기획 CookingMiniGameData MG_OBJECT_CATCH = 10.")]
@@ -198,6 +207,7 @@ namespace Marea.Cooking
                     if (d.magnitude <= catchRadius)
                     {
                         _caught++;
+                        Vfx.Play(catchVfx, f.T.position, catchVfxScale, catchTint);   // (+10/6)
                         Destroy(f.T.gameObject);
                         OnProgress?.Invoke(_caught, _total);
                     }

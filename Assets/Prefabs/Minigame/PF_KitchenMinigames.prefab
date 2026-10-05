@@ -31,6 +31,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2984371960514039639}
+  - {fileID: 8083672672054322716}
   m_Father: {fileID: 7660856293305175572}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4544847291366714618
@@ -78,6 +79,15 @@ MonoBehaviour:
   dragPerStage: 300
   timeLimit: 10
   hitPadding: 1.3
+  scrubSplashVfx: 4
+  waterTint: {r: 0.8, g: 0.92, b: 1, a: 1}
+  splashInterval: 0.25
+  stageSplashScale: 1.4
+  brush: {fileID: 8083672672054322716}
+  brushContact: 0.04
+  brushLift: 0.08
+  brushFollow: 18
+  brushTilt: 15
 --- !u!1 &232715247164371132
 GameObject:
   m_ObjectHideFlags: 0
@@ -132,6 +142,38 @@ MonoBehaviour:
   initialDelay: 1.2
   minInterval: 0.8
   maxInterval: 1.4
+--- !u!1 &401120117634181146
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8083672672054322716}
+  m_Layer: 0
+  m_Name: ScrubBrush
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8083672672054322716
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 401120117634181146}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 2.319992, y: 1.0699997, z: 0.15000153}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5918514948227132685}
+  m_Father: {fileID: 4542077633339764736}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &511084323663471700
 GameObject:
   m_ObjectHideFlags: 0
@@ -640,9 +682,10 @@ MonoBehaviour:
   step2ViewPoint: {fileID: 4351831010016461501}
   step3ViewPoint: {fileID: 1021313239032041448}
   stepTransitionDelay: 1.5
+  disableDuringMinigame: []
   seafoodSlicer: {fileID: 3313252622441121922}
-  step2SkewerContainer: {fileID: 0}
-  step3GrillContainer: {fileID: 0}
+  skewersAssembly: {fileID: 0}
+  skewersGrill: {fileID: 0}
 --- !u!1 &955336902717968121
 GameObject:
   m_ObjectHideFlags: 0
@@ -986,6 +1029,11 @@ MonoBehaviour:
   spawnInterval: 0.6
   lifetimeRange: {x: 1.2, y: 2}
   maxAlive: 4
+  hitRingVfx: 8
+  perfectVfx: 12
+  perfectScore: 0.75
+  missVfx: 0
+  vfxScale: 1
   timeLimit: 12
   slots:
   - {fileID: 5986020527754011102}
@@ -1255,6 +1303,13 @@ MonoBehaviour:
   outsideColor: {r: 1, g: 0.35, b: 0.3, a: 0.9}
   duration: 8
   soupFollow: 0.35
+  soupLag: 0.5
+  minStirRadius: 0.05
+  stirSplashVfx: 4
+  soupTint: {r: 0.85, g: 0.7, b: 0.5, a: 1}
+  splashSpeed: 150
+  splashInterval: 0.35
+  splashScale: 0.7
 --- !u!1 &2002079091230783438
 GameObject:
   m_ObjectHideFlags: 0
@@ -1422,6 +1477,7 @@ MonoBehaviour:
   step2ViewPoint: {fileID: 5426679560362778924}
   step3ViewPoint: {fileID: 7320805513827965254}
   stepTransitionDelay: 1.5
+  disableDuringMinigame: []
   stewPot: {fileID: 3101196614948759483}
   stirZone: {fileID: 5741923044490717466}
   safeZoneMin: 0.35
@@ -1432,6 +1488,10 @@ MonoBehaviour:
   minigameUI: {fileID: 0}
   catchGame: {fileID: 9090313193023762016}
   popupTouch: {fileID: 5922315153870899371}
+  burnerVfx: 1
+  steamVfx: 3
+  burnerScale: 1
+  steamScale: 1
 --- !u!1 &2214455072488888768
 GameObject:
   m_ObjectHideFlags: 0
@@ -2610,7 +2670,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.SeafoodSkewersSlicer
   timingUI: {fileID: 0}
-  requiredSliceCount: 4
+  targetIngredientObject: {fileID: 0}
+  sliceGuidePoints: []
+  crossSectionMaterial: {fileID: 0}
+  knifeVisual: {fileID: 0}
+  cutImpulseForce: 0.6
+  sliceEffect: {fileID: 0}
+  sliceAudioSource: {fileID: 0}
+  knifeApproachDuration: 0.15
+  knifeCutDuration: 0.25
+  knifeReadyOffset: {x: 0, y: 0.35, z: -0.15}
+  knifeEndOffset: {x: 0, y: -0.15, z: 0.15}
+  hitMaxDistance: 2
+  raycastLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &3536462521815818328
 GameObject:
   m_ObjectHideFlags: 0
@@ -2754,6 +2828,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.IngredientController
   movingIngredientTransform: {fileID: 500961663007055642}
   stickTransform: {fileID: 5392342019334149110}
+  assembledSkewerRoot: {fileID: 0}
   attachPoints:
   - {fileID: 8664726596744674433}
   - {fileID: 5935087859818625096}
@@ -2764,6 +2839,8 @@ MonoBehaviour:
   ingredientScaleMultiplier: 1
   moveDistance: 1
   moveSpeed: 3.25
+  aboveStickClearance: 0.45
+  insertionDuration: 0.5
 --- !u!114 &6187927287900202551
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3716,6 +3793,7 @@ MonoBehaviour:
   step2ViewPoint: {fileID: 0}
   step3ViewPoint: {fileID: 0}
   stepTransitionDelay: 1.5
+  disableDuringMinigame: []
   fishVisual: {fileID: 8572592452879247606}
   minigameUI: {fileID: 0}
   cutGuides:
@@ -3920,11 +3998,18 @@ MonoBehaviour:
   step2ViewPoint: {fileID: 1021313239032041448}
   step3ViewPoint: {fileID: 8729226432701998643}
   stepTransitionDelay: 1.5
+  disableDuringMinigame: []
   scrubGame: {fileID: 4544847291366714618}
   grillGame: {fileID: 3501211025678023939}
   sauceGame: {fileID: 7404134618522493232}
   guideLabel: {fileID: 925087572540154128}
   guideRoot: {fileID: 8956331849590607386}
+  grillFlameVfx: 1
+  grillSteamVfx: 3
+  oilSplashVfx: 4
+  oilTint: {r: 1, g: 0.85, b: 0.45, a: 1}
+  flameDrop: 0.15
+  oilInterval: {x: 0.5, y: 1.2}
   resultDelay: 1.2
 --- !u!1 &5673077831513154239
 GameObject:
@@ -4767,6 +4852,7 @@ MonoBehaviour:
   step2ViewPoint: {fileID: 5342504067759013233}
   step3ViewPoint: {fileID: 2021842890673115360}
   stepTransitionDelay: 1.5
+  disableDuringMinigame: []
   onionSlicer: {fileID: 8684238146043283218}
   panStirController: {fileID: 6858924631111266998}
   seasoningQTE: {fileID: 2112110476941138502}
@@ -5065,6 +5151,11 @@ MonoBehaviour:
   spawnInterval: 0.6
   lifetimeRange: {x: 1.2, y: 2}
   maxAlive: 4
+  hitRingVfx: 0
+  perfectVfx: 6
+  perfectScore: 0.75
+  missVfx: 0
+  vfxScale: 1
   timeLimit: 10
   slots: []
   idlePrefab: {fileID: 0}
@@ -6826,6 +6917,9 @@ MonoBehaviour:
   stream: {fileID: 8193659378500251894}
   streamBend: 0.08
   streamSegments: 16
+  sauceSplashVfx: 4
+  sauceTint: {r: 0.75, g: 0.12, b: 0.05, a: 1}
+  splashInterval: 0.2
   timeLimit: 8
   coatedColor: {r: 0.85, g: 0.35, b: 0.1, a: 1}
   plainColor: {r: 0.96, g: 0.93, b: 0.86, a: 1}
@@ -7022,6 +7116,9 @@ MonoBehaviour:
   feintBounce: 3.5
   dashDistance: {x: 0.6, y: 1.2}
   spinSpeed: {x: 90, y: 360}
+  catchVfx: 4
+  catchTint: {r: 0.85, g: 0.7, b: 0.5, a: 1}
+  catchVfxScale: 1
   timeLimit: 10
 --- !u!1001 &1058666229786740330
 PrefabInstance:
@@ -7747,6 +7844,84 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 4877077995553421486, guid: eaa6d7e6ac30abc4eae5dcb5bd48e264, type: 3}
   m_PrefabInstance: {fileID: 4989414509899601979}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &6172306991354448614
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 8083672672054322716}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.059421033
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7635826562936255635, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: fb53b2e147c9be5459dad2dd850835fd, type: 2}
+    - target: {fileID: 919132149155446097, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+      propertyPath: m_Name
+      value: Model
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+--- !u!4 &5918514948227132685 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 8a410f69cd7af634e9a54734d9abe8bc, type: 3}
+  m_PrefabInstance: {fileID: 6172306991354448614}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &7549619828825621171
 PrefabInstance:

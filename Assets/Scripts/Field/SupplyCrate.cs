@@ -29,6 +29,10 @@ namespace Marea.Field
         [Tooltip("비어 있는 동안 끄는 것. 비워둬도 동작한다.")]
         [SerializeField] private Renderer fullVisual;
 
+        [Header("연출 (+10/6, 이슈 117) — 기획 「보급품 상자 열기」 VFX_02 / VFX_10")]
+        [SerializeField] private VfxId openDustVfx = VfxId.Dust;
+        [SerializeField] private VfxId openSparkleVfx = VfxId.Sparkle;
+
         // 인스턴스별 상태다. SO에 넣으면 상자 전부가 같은 타이머를 공유한다.
         private float _refilledAt;
         private bool _emptied;
@@ -74,6 +78,11 @@ namespace Marea.Field
 
             foreach (var entry in contents)
                 warehouse.Add(entry.ingredient, entry.requiredAmount);
+
+            // (+10/6) 상자 안의 짧은 빛과 작은 먼지 — 끄기 전에 상자 크기를 잰다.
+            Bounds b = fullVisual != null ? fullVisual.bounds : new Bounds(transform.position, Vector3.one);
+            Vfx.Play(openDustVfx, new Vector3(b.center.x, b.min.y, b.center.z), 0.8f);
+            Vfx.Play(openSparkleVfx, b.center + Vector3.up * b.extents.y, 0.7f);
 
             _emptied = true;
             _refilledAt = Time.time + refillSeconds;

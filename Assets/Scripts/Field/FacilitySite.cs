@@ -1,3 +1,4 @@
+using Marea.Core;
 using Marea.Economy;
 using Marea.Data;
 using UnityEngine;
@@ -34,6 +35,14 @@ namespace Marea.Field
         [Tooltip("해금하면 처음 켜지는 칸 수. 업그레이드의 FARM_SLOT_ADD 만큼 더 켜진다.")]
         [FormerlySerializedAs("slotsPerLevel")]
         [SerializeField, Min(1)] private int baseSlots = 2;
+
+        [Header("연출 (+10/6, 이슈 117)")]
+        [Tooltip("해금 · 업그레이드 완료 순간 바닥에서 퍼지는 효과. 기획 「시설 업그레이드·확장 완료」 VFX_10.")]
+        [SerializeField] private VfxId dustVfx = VfxId.Dust;
+        [Tooltip("그 위에서 터지는 빛. 기획 VFX_02.")]
+        [SerializeField] private VfxId doneVfx = VfxId.Sparkle;
+        [Tooltip("효과 크기 배율. 시설 크기에 맞춰 자동으로 키운 값에 곱한다.")]
+        [SerializeField, Min(0.1f)] private float vfxScale = 1f;
 
         private FacilityLevels _levels;
 
@@ -82,12 +91,36 @@ namespace Marea.Field
 
         private void HandleUnlocked(FacilityKind changed)
         {
-            if (changed == kind) Refresh();
+            if (changed != kind) return;
+            Refresh();
+            PlayDone();
         }
 
         private void HandleLevelChanged(FacilityKind changed, int level)
         {
-            if (changed == kind) Refresh();
+            if (changed != kind) return;
+            Refresh();
+            PlayDone();
+        }
+
+        /// <summary>
+        /// (+10/6) 해금 · 업그레이드 완료 — 지금 보이는 모습 아래에서 먼지, 가운데서 빛.
+        /// 「완성 시설이 잘 보이도록 제한」(기획) — 크기는 시설 폭에 맞추되 상한을 둔다.
+        /// </summary>
+        private void PlayDone()
+        {
+            GameObject shown = builtVisual != null && builtVisual.activeInHierarchy ? builtVisual : gameObject;
+            Bounds b = new Bounds(shown.transform.position, Vector3.one);
+            bool has = false;
+            foreach (Renderer r in shown.GetComponentsInChildren<Renderer>())
+            {
+                if (r is ParticleSystemRenderer) continue;
+                if (!has) { b = r.bounds; has = true; }
+                else b.Encapsulate(r.bounds);
+            }
+            float size = Mathf.Clamp(Mathf.Max(b.extents.x, b.extents.z), 1f, 4f) * vfxScale;
+            Vfx.Play(dustVfx, new Vector3(b.center.x, b.min.y, b.center.z), size);
+            Vfx.Play(doneVfx, b.center + Vector3.up * b.extents.y * 0.5f, size);
         }
 
         private void Refresh()

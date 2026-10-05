@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Marea.Core;
+using Marea.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -64,6 +66,13 @@ namespace Marea.Cooking
         [Tooltip("줄기가 앞으로 휘는 정도(m). 소스통 진행 방향으로 휜다.")]
         [SerializeField] private float streamBend = 0.08f;
         [SerializeField, Range(4, 32)] private int streamSegments = 16;
+
+        [Header("연출 (+10/6, 이슈 117) — 기획 「소스 뿌리기」 VFX_04(닿을 때 작은 방울)")]
+        [SerializeField] private VfxId sauceSplashVfx = VfxId.Splash;
+        [SerializeField] private Color sauceTint = new Color(0.75f, 0.12f, 0.05f, 1f);
+        [SerializeField, Min(0.05f)] private float splashInterval = 0.2f;
+
+        private float _nextSplash;
 
         [Header("시간")]
         [Tooltip("제한시간(초). 기획 MG_GUIDE_DRAG = 8.")]
@@ -243,6 +252,11 @@ namespace Marea.Cooking
                 if (d.magnitude > targetRadius) continue;
 
                 tg.Coat += Time.deltaTime;
+                if (Time.time >= _nextSplash)
+                {
+                    _nextSplash = Time.time + splashInterval;
+                    Vfx.Play(sauceSplashVfx, to, 0.5f, sauceTint);   // (+10/6) 조개에 닿는 자리
+                }
                 if (tg.Coat < coatSeconds) continue;
 
                 tg.Done = true;

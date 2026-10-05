@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Marea.Core;
+using Marea.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -14,6 +16,8 @@ namespace Marea.Cooking
     /// (+10/2) 입력은 마우스를 직접 읽는다: 누르고 있는 동안 매 프레임 커서 아래 조개를 레이로 찾아
     /// 마우스 이동량을 쌓는다. 예전엔 조개마다 IDragHandler를 붙였는데, 단계가 넘어갈 때 모습을 갈아 끼우면
     /// 드래그가 처음 누른 오브젝트에 묶여 있어 끊겼다(떼고 다시 눌러야 했다). 판정 콜라이더도 모습보다 넉넉하게.
+    ///
+    /// (+10/5) 솔(brush)이 있으면 커서를 따라 조개 위를 오가며 누를 때 내려가 닿는다.
     ///
     /// 단계 진행 · 결과는 모른다 — 컨트롤러가 Begin으로 시작하고 IsFinished/Score를 읽는다 (CatchGame과 같은 모양).
     /// </summary>
@@ -56,6 +60,29 @@ namespace Marea.Cooking
         [Tooltip("판정 범위를 모습보다 이만큼 키운다. 조금 빗나가도 닦인다.")]
         [SerializeField, Min(1f)] private float hitPadding = 1.3f;
 
+        [Header("연출 (+10/6, 이슈 117) — 기획 「재료 씻기」 VFX_04")]
+        [Tooltip("문지르는 동안 솔 자리에서 튀는 물방울.")]
+        [SerializeField] private VfxId scrubSplashVfx = VfxId.Splash;
+        [SerializeField] private Color waterTint = new Color(0.8f, 0.92f, 1f, 1f);
+        [SerializeField, Min(0.05f)] private float splashInterval = 0.25f;
+        [Tooltip("한 단계 깨끗해질 때 크게 한 번.")]
+        [SerializeField, Min(0.1f)] private float stageSplashScale = 1.4f;
+
+        private float _nextSplash;
+
+        [Header("솔 (+10/5)")]
+        [Tooltip("조개를 닦는 솔. 기준점 = 솔털 끝 가운데. 커서를 따라 조개 위를 오가고, 누르면 내려가 닿는다. " +
+                 "비우면 솔 없이 닦인다.")]
+        [SerializeField] private Transform brush;
+        [Tooltip("누르고 있을 때 솔 기준점이 조개 자리보다 이만큼 위(m) — 조개 윗면에 닿을 높이.")]
+        [SerializeField] private float brushContact = 0.04f;
+        [Tooltip("안 누를 때 그보다 이만큼 더 든다(m).")]
+        [SerializeField, Min(0f)] private float brushLift = 0.08f;
+        [Tooltip("커서를 따라가는 빠르기. 클수록 바짝 붙는다.")]
+        [SerializeField, Min(1f)] private float brushFollow = 18f;
+        [Tooltip("문지르는 방향으로 기우는 최대 각도. 솔털이 끌리는 느낌.")]
+        [SerializeField, Range(0f, 45f)] private float brushTilt = 15f;
+
         private sealed class Clam
         {
             public Transform Slot;
@@ -69,6 +96,10 @@ namespace Marea.Cooking
         private readonly List<Clam> _clams = new();
         private float _timeLeft;
         private bool _running;
+
+        private Quaternion _brushRest;   // 솔의 처음 회전 — 기울기는 이 위에 얹는다
+        private Vector3 _brushVelocity;
+        private bool _hasBrushRest;
 
         public bool IsFinished { get; private set; }
         private int StageCountOf(Clam c) => c.Prefabs != null && c.Prefabs.Length > 0 ? c.Prefabs.Length : placeholderColors.Length;
@@ -115,6 +146,7 @@ namespace Marea.Cooking
             _timeLeft = timeLimit;
             IsFinished = false;
             _running = true;
+            PlaceBrush();
             OnProgress?.Invoke(CleanCount, _clams.Count);
         }
 
@@ -133,7 +165,57 @@ namespace Marea.Cooking
             if (!_running) return;
             _timeLeft -= Time.deltaTime;
             ReadMouse();
+            MoveBrush();
             if (_timeLeft <= 0f || CleanCount == _clams.Count) Finish();
+        }
+
+        /// <summary>조개들 가운데 위 든 높이에 솔을 둔다.</summary>
+        private void PlaceBrush()
+        {
+            if (brush == null) return;
+            if (!_hasBrushRest) { _brushRest = brush.rotation; _hasBrushRest = true; }
+            brush.SetPositionAndRotation(SlotCenter() + Vector3.up * (brushContact + brushLift), _brushRest);
+            _brushVelocity = Vector3.zero;
+        }
+
+        private Vector3 SlotCenter()
+        {
+            Vector3 sum = Vector3.zero;
+            int n = 0;
+            foreach (Transform s in slots) if (s != null) { sum += s.position; n++; }
+            return n > 0 ? sum / n : transform.position;
+        }
+
+        /// <summary>
+        /// (+10/5) 솔이 커서를 따라간다 — 누르면 조개 윗면 높이로 내려가 닿고, 떼면 든다.
+        /// 움직이는 쪽으로 살짝 기울어 솔털이 끌리는 느낌을 준다. 판정과는 상관없다(판정은 커서 아래 조개).
+        /// </summary>
+        private void MoveBrush()
+        {
+            if (brush == null) return;
+            Mouse mouse = Mouse.current;
+            Camera cam = Camera.main;
+            if (mouse == null || cam == null) return;
+
+            bool pressed = mouse.leftButton.isPressed;
+            float slotY = SlotCenter().y;
+            float y = slotY + brushContact + (pressed ? 0f : brushLift);
+            Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
+            Vector3 goal = brush.position;
+            if (new Plane(Vector3.up, new Vector3(0f, slotY + brushContact, 0f)).Raycast(ray, out float t))
+                goal = ray.GetPoint(t);
+            goal.y = y;
+
+            float k = 1f - Mathf.Exp(-brushFollow * Time.deltaTime);
+            Vector3 next = Vector3.Lerp(brush.position, goal, k);
+            Vector3 v = Time.deltaTime > 0f ? (next - brush.position) / Time.deltaTime : Vector3.zero;
+            _brushVelocity = Vector3.Lerp(_brushVelocity, new Vector3(v.x, 0f, v.z), k);
+
+            // 끌리는 쪽 반대로 솔 윗부분이 앞서간다 — 진행 방향 축으로 기운다. 초속 1m에서 최대.
+            Vector3 axis = Vector3.Cross(Vector3.up, _brushVelocity);
+            float angle = pressed ? Mathf.Clamp01(_brushVelocity.magnitude) * brushTilt : 0f;
+            Quaternion tilt = axis.sqrMagnitude > 1e-6f ? Quaternion.AngleAxis(angle, axis.normalized) : Quaternion.identity;
+            brush.SetPositionAndRotation(next, Quaternion.Slerp(brush.rotation, tilt * _brushRest, k));
         }
 
         private void ReadMouse()
@@ -160,11 +242,18 @@ namespace Marea.Cooking
             if (clam.Stage >= StageCountOf(clam) - 1) return;
 
             clam.Accum += pixels;
+            Vector3 at = brush != null ? brush.position : clam.Slot.position;
+            if (Time.time >= _nextSplash)
+            {
+                _nextSplash = Time.time + splashInterval;
+                Vfx.Play(scrubSplashVfx, at, 0.6f, waterTint);   // (+10/6)
+            }
             if (clam.Accum < dragPerStage) return;
 
             clam.Accum = 0f;
             clam.Stage++;
             ShowStage(clam);
+            Vfx.Play(scrubSplashVfx, clam.Slot.position, stageSplashScale, waterTint);   // (+10/6) 한 단계 깨끗해짐
             OnProgress?.Invoke(CleanCount, _clams.Count);
         }
 

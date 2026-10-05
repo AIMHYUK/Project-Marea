@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Marea.Core;
 using Marea.Data;
 using TMPro;
 using UnityEngine;
@@ -29,6 +30,19 @@ namespace Marea.Cooking
         [SerializeField] private TextMeshProUGUI guideLabel;
         [Tooltip("guideLabel을 담은 패널. 미니게임 중에만 켠다.")]
         [SerializeField] private GameObject guideRoot;
+
+        [Header("굽기 연출 (+10/6, 이슈 117) — 기획 「화구 사용」 VFX_01 · 「굽기」 VFX_03 · 「기름 튐」 VFX_04")]
+        [SerializeField] private VfxId grillFlameVfx = VfxId.Flame;
+        [SerializeField] private VfxId grillSteamVfx = VfxId.Steam;
+        [SerializeField] private VfxId oilSplashVfx = VfxId.Splash;
+        [SerializeField] private Color oilTint = new Color(1f, 0.85f, 0.45f, 1f);
+        [Tooltip("불꽃이 그릴(조개 자리 평균)보다 이만큼 아래(m).")]
+        [SerializeField] private float flameDrop = 0.15f;
+        [Tooltip("기름이 튀는 간격(초) 범위.")]
+        [SerializeField] private Vector2 oilInterval = new Vector2(0.5f, 1.2f);
+
+        private VfxLoop _flame, _steam;
+        private float _nextOil;
 
         [Tooltip("결과를 보여주고 돌려주기까지(초).")]
         [SerializeField, Min(0f)] private float resultDelay = 1.2f;
@@ -70,11 +84,13 @@ namespace Marea.Cooking
         protected override void OnStep2Start()
         {
             if (grillGame != null) grillGame.Begin();
+            StartGrillAmbience();
         }
 
         protected override void OnStep2Update()
         {
             if (grillGame == null) { CompleteStep2(0f); return; }
+            SpitOil();
             SetGuide("입이 벌어지면 바로 누르세요", $"{grillGame.Popped} / {grillGame.Spawned}", grillGame.TimeLeft01);
             if (grillGame.IsFinished) CompleteStep2(grillGame.Score);
         }
@@ -82,7 +98,52 @@ namespace Marea.Cooking
         // ── 3. 소스 ──
         protected override void OnStep3Start()
         {
+            StopGrillAmbience();
             if (sauceGame != null) sauceGame.Begin();
+        }
+
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            StopGrillAmbience();
+        }
+
+        /// <summary>(+10/6) 그릴 아래 불꽃 · 위로 증기 — 2단계 동안만. 그릴 위치는 조개 자리 평균.</summary>
+        private void StartGrillAmbience()
+        {
+            StopGrillAmbience();
+            if (!TryGrillCenter(out Vector3 c)) return;
+            Transform at = grillGame.transform;
+            _flame = Vfx.PlayLoop(grillFlameVfx, at, at.InverseTransformPoint(c + Vector3.down * flameDrop));
+            _steam = Vfx.PlayLoop(grillSteamVfx, at, at.InverseTransformPoint(c + Vector3.up * 0.05f));
+            _nextOil = Time.time + UnityEngine.Random.Range(oilInterval.x, oilInterval.y);
+        }
+
+        private void StopGrillAmbience()
+        {
+            _flame.Stop();
+            _steam.Stop();
+        }
+
+        /// <summary>굽는 동안 아무 조개 자리에서 가끔 기름이 튄다.</summary>
+        private void SpitOil()
+        {
+            if (Time.time < _nextOil || grillGame == null || grillGame.SlotAnchors == null || grillGame.SlotAnchors.Count == 0) return;
+            _nextOil = Time.time + UnityEngine.Random.Range(oilInterval.x, Mathf.Max(oilInterval.x, oilInterval.y));
+            Transform slot = grillGame.SlotAnchors[UnityEngine.Random.Range(0, grillGame.SlotAnchors.Count)];
+            if (slot != null) Vfx.Play(oilSplashVfx, slot.position, 0.6f, oilTint);
+        }
+
+        private bool TryGrillCenter(out Vector3 center)
+        {
+            center = default;
+            if (grillGame == null || grillGame.SlotAnchors == null) return false;
+            int n = 0;
+            foreach (Transform t in grillGame.SlotAnchors)
+                if (t != null) { center += t.position; n++; }
+            if (n == 0) return false;
+            center /= n;
+            return true;
         }
 
         protected override void OnStep3Update()
@@ -100,6 +161,7 @@ namespace Marea.Cooking
 
         protected override void OnMinigameCompleted(float finalScore)
         {
+            StopGrillAmbience();
             HitGrade grade = finalScore >= 0.8f ? HitGrade.Perfect : finalScore >= 0.5f ? HitGrade.Good : HitGrade.Bad;
             var result = new CookingResult
             {

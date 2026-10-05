@@ -1,4 +1,5 @@
 using System.Collections;
+using Marea.Core;
 using Marea.Data;
 using TMPro;
 using UnityEngine;
@@ -50,9 +51,19 @@ namespace Marea.Cooking
         [Tooltip("timeScale을 무시하고 움직인다. 지금 게임엔 일시정지가 없어 꺼 둔다.")]
         [SerializeField] private bool useUnscaledTime;
 
+        [Header("연출 (+10/6, 이슈 117) — 기획 「요리 완료」 · 「높은 등급 강조」")]
+        [Tooltip("요리가 튀어 오를 때 터지는 반짝임. VFX_02.")]
+        [SerializeField] private VfxId doneVfx = VfxId.Sparkle;
+        [Tooltip("Perfect일 때 더하는 금빛. VFX_02 고급.")]
+        [SerializeField] private VfxId highGradeVfx = VfxId.SparkleHigh;
+        [Tooltip("떠 있는 동안 요리 위에 약하게 남는 증기. VFX_03. 실패한 요리엔 안 낸다.")]
+        [SerializeField] private VfxId steamVfx = VfxId.Steam;
+        [SerializeField, Min(0.1f)] private float vfxScale = 1f;
+
         private float Dt => useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
 
         private Coroutine _routine;
+        private VfxLoop _steam;
 
         // 평소엔 꺼져 있다(프리팹에서 끔). 처음 켜질 때 Awake가 돈다 — 여기서 다시 끄면 안 된다.
         private void Awake()
@@ -109,6 +120,7 @@ namespace Marea.Cooking
 
             float t = 0f;
             bool closed = false;
+            bool burst = false;
             Vector2 nameHome = nameRoot != null ? nameRoot.anchoredPosition : Vector2.zero;
             float total = priceDelay + 0.25f + holdTime;
             while (t < total && !closed)
@@ -121,6 +133,13 @@ namespace Marea.Cooking
                 float p = t / popTime;
                 float s = p < 1f ? overshoot * EaseOutCubic(p) : Mathf.Lerp(overshoot, 1f, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((p - 1f) / 0.6f)));
                 dish.localScale = Vector3.one * s;
+
+                // (+10/6) 다 튀어 올랐을 때 한 번 — 반짝임(Perfect면 금빛 더), 성공이면 증기를 켠다.
+                if (!burst && p >= 1f)
+                {
+                    burst = true;
+                    PlayDoneVfx(result);
+                }
                 dish.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * 9f) * 6f * Mathf.Exp(-t * 4f));   // 처음에 살짝 흔들
 
                 if (rays != null)
@@ -160,8 +179,18 @@ namespace Marea.Cooking
             _routine = null;
         }
 
+        private void PlayDoneVfx(CookingResult result)
+        {
+            if (!result.isSuccess) return;
+            Vfx.PlayOnUI(doneVfx, dish, vfxScale);
+            if (result.bestGrade == HitGrade.Perfect) Vfx.PlayOnUI(highGradeVfx, dish, vfxScale);
+            _steam.Stop();
+            _steam = Vfx.PlayLoopOnUI(steamVfx, dish, vfxScale);
+        }
+
         private void HideNow()
         {
+            _steam.Stop();
             if (group != null) group.alpha = 0f;
             gameObject.SetActive(false);
         }

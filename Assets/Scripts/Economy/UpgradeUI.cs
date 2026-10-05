@@ -53,6 +53,8 @@ namespace Marea.Economy
         [SerializeField] private TextMeshProUGUI conditionLabel;
         [SerializeField] private TextMeshProUGUI descriptionLabel;
         [SerializeField] private Button upgradeButton;
+        [Tooltip("(+10/6, 이슈 117) 해금 · 업그레이드에 성공하면 새로 가진 단계 칸에서 터지는 효과. 기획 「레시피·기능 해금」 VFX_02.")]
+        [SerializeField] private Data.VfxId boughtVfx = Data.VfxId.Sparkle;
         [SerializeField] private TextMeshProUGUI upgradeButtonLabel;
 
         [Tooltip("비워두면 같은 씬에서 찾는다.")]
@@ -178,13 +180,22 @@ namespace Marea.Economy
         {
             if (_levels == null) return;
             // 실패해도 조용하다 — 버튼이 이미 꺼져 있어서 드물고, 오면 그 사이 비용이 모자라진 경우다.
-            if (_levels.IsUnlocked(_kind)) FacilityUpgrade.TryUpgrade(_kind);
-            else FacilityUpgrade.TryUnlock(_kind);
+            FacilityUpgrade.Result result = _levels.IsUnlocked(_kind)
+                ? FacilityUpgrade.TryUpgrade(_kind)
+                : FacilityUpgrade.TryUnlock(_kind);
 
             // 산 다음엔 그다음 단계를 보여준다.
             FacilityData data = _levels.DataOf(_kind);
             if (data != null) _selectedLevel = Mathf.Min(_levels.LevelOf(_kind) + 1, data.MaxLevel);
             RefreshAll();
+
+            // (+10/6) 방금 가진 단계 칸에서 반짝 — 해금이면 첫 칸(0레벨 해금은 칸이 없어 버튼에서).
+            if (result != FacilityUpgrade.Result.Ok) return;
+            int owned = _levels.LevelOf(_kind);
+            RectTransform at = owned >= 1 && owned <= _nodes.Count && _nodes[owned - 1].gameObject.activeInHierarchy
+                ? (RectTransform)_nodes[owned - 1].transform
+                : upgradeButton != null ? (RectTransform)upgradeButton.transform : null;
+            Vfx.PlayOnUI(boughtVfx, at);
         }
 
         private void HandleLevelChanged(FacilityKind kind, int level) => RefreshAll();

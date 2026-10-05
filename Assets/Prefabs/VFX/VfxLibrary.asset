@@ -1,0 +1,88 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62503cfc4e8d1c747a4d9622ce890d26, type: 3}
+  m_Name: VfxLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.VfxLibrary
+  entries:
+  - id: 1
+    prefab: {fileID: 6294508013172393196, guid: 043176b6a68be2b43b073aaaa4782c7d, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "VFX_01 \uC791\uC740 \uBD88\uAF43 \u2014 \uD654\uAD6C\xB7\uADF8\uB9B4.
+      \uD654\uAD6C \uC548\uC5D0 \uB4E4\uC5B4\uAC00\uAC8C \uC791\uAC8C."
+  - id: 2
+    prefab: {fileID: 3909882206432518598, guid: 9f51e8e68cc9b164abbf8473ed186904, type: 3}
+    scale: 0.6
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "VFX_02 \uC77C\uBC18 \uBC18\uC9DD\uC784 \u2014 \uC694\uB9AC \uC644\uC131\xB7\uD574\uAE08\xB7\uD68D\uB4DD
+      (\uC815\uB9AC \uC2DC\uD2B8 02-1)"
+  - id: 102
+    prefab: {fileID: 2314935142293839282, guid: b42aa3f5250af22429aa13485faa9977, type: 3}
+    scale: 0.7
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "VFX_02 \uACE0\uAE09 \uBC18\uC9DD\uC784 \u2014 \uB192\uC740 \uB4F1\uAE09
+      (\uC815\uB9AC \uC2DC\uD2B8 02-2)"
+  - id: 3
+    prefab: {fileID: 1695191526168693321, guid: a0a1803193f53814fb46f639dc12d8c2, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 0.6}
+    note: "VFX_03 \uD770 \uC99D\uAE30 \u2014 \uC587\uACE0 \uBD80\uB4DC\uB7FD\uAC8C.
+      \uC74C\uC2DD\xB7\uC785\uB825 \uAC00\uC774\uB4DC\uB97C \uAC00\uB9AC\uC9C0 \uC54A\uAC8C
+      \uC54C\uD30C \uB0AE\uCDA4."
+  - id: 4
+    prefab: {fileID: 7620216147386611102, guid: 8a9ce8c588b0e2c4fa567c940b82044a, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "VFX_04 \uC561\uCCB4 \uD290 \u2014 \uBD80\uB974\uB294 \uCABD\uC5D0\uC11C
+      \uC0C9(\uAD6D\uBB3C\xB7\uC18C\uC2A4\xB7\uAE30\uB984)."
+  - id: 5
+    prefab: {fileID: 5582959372779851105, guid: f6a3c3d847782f842adfa192f9ad05ed, type: 3}
+    scale: 0.4
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "VFX_05 \uC561\uCCB4 \uC904\uAE30"
+  - id: 6
+    prefab: {fileID: 8205706795460263314, guid: 326e86d5729c54e479798cacab220bb2, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "VFX_06 \uAE30\uD3EC"
+  - id: 7
+    prefab: {fileID: 7620216147386611102, guid: 8a9ce8c588b0e2c4fa567c940b82044a, type: 3}
+    scale: 0.25
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "VFX_07 \uC591\uB150 \uC54C\uAC31\uC774 \u2014 \uC0C9 \uBC14\uAFD4\uC11C(\uC18C\uAE08
+      \uD770\uC0C9\xB7\uD6C4\uCD94 \uAC08\uC0C9)"
+  - id: 8
+    prefab: {fileID: 5137123306192418792, guid: 5a8d99fb95262ea458a7b580f2a1611c, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 0.95, b: 0.7, a: 1}
+    note: "VFX_08 \uC785\uB825\xB7\uD310\uC815 \uB9C1 \u2014 \uC0C9 \uBC14\uAFD4\uC11C"
+  - id: 10
+    prefab: {fileID: 395031058680739610, guid: b2f0b8902a31c8a46a1c4bb24ed9ea36, type: 3}
+    scale: 0.4
+    tint: {r: 1, g: 1, b: 1, a: 0.5}
+    note: "VFX_10 \uBA3C\uC9C0\xB7\uD30C\uD3B8 \u2014 \uBD88\uD22C\uBA85\uB3C4 \uB0AE\uCD94\uACE0
+      \uC0AC\uC774\uC988 \uC904\uC5EC\uC11C"
+  - id: 11
+    prefab: {fileID: 5137123306192418792, guid: 5a8d99fb95262ea458a7b580f2a1611c, type: 3}
+    scale: 0.6
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "VFX_11 \uBB3C\uAC70\uD488\xB7\uD56D\uC801"
+  - id: 12
+    prefab: {fileID: 8748687995501502678, guid: 62334a566bbfe3945bc7bd0c02ca1c9e, type: 3}
+    scale: 0.4
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "VFX_12 \uC131\uACF5 \uD310\uC815 \uBC18\uC9DD\uC784"
+  - id: 13
+    prefab: {fileID: 5880797563127281583, guid: 265d3a5ba69981a4698ceabcedf368b0, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "VFX_13 \uC2E4\uD328\xB7\uB5A8\uC5B4\uB728\uB9BC"

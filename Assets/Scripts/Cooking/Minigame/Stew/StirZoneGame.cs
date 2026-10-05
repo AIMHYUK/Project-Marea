@@ -1,3 +1,5 @@
+using Marea.Core;
+using Marea.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -39,11 +41,29 @@ namespace Marea.Cooking
         [SerializeField, Min(1f)] private float duration = 8f;
 
         [Header("국물")]
-        [Tooltip("국물이 원을 따라 도는 비율.")]
-        [SerializeField, Range(0f, 1f)] private float soupFollow = 0.35f;
+        [Tooltip("(+10/6) 국물이 국자를 따라 도는 비율. 1이면 국자와 같은 빠르기로 돈다.")]
+        [SerializeField, Range(0f, 1f)] private float soupFollow = 0.5f;
+        [Tooltip("(+10/6) 국물이 국자 빠르기를 따라잡는 시간(초). 국자를 멈추면 이만큼에 걸쳐 서서히 멈춘다.")]
+        [SerializeField, Min(0.01f)] private float soupLag = 0.5f;
+        [Tooltip("(+10/6) 국자가 냄비 중심에서 이보다 가까우면 도는 방향을 안 잰다(m) — 중심 근처에선 조금만 움직여도 각도가 튄다.")]
+        [SerializeField, Min(0f)] private float minStirRadius = 0.05f;
+
+        [Header("연출 (+10/6, 이슈 117) — 기획 「휘젓기」 VFX_04")]
+        [Tooltip("국자를 빨리 돌릴 때 국자 자리에서 튀는 국물.")]
+        [SerializeField] private VfxId stirSplashVfx = VfxId.Splash;
+        [SerializeField] private Color soupTint = new Color(0.85f, 0.7f, 0.5f, 1f);
+        [Tooltip("국자가 이보다 빨리 돌 때만 튄다(도/초).")]
+        [SerializeField, Min(0f)] private float splashSpeed = 150f;
+        [Tooltip("튀는 간격(초).")]
+        [SerializeField, Min(0.05f)] private float splashInterval = 0.35f;
+        [SerializeField, Min(0.1f)] private float splashScale = 0.7f;
 
         private float _angle, _dir = 1f, _speed, _segmentLeft;
         private float _time, _inside;
+        private Vector3 _lastLadle;      // 지난 프레임 국자 위치(냄비 중심 기준, 수평)
+        private bool _hasLastLadle;
+        private float _soupSpeed;        // 국물 회전 속도(도/초, Rotate 기준 — 위에서 볼 때 시계방향이 +)
+        private float _nextSplash;
         private bool _running;
         private Renderer _zoneRenderer;
         private MaterialPropertyBlock _mpb;
@@ -70,6 +90,8 @@ namespace Marea.Cooking
         {
             _time = 0f;
             _inside = 0f;
+            _hasLastLadle = false;
+            _soupSpeed = 0f;
             _angle = Random.value * Mathf.PI * 2f;
             _dir = Random.value < 0.5f ? -1f : 1f;
             NewSegment();
@@ -130,10 +152,36 @@ namespace Marea.Cooking
             if (IsInside) _inside += dt;
             Tint(IsInside ? insideColor : outsideColor);
 
-            // 국물도 원을 따라 돈다 — 위에서 볼 때 각도 증가(반시계) = Y축 음의 회전
-            pot.RotateLiquid(-_dir * _speed * soupFollow * dt);
+            StirSoup(ladle - center, dt);
+            if (Mathf.Abs(_soupSpeed) >= splashSpeed * soupFollow && Time.time >= _nextSplash)
+            {
+                _nextSplash = Time.time + splashInterval;
+                Vfx.Play(stirSplashVfx, ladle, splashScale, soupTint);   // (+10/6)
+            }
 
             if (_time >= duration) Finish();
+        }
+
+        /// <summary>
+        /// (+10/6) 국물이 국자가 도는 방향으로 돈다 — 세이프존이 돌고, 국자가 따라 돌고, 국물은 국자를 따라 돈다.
+        /// 예전엔 국물이 세이프존 방향으로 돌아서 국자를 반대로 돌려도 국물은 원 방향으로 돌았다.
+        /// 국자의 냄비 중심 기준 각속도를 재서 soupLag 동안 따라잡는다. SignedAngle과 Rotate는 같은 부호(위에서 볼 때 시계방향 +)다.
+        /// </summary>
+        private void StirSoup(Vector3 ladleOffset, float dt)
+        {
+            ladleOffset.y = 0f;
+            float ladleSpeed = 0f;
+            if (_hasLastLadle && dt > 0f
+                && ladleOffset.magnitude > minStirRadius && _lastLadle.magnitude > minStirRadius)
+            {
+                ladleSpeed = Vector3.SignedAngle(_lastLadle, ladleOffset, Vector3.up) / dt;
+                ladleSpeed = Mathf.Clamp(ladleSpeed, -540f, 540f);   // 마우스가 중심을 가로지를 때 튀는 값
+            }
+            _lastLadle = ladleOffset;
+            _hasLastLadle = true;
+
+            _soupSpeed = Mathf.Lerp(_soupSpeed, ladleSpeed * soupFollow, 1f - Mathf.Exp(-dt / soupLag));
+            pot.RotateLiquid(_soupSpeed * dt);
         }
 
         private void Tint(Color c)
