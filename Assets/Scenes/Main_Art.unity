@@ -5515,6 +5515,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.MinigameCameraController
   transitionDuration: 0.01
+  focusVolume: {fileID: 0}
 --- !u!114 &204986632
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -42751,6 +42752,7 @@ MonoBehaviour:
   interactPoint: {fileID: 797885453}
   menuUI: {fileID: 1214883356}
   highlightEffect: {fileID: 0}
+  interactionRange: {fileID: 0}
 --- !u!65 &741650238
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -68809,7 +68811,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 30.289978, y: -35.809998}
+  m_AnchoredPosition: {x: 30.29004, y: -35.809998}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 1, y: 1}
 --- !u!1001 &1035448137
@@ -80678,8 +80680,11 @@ MonoBehaviour:
   btnBackToCategory: {fileID: 897791415}
   btnStartCooking: {fileID: 1953896529}
   skewerMinigameController: {fileID: 1568201299}
+  seafoodSkewersController: {fileID: 0}
   stewMinigameController: {fileID: 1939648860}
+  veggieStirFryController: {fileID: 0}
   fishGrillController: {fileID: 0}
+  clamGrillController: {fileID: 0}
   cookingCounter: {fileID: 8164078558985977734}
   categoryDataList:
   - cookingType: 0
@@ -97709,8 +97714,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a6888372a3259547aff9e11d77fd57e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.SkewerMinigameController
+  step1Panel: {fileID: 0}
+  step2Panel: {fileID: 0}
+  step3Panel: {fileID: 0}
   cameraController: {fileID: 204986631}
   cameraViewPoint: {fileID: 0}
+  step1ViewPoint: {fileID: 0}
+  step2ViewPoint: {fileID: 0}
+  step3ViewPoint: {fileID: 0}
+  stepTransitionDelay: 1.5
+  slicerStep1: {fileID: 0}
   ingredientController: {fileID: 0}
   minigameUI: {fileID: 1568201300}
 --- !u!114 &1568201300
@@ -100169,6 +100182,9 @@ MonoBehaviour:
   step3Panel: {fileID: 0}
   cameraController: {fileID: 204986631}
   cameraViewPoint: {fileID: 0}
+  step1ViewPoint: {fileID: 0}
+  step2ViewPoint: {fileID: 0}
+  step3ViewPoint: {fileID: 0}
   stepTransitionDelay: 1.5
   fishVisual: {fileID: 0}
   minigameUI: {fileID: 1640253675}
@@ -111819,6 +111835,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 190624656}
     m_Modifications:
+    - target: {fileID: 2891425976219261730, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6007862871748978703, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6763454596524457324, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
       propertyPath: m_Name
       value: CookingTable_MinigameView 1 1
@@ -251990,9 +252014,57 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 6072097684234914752, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.085
+      objectReference: {fileID: 0}
+    - target: {fileID: 6072097684234914752, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.134
+      objectReference: {fileID: 0}
+    - target: {fileID: 7541620841856861251, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
+      propertyPath: _progress
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7709003783401593817, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.098
+      objectReference: {fileID: 0}
+    - target: {fileID: 7709003783401593817, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.003
+      objectReference: {fileID: 0}
     - target: {fileID: 8482858698895877510, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
       propertyPath: m_Name
       value: raw_salmon
+      objectReference: {fileID: 0}
+    - target: {fileID: 8539616081494937188, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.69948
+      objectReference: {fileID: 0}
+    - target: {fileID: 8539616081494937188, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.69948
+      objectReference: {fileID: 0}
+    - target: {fileID: 8539616081494937188, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.69948
+      objectReference: {fileID: 0}
+    - target: {fileID: 8539616081494937188, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.029
+      objectReference: {fileID: 0}
+    - target: {fileID: 8539616081494937188, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.056
+      objectReference: {fileID: 0}
+    - target: {fileID: 8539616081494937188, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.003
+      objectReference: {fileID: 0}
+    - target: {fileID: 9040296267446585995, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
+      propertyPath: _progress
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 9147650485559574332, guid: 1b67029fb4b74d34aad2cccdba353712, type: 3}
       propertyPath: m_LocalScale.x
