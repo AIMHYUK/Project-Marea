@@ -35,6 +35,9 @@ namespace Marea.Cooking
         [Header("단계 전환 연출 설정")]
         [SerializeField] protected float stepTransitionDelay = 1.5f; // 단계 넘어갈 때 딜레이 시간 (초)
 
+        [Header("미니게임 진행 중 비활성화할 오브젝트")]
+        [SerializeField] private List<GameObject> disableDuringMinigame;
+
         public MinigameStepIndex CurrentStepIndex { get; protected set; } = MinigameStepIndex.NotStarted;
 
         protected float Step1Score = 1.0f;
@@ -80,6 +83,8 @@ namespace Marea.Cooking
 
             SetPhysicsRaycasterState(false);
             SetStepPanelState(s1: false, s2: false, s3: false);
+
+            SetDisableDuringMinigameState(true);
         }
 
         protected virtual void EnsureDependencies()
@@ -170,6 +175,8 @@ namespace Marea.Cooking
         // --- 1단계 실행 ---
         public virtual void StartStep1()
         {
+            SetDisableDuringMinigameState(false);
+
             SetPhysicsRaycasterState(true);
             MoveCameraToViewPoint(GetStepViewPoint(MinigameStepIndex.Step1));
 
@@ -253,6 +260,8 @@ namespace Marea.Cooking
             ReturnCameraToOriginalPosition();
             SetStepPanelState(s1: false, s2: false, s3: false);
 
+            SetDisableDuringMinigameState(true);
+
             float averageScore = (Step1Score + Step2Score + Step3Score) / 3.0f;
             OnMinigameCompleted(averageScore);
         }
@@ -264,6 +273,19 @@ namespace Marea.Cooking
             if (step1Panel != null) step1Panel.SetActive(s1);
             if (step2Panel != null) step2Panel.SetActive(s2);
             if (step3Panel != null) step3Panel.SetActive(s3);
+        }
+
+        private void SetDisableDuringMinigameState(bool active)
+        {
+            if (disableDuringMinigame == null) return;
+
+            for (int i = 0; i < disableDuringMinigame.Count; i++)
+            {
+                if (disableDuringMinigame[i] != null)
+                {
+                    disableDuringMinigame[i].SetActive(active);
+                }
+            }
         }
     }
 }
