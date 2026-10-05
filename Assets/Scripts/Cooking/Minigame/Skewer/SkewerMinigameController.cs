@@ -16,13 +16,13 @@ namespace Marea.Cooking
 
         [Header("2단계: 꼬치 끼우기")]
         [SerializeField] private IngredientController ingredientController;
+        [SerializeField] private SkewerTimedAssembly timedAssembly;
 
         [Header("UI 시스템")]
         [SerializeField] private SkewerMinigameUI minigameUI;
 
         private MenuData _currentMenu;
         private Action<CookingResult> _onCompleteCallback;
-        private int _currentIngredientIndex;
         private readonly List<HitGrade> _hitHistory = new();
         private readonly List<IngredientData> _targetIngredients = new();
         private bool _step3CompletionRequested;
@@ -39,6 +39,7 @@ namespace Marea.Cooking
 
         private void OnEnable()
         {
+            if (timedAssembly != null) timedAssembly.OnAssemblyCompleted += HandleAssemblyCompleted;
             if (slicerStep1 != null)
             {
                 slicerStep1.OnSlicingCompleted += HandleStep1Completed;
@@ -48,6 +49,7 @@ namespace Marea.Cooking
         protected override void OnDisable()
         {
             base.OnDisable();
+            if (timedAssembly != null) timedAssembly.OnAssemblyCompleted -= HandleAssemblyCompleted;
 
             if (slicerStep1 != null)
             {
@@ -68,6 +70,9 @@ namespace Marea.Cooking
             {
                 ingredientController = FindFirstObjectByType<IngredientController>(FindObjectsInactive.Include);
             }
+
+            if (timedAssembly == null)
+                timedAssembly = FindFirstObjectByType<SkewerTimedAssembly>(FindObjectsInactive.Include);
 
             if (slicerStep1 == null)
             {
@@ -90,7 +95,6 @@ namespace Marea.Cooking
 
             _currentMenu = menu;
             _onCompleteCallback = onComplete;
-            _currentIngredientIndex = 0;
             _hitHistory.Clear();
             _targetIngredients.Clear();
 
@@ -130,13 +134,13 @@ namespace Marea.Cooking
         {
             Debug.Log("[SkewerMinigameController] 2단계(타이밍 꼬치 끼우기) 시작");
 
-            _currentIngredientIndex = 0;
 
             if (ingredientController != null)
             {
                 Transform viewPoint = GetStepViewPoint(MinigameStepIndex.Step2);
                 ingredientController.InitializeMinigame3D(_targetIngredients, viewPoint != null ? viewPoint.right : Vector3.right);
             }
+            timedAssembly?.ResetAssembly();
             minigameUI?.RefreshStageInstructions();
         }
 
@@ -182,23 +186,15 @@ namespace Marea.Cooking
             else if (CurrentStepIndex == MinigameStepIndex.Step2)
             {
                 if (IsInserting) return;
-                if (grade == HitGrade.Miss)
-                {
-                    _hitHistory.Add(grade);
-                    return;
-                }
-                if (ingredientController != null &&
-                    ingredientController.AttachIngredient(_currentIngredientIndex, HandleIngredientInserted))
+                if (timedAssembly != null && timedAssembly.TryInsert(grade))
                     _hitHistory.Add(grade);
             }
         }
 
-        private void HandleIngredientInserted()
+        private void HandleAssemblyCompleted(float score)
         {
-            _currentIngredientIndex++;
-            if (_currentIngredientIndex < TotalIngredients) return;
-            ingredientController.StopMoving();
-            CompleteStep2(CalculateSkewerScore());
+            ingredientController?.StopMoving();
+            CompleteStep2(score);
         }
 
         public void ProcessSauceDrag(Vector2 screenPosition)
@@ -314,7 +310,6 @@ namespace Marea.Cooking
             Action<CookingResult> callback = _onCompleteCallback;
             _onCompleteCallback = null;
             _currentMenu = null;
-            _currentIngredientIndex = 0;
             _step3CompletionRequested = false;
             _hitHistory.Clear();
             _targetIngredients.Clear();

@@ -43,6 +43,7 @@ namespace Marea.Cooking
         private static readonly int LegacyColorId = Shader.PropertyToID("_Color");
 
         public int SauceTargetCount => _spawnedStickIngredients.Count;
+        public int AssemblyIngredientCount => _sequenceIngredients.Count;
         public int SaucedIngredientCount => _saucedIngredients.Count;
         public bool AllIngredientsSauced => SauceTargetCount > 0 && SaucedIngredientCount >= SauceTargetCount;
         public Transform AssembledSkewerRoot => assembledSkewerRoot != null ? assembledSkewerRoot : stickTransform;
