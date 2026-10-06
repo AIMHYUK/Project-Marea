@@ -37,6 +37,7 @@ namespace Marea.Cooking
         private readonly List<IngredientData> _sequenceIngredients = new();
         private readonly List<GameObject> _spawnedStickIngredients = new();
         private readonly HashSet<GameObject> _saucedIngredients = new();
+        private readonly Dictionary<GameObject, float> _sauceCoverage = new();
         private GameObject _currentMovingModel;
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -46,6 +47,15 @@ namespace Marea.Cooking
         public int AssemblyIngredientCount => _sequenceIngredients.Count;
         public int SaucedIngredientCount => _saucedIngredients.Count;
         public bool AllIngredientsSauced => SauceTargetCount > 0 && SaucedIngredientCount >= SauceTargetCount;
+        public float SauceProgress
+        {
+            get
+            {
+                float total = 0f;
+                foreach (float coverage in _sauceCoverage.Values) total += coverage;
+                return SauceTargetCount > 0 ? total / SauceTargetCount : 0f;
+            }
+        }
         public Transform AssembledSkewerRoot => assembledSkewerRoot != null ? assembledSkewerRoot : stickTransform;
         public bool IsInserting => _insertionRoutine != null;
         public float TravelPosition => Mathf.InverseLerp(-moveDistance, moveDistance, _travelOffset);
@@ -240,15 +250,17 @@ namespace Marea.Cooking
         public void ResetSaucePainting()
         {
             _saucedIngredients.Clear();
+            _sauceCoverage.Clear();
             foreach (GameObject ingredient in _spawnedStickIngredients)
             {
-                if (ingredient != null) SetSauceTint(ingredient, false);
+                if (ingredient != null) SetSauceTint(ingredient, 0f);
             }
         }
 
         /// <summary>Applies sauce to an assembled ingredient under the pointer.</summary>
-        public bool TryApplySauceAt(Vector2 screenPosition, Camera camera = null)
+        public bool TryApplySauceAt(Vector2 screenPosition, Camera camera = null, float coverageAmount = 1f)
         {
+            if (coverageAmount <= 0f) return false;
             if (camera == null) camera = Camera.main;
             if (camera == null) return false;
 
@@ -282,9 +294,12 @@ namespace Marea.Cooking
                 }
             }
 
-            if (hitIngredient == null || !_saucedIngredients.Add(hitIngredient)) return false;
-
-            SetSauceTint(hitIngredient, true);
+            if (hitIngredient == null) return false;
+            _sauceCoverage.TryGetValue(hitIngredient, out float previous);
+            float coverage = Mathf.Clamp01(previous + coverageAmount);
+            _sauceCoverage[hitIngredient] = coverage;
+            if (coverage >= 1f) _saucedIngredients.Add(hitIngredient);
+            SetSauceTint(hitIngredient, coverage);
             return true;
         }
 
@@ -326,7 +341,7 @@ namespace Marea.Cooking
             return false;
         }
 
-        private static void SetSauceTint(GameObject ingredient, bool sauced)
+        private static void SetSauceTint(GameObject ingredient, float coverage)
         {
             const float sauceBlend = 0.65f;
             Color sauceColor = new Color(0.95f, 0.3f, 0.06f, 1f);
@@ -343,12 +358,12 @@ namespace Marea.Cooking
                     Color baseColor = Color.white;
                     if (material.HasProperty(BaseColorId)) baseColor = material.GetColor(BaseColorId);
                     else if (material.HasProperty(LegacyColorId)) baseColor = material.GetColor(LegacyColorId);
-                    Color tint = sauced ? Color.Lerp(baseColor, sauceColor, sauceBlend) : baseColor;
+                    Color tint = Color.Lerp(baseColor, sauceColor, sauceBlend * coverage);
                     if (material.HasProperty(BaseColorId)) block.SetColor(BaseColorId, tint);
                     if (material.HasProperty(LegacyColorId)) block.SetColor(LegacyColorId, tint);
                     if (material.HasProperty("_Smoothness"))
                     {
-                        block.SetFloat("_Smoothness", sauced ? 0.8f : material.GetFloat("_Smoothness"));
+                        block.SetFloat("_Smoothness", Mathf.Lerp(material.GetFloat("_Smoothness"), 0.8f, coverage));
                     }
                     renderer.SetPropertyBlock(block, materialIndex);
                 }
@@ -402,6 +417,7 @@ namespace Marea.Cooking
             }
             _spawnedStickIngredients.Clear();
             _saucedIngredients.Clear();
+            _sauceCoverage.Clear();
 
             // 슬롯 하위에 남아있는 자식 오브젝트 완전 삭제
             if (attachPoints != null)

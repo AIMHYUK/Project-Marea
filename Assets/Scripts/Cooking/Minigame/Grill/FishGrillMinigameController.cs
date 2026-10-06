@@ -144,7 +144,7 @@ namespace Marea.Cooking
         // ==========================================
         protected override void OnStep1Start()
         {
-            // 칼집 초기화 로직
+            minigameUI?.SetGuide("칼집 안내선의 한쪽 끝을 누르고 반대쪽 끝까지 드래그하세요!");
         }
 
         protected override void OnStep1Update()
@@ -168,6 +168,7 @@ namespace Marea.Cooking
         // ==========================================
         protected override void OnStep2Start()
         {
+            minigameUI?.SetGuide("알맞게 익었을 때 클릭하여 뒤집으세요!");
             _elapsedTime = 0f;
             _hasFlipped = false;
         }
@@ -244,7 +245,12 @@ namespace Marea.Cooking
         // ==========================================
         protected override void OnStep3Start()
         {
-            // 플레이팅 초기화 로직
+            minigameUI?.SetGuide("구운 생선을 드래그하여 접시 위에 놓으세요!");
+            if (platingItems == null) return;
+            foreach (MinigameDraggable item in platingItems)
+            {
+                if (item != null) item.ResetObject();
+            }
         }
 
         protected override void OnStep3Update()

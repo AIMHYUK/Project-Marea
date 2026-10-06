@@ -12,10 +12,14 @@ namespace Marea.Cooking
         [SerializeField] private GameObject salt3DObject;   // 3D 소금통
         [SerializeField] private GameObject pepper3DObject; // 3D 후추통
 
+        [Header("클릭 영역 (1920×1080 기준 픽셀 여유)")]
+        [SerializeField, Min(0f)] private float seasoningClickPadding = 24f;
+
         [Header("3D 연출 요소 (Particle & Sound)")]
         [SerializeField] private ParticleSystem saltParticle;   // 소금 흩날림 파티클
         [SerializeField] private ParticleSystem pepperParticle; // 후추 흩날림 파티클
         [SerializeField] private AudioSource shakeAudioSource;  // 쌕쌕/톡톡 소리
+        [SerializeField] private AudioClip pepperShakeClip;
 
         [Header("리듬 레일 UI 연동")]
         [SerializeField] private SequenceInputRailUI railUI;
@@ -194,17 +198,13 @@ namespace Marea.Cooking
                 Vector2 mousePosition =
                     Mouse.current.position.ReadValue();
 
-                Ray ray =
-                    _mainCamera.ScreenPointToRay(
-                        mousePosition
-                    );
-
-                if (Physics.Raycast(
-                    ray,
-                    out RaycastHit hit))
+                bool clickedSalt = VeggieClickArea.Contains(_mainCamera, salt3DObject,
+                    mousePosition, seasoningClickPadding, out float saltScore);
+                bool clickedPepper = VeggieClickArea.Contains(_mainCamera, pepper3DObject,
+                    mousePosition, seasoningClickPadding, out float pepperScore);
+                if (clickedSalt || clickedPepper)
                 {
-                    if (hit.transform.gameObject ==
-                        salt3DObject)
+                    if (clickedSalt && (!clickedPepper || saltScore <= pepperScore))
                     {
                         AnimateSeasoning(
                             salt3DObject,
@@ -216,8 +216,7 @@ namespace Marea.Cooking
                             OnHitResultReceived
                         );
                     }
-                    else if (hit.transform.gameObject ==
-                             pepper3DObject)
+                    else
                     {
                         AnimateSeasoning(
                             pepper3DObject,
@@ -253,7 +252,9 @@ namespace Marea.Cooking
 
             if (shakeAudioSource != null)
             {
-                shakeAudioSource.Play();
+                AudioClip clip = obj == pepper3DObject && pepperShakeClip != null
+                    ? pepperShakeClip : shakeAudioSource.clip;
+                if (clip != null) shakeAudioSource.PlayOneShot(clip);
             }
         }
 

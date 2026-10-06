@@ -295,12 +295,6 @@ namespace Marea.Cooking
         {
             if (objectToCut == null) return;
 
-            if (sliceEffect != null)
-            {
-                sliceEffect.transform.position = cutPoint;
-                sliceEffect.Play();
-            }
-
             if (sliceAudioSource != null)
             {
                 sliceAudioSource.Play();
@@ -320,6 +314,7 @@ namespace Marea.Cooking
 
                 if (upperHull != null && lowerHull != null)
                 {
+                    CookingSliceVfx.Play(sliceEffect, cutPoint, cutNormal);
                     _runtimeSlicePieces.Add(upperHull);
                     _runtimeSlicePieces.Add(lowerHull);
 

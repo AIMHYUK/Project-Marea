@@ -18,6 +18,9 @@ namespace Marea.Cooking
         [SerializeField] private IngredientController ingredientController;
         [SerializeField] private SkewerTimedAssembly timedAssembly;
 
+        [Header("3단계: 소스 효과음")]
+        [SerializeField] private AudioSource sauceAudioSource;
+
         [Header("UI 시스템")]
         [SerializeField] private SkewerMinigameUI minigameUI;
 
@@ -197,7 +200,7 @@ namespace Marea.Cooking
             CompleteStep2(score);
         }
 
-        public void ProcessSauceDrag(Vector2 screenPosition)
+        public void ProcessSauceDrag(Vector2 screenPosition, float coverageAmount)
         {
             if (CurrentStepIndex != MinigameStepIndex.Step3 || _step3CompletionRequested || ingredientController == null)
             {
@@ -205,10 +208,14 @@ namespace Marea.Cooking
             }
 
             Camera paintingCamera = cameraController != null ? cameraController.GetComponent<Camera>() : Camera.main;
-            ingredientController.TryApplySauceAt(screenPosition, paintingCamera);
+            bool appliedSauce = ingredientController.TryApplySauceAt(screenPosition, paintingCamera, coverageAmount);
+            if (appliedSauce && sauceAudioSource != null && sauceAudioSource.clip != null &&
+                !sauceAudioSource.isPlaying)
+                sauceAudioSource.Play();
             if (minigameUI != null)
             {
-                minigameUI.UpdateSauceProgress(ingredientController.SaucedIngredientCount, ingredientController.SauceTargetCount);
+                minigameUI.UpdateSauceProgress(ingredientController.SauceProgress,
+                    ingredientController.SaucedIngredientCount, ingredientController.SauceTargetCount);
             }
 
             if (ingredientController.AllIngredientsSauced)

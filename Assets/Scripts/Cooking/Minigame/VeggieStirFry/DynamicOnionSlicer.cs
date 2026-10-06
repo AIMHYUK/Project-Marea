@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using EzySlice;
 using UnityEngine;
@@ -18,13 +19,20 @@ namespace Marea.Cooking
         [SerializeField] private ParticleSystem sliceEffect; // 썰 때 터지는 이펙트
         [SerializeField] private AudioSource sliceAudioSource; // 싹둑 소리 사운드
 
+        [Header("칼 이동 애니메이션 (해물꼬치와 동일)")]
+        [SerializeField] private float knifeApproachDuration = 0.1f;
+        [SerializeField] private float knifeCutDuration = 0.2f;
+        [SerializeField] private Vector3 knifeReadyOffset = new Vector3(0f, 0.35f, -0.4f);
+        [SerializeField] private Vector3 knifeEndOffset = new Vector3(0f, -0.15f, -0.1f);
+
         [Header("클릭 판정 설정")]
-        [SerializeField] private float hitMaxDistance = 2.0f;
-        [SerializeField] private LayerMask raycastLayerMask = ~0;
+        [SerializeField, Min(0f)] private float ingredientClickPadding = 28f;
+        [SerializeField, Min(0f)] private float guideClickRadius = 48f;
 
         private int _currentGuideIndex;
         private Camera _mainCamera;
         private bool _isSlicingCompleted;
+        private bool _isKnifeAnimating;
 
         private GameObject _originalOnionTemplate;
         private Transform _originalOnionParent;
@@ -42,6 +50,9 @@ namespace Marea.Cooking
 
         public void ResetSlicer()
         {
+            StopAllCoroutines();
+            _isKnifeAnimating = false;
+            CaptureKnifePose();
             _currentGuideIndex = 0;
             _isSlicingCompleted = false;
 
@@ -87,7 +98,12 @@ namespace Marea.Cooking
                 _originalOnionTemplate.SetActive(false);
             }
 
-            if (knifeVisual != null)
+            CaptureKnifePose();
+        }
+
+        private void CaptureKnifePose()
+        {
+            if (!_hasKnifeInitialTransform && knifeVisual != null)
             {
                 _knifeInitialLocalPosition = knifeVisual.transform.localPosition;
                 _knifeInitialLocalRotation = knifeVisual.transform.localRotation;
@@ -100,9 +116,20 @@ namespace Marea.Cooking
             ResetSlicer();
         }
 
+        private void OnDisable()
+        {
+            StopAllCoroutines();
+            _isKnifeAnimating = false;
+            if (_hasKnifeInitialTransform && knifeVisual != null)
+            {
+                knifeVisual.transform.localPosition = _knifeInitialLocalPosition;
+                knifeVisual.transform.localRotation = _knifeInitialLocalRotation;
+            }
+        }
+
         private void Update()
         {
-            if (_isSlicingCompleted || sliceGuidePoints == null || sliceGuidePoints.Count == 0) return;
+            if (_isSlicingCompleted || _isKnifeAnimating || sliceGuidePoints == null || sliceGuidePoints.Count == 0) return;
 
             if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
@@ -116,59 +143,65 @@ namespace Marea.Cooking
             if (_mainCamera == null) return;
 
             Vector2 mousePosition = Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
-            Ray ray = _mainCamera.ScreenPointToRay(mousePosition);
+            Transform currentGuide = sliceGuidePoints[_currentGuideIndex];
+            if (currentGuide == null) return;
 
-            if (Physics.Raycast(ray, out RaycastHit hit, 100f, raycastLayerMask))
+            Vector3 guideScreen = _mainCamera.WorldToScreenPoint(currentGuide.position);
+            float radius = guideClickRadius * _mainCamera.pixelHeight / 1080f;
+            bool clickedGuide = guideScreen.z > _mainCamera.nearClipPlane &&
+                Vector2.Distance(mousePosition, guideScreen) <= radius;
+            if (clickedGuide || VeggieClickArea.Contains(_mainCamera, targetOnionObject,
+                    mousePosition, ingredientClickPadding, out _))
+                StartCoroutine(PerformSliceAnimation(currentGuide));
+        }
+
+        private IEnumerator PerformSliceAnimation(Transform currentGuide)
+        {
+            _isKnifeAnimating = true;
+            Vector3 cutPoint = currentGuide.position;
+            Vector3 cutNormal = currentGuide.right;
+            Vector3 readyPosition = cutPoint + currentGuide.TransformDirection(knifeReadyOffset);
+            Vector3 endPosition = cutPoint + currentGuide.TransformDirection(knifeEndOffset);
+            if (knifeVisual != null)
             {
-                Transform currentGuide = sliceGuidePoints[_currentGuideIndex];
-                if (currentGuide == null) return;
-
-                float distance = Vector3.Distance(hit.point, currentGuide.position);
-
-                if (hit.transform == currentGuide ||
-                    hit.transform.IsChildOf(currentGuide) ||
-                    distance <= hitMaxDistance ||
-                    hit.transform.gameObject == targetOnionObject)
-                {
-                    Vector3 cutPoint = currentGuide.position;
-
-                    // 세로 절단을 위한 가이드의 right 방향 사용
-                    Vector3 cutNormal = currentGuide.right;
-
-                    bool sliceSuccess = ExecuteEzySlice(
-                        targetOnionObject,
-                        cutPoint,
-                        cutNormal
-                    );
-
-                    // 실제 Slice에 성공했을 때만 다음 가이드로 이동
-                    if (!sliceSuccess)
-                    {
-                        return;
-                    }
-
-                    _currentGuideIndex++;
-
-                    if (_currentGuideIndex >= sliceGuidePoints.Count)
-                    {
-                        _isSlicingCompleted = true;
-                        Debug.Log("[DynamicOnionSlicer] 모든 위치 양파 슬라이스 완료!");
-                    }
-                    else
-                    {
-                        UpdateGuideVisuals();
-                    }
-                }
+                yield return MoveKnife(knifeVisual.transform.position, readyPosition, knifeApproachDuration);
+                yield return MoveKnife(readyPosition, cutPoint, knifeCutDuration * 0.45f);
             }
+
+            // 기존 절단 성공 판정을 칼이 재료에 닿는 시점에 실행한다.
+            bool sliceSuccess = ExecuteEzySlice(targetOnionObject, cutPoint, cutNormal);
+            if (knifeVisual != null)
+                yield return MoveKnife(cutPoint, endPosition, knifeCutDuration * 0.55f);
+
+            if (sliceSuccess)
+            {
+                _currentGuideIndex++;
+                if (_currentGuideIndex >= sliceGuidePoints.Count)
+                {
+                    _isSlicingCompleted = true;
+                    Debug.Log("[DynamicOnionSlicer] 모든 위치 양파 슬라이스 완료!");
+                }
+                else UpdateGuideVisuals();
+            }
+            _isKnifeAnimating = false;
+        }
+
+        private IEnumerator MoveKnife(Vector3 startPosition, Vector3 endPosition, float duration)
+        {
+            if (knifeVisual == null) yield break;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+                knifeVisual.transform.position = Vector3.Lerp(startPosition, endPosition, t);
+                yield return null;
+            }
+            knifeVisual.transform.position = endPosition;
         }
 
         private bool ExecuteEzySlice(GameObject objectToCut, Vector3 cutPoint, Vector3 cutNormal)
         {
-            if (knifeVisual != null)
-            {
-                knifeVisual.transform.position = cutPoint;
-            }
-
             if (objectToCut == null) return false;
 
             Vector3 originalWorldPos = objectToCut.transform.position;
@@ -212,11 +245,7 @@ namespace Marea.Cooking
                 return false;
             }
 
-            if (sliceEffect != null)
-            {
-                sliceEffect.transform.position = cutPoint;
-                sliceEffect.Play();
-            }
+            CookingSliceVfx.Play(sliceEffect, cutPoint, cutNormal);
 
             if (sliceAudioSource != null)
             {

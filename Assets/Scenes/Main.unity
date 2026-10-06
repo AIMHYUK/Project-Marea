@@ -2444,6 +2444,7 @@ Transform:
   - {fileID: 859213484}
   - {fileID: 1360403761}
   - {fileID: 1403648564}
+  - {fileID: 1025710808}
   - {fileID: 1151388029237686816}
   - {fileID: 1151388028767630660}
   - {fileID: 1151388027718284862}
@@ -2467,7 +2468,6 @@ Transform:
   - {fileID: 1151388028816933102}
   - {fileID: 1151388028995909146}
   - {fileID: 819336113}
-  - {fileID: 1025710808}
   m_Father: {fileID: 209372863}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &195609899
@@ -2987,7 +2987,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.MinigameCameraController
   transitionDuration: 0.01
-  focusVolume: {fileID: 0}
+  focusVolume: {fileID: 1810685956}
 --- !u!114 &204986632
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3025,7 +3025,7 @@ MonoBehaviour:
   m_RendererIndex: -1
   m_VolumeLayerMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 129
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
   m_RenderPostProcessing: 0
@@ -77635,6 +77635,7 @@ MonoBehaviour:
   step3ViewPoint: {fileID: 0}
   stepTransitionDelay: 1.5
   disableDuringMinigame: []
+  hideCookingDeco: 0
   fishVisual: {fileID: 0}
   minigameUI: {fileID: 1640253675}
   cutGuides: []
@@ -82800,6 +82801,55 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1983364695}
   m_LocalEulerAnglesHint: {x: 0, y: 180.131, z: -0.351}
+--- !u!1 &1810685955
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1810685957}
+  - component: {fileID: 1810685956}
+  m_Layer: 7
+  m_Name: MinigameFocusVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1810685956
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1810685955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
+  m_IsGlobal: 1
+  priority: 10
+  blendDistance: 0
+  weight: 0
+  sharedProfile: {fileID: 11400000, guid: 9debc59986ee6cf45b0045b4913bef17, type: 2}
+--- !u!4 &1810685957
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1810685955}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!43 &1815138032
 Mesh:
   m_ObjectHideFlags: 0
@@ -85357,22 +85407,38 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 190624656}
     m_Modifications:
+    - target: {fileID: 945654931952089542, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1309052997900493320, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: strokeTiltAngle
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 1309052997900493320, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: cameraFacingEuler.x
+      value: 180
+      objectReference: {fileID: 0}
+    - target: {fileID: 1309052997900493320, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: cameraFacingEuler.y
+      value: -40
+      objectReference: {fileID: 0}
+    - target: {fileID: 1309052997900493320, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: cameraFacingEuler.z
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1537754881898205504, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
       propertyPath: 'disableDuringMinigame.Array.data[0]'
       value: 
       objectReference: {fileID: 1025710807}
-    - target: {fileID: 2790721497309625695, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.75
+    - target: {fileID: 1612206798664580238, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_Name
+      value: UI
       objectReference: {fileID: 0}
-    - target: {fileID: 2790721497309625695, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 0.75
-      objectReference: {fileID: 0}
-    - target: {fileID: 2790721497309625695, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.75
-      objectReference: {fileID: 0}
+    - target: {fileID: 2619911726681178571, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_Resource
+      value: 
+      objectReference: {fileID: 8300000, guid: d2e460f7f921b3c4582a2f481314ac9e, type: 3}
     - target: {fileID: 2891425976219261730, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -85381,13 +85447,33 @@ PrefabInstance:
       propertyPath: 'disableDuringMinigame.Array.data[0]'
       value: 
       objectReference: {fileID: 1025710807}
+    - target: {fileID: 4801944807965143008, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5567904751914189358, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_Resource
+      value: 
+      objectReference: {fileID: 8300000, guid: d2e460f7f921b3c4582a2f481314ac9e, type: 3}
+    - target: {fileID: 5641860120112227605, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6007862871748978703, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6343056829402394011, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6763454596524457324, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
       propertyPath: m_Name
       value: CookingTable_MinigameView 1 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7067972026404903011, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7628637823069335808, guid: 3f7a4b0a235b03b44983fdf6a5cb44e0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -93041,6 +93127,9 @@ MonoBehaviour:
     requiredAmount: 999
     inputOrder: 0
   - ingredient: {fileID: 11400000, guid: 77e38210692961d41b9f8d85d9ae606b, type: 2}
+    requiredAmount: 999
+    inputOrder: 0
+  - ingredient: {fileID: 11400000, guid: 44e13d9daaa836d48b9d21a53789a16e, type: 2}
     requiredAmount: 999
     inputOrder: 0
 --- !u!4 &2047579175
@@ -143834,6 +143923,7 @@ GameObject:
   - component: {fileID: 1587545474547674284}
   - component: {fileID: 8164078558058013258}
   - component: {fileID: 8164078558058013259}
+  - component: {fileID: 8164078558058013260}
   m_Layer: 2
   m_Name: default
   m_TagString: Untagged
@@ -143878,6 +143968,27 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.0015869, y: 0.431059, z: 0.46890992}
   m_Center: {x: -0.0000038146973, y: 0.21552926, z: -2.9958178e-24}
+--- !u!65 &8164078558058013260
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8164078558058013257}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.07, y: 0.431059, z: 0.46890992}
+  m_Center: {x: 0.55, y: 0.6, z: -2.9958178e-24}
 --- !u!1 &8164078558063863968
 GameObject:
   m_ObjectHideFlags: 0
@@ -151629,3 +151740,4 @@ SceneRoots:
   - {fileID: 209372863}
   - {fileID: 157436993}
   - {fileID: 1593732136}
+  - {fileID: 1810685957}

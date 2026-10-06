@@ -8,6 +8,7 @@ namespace Marea.Cooking
     public class SkewerTimedAssembly : MonoBehaviour
     {
         [SerializeField] private IngredientController ingredientController;
+        [SerializeField] private AudioSource insertAudioSource;
 
         private readonly List<HitGrade> _successfulHits = new();
         private int _currentSlotIndex;
@@ -41,6 +42,8 @@ namespace Marea.Cooking
 
         private void HandleIngredientInserted()
         {
+            if (insertAudioSource != null && insertAudioSource.clip != null)
+                insertAudioSource.PlayOneShot(insertAudioSource.clip);
             _currentSlotIndex++;
             if (_currentSlotIndex < ingredientController.AssemblyIngredientCount) return;
 

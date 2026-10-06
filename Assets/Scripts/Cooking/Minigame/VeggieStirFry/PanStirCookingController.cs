@@ -12,9 +12,21 @@ namespace Marea.Cooking
         [SerializeField] private Transform panInsideTransform;            // 프라이팬 내부 투입 지점
         [SerializeField] private Transform spatulaTransform;             // 3D 주걱 오브젝트
 
-        [Header("주걱 이동 제한 (Local Offset)")]
+        [Header("주걱 수평 이동 제한")]
         [SerializeField] private Vector2 spatulaMoveRange = new Vector2(1.5f, 1.5f); // 팬 안에서 주걱이 이동할 X, Z 범위
         [SerializeField] private float spatulaSpeedMultiplier = 0.005f;
+        [Tooltip("이동 방향을 향해 회전하는 속도(초당 각도).")]
+        [SerializeField, Min(0f)] private float spatulaTurnSpeed = 360f;
+        [Tooltip("초기 회전 기준 X축 앞뒤 기울기 최대 각도.")]
+        [SerializeField, Range(0f, 45f)] private float spatulaPitchAngle = 20f;
+        [Tooltip("초기 회전 기준 Z축 좌우 기울기 최대 각도.")]
+        [SerializeField, Range(0f, 20f)] private float spatulaRollAngle = 15f;
+
+        [Header("팬 안 재료 움직임")]
+        [Tooltip("팬 내부 기준 X, Z 이동 반경. 재료가 팬 밖으로 나가지 않도록 제한한다.")]
+        [SerializeField] private Vector2 ingredientMoveRange = new Vector2(0.65f, 0.65f);
+        [SerializeField, Min(0f)] private float ingredientFollowMultiplier = 0.85f;
+        [SerializeField, Min(0f)] private float ingredientTurnDegreesPerUnit = 70f;
 
         [Header("수치 설정")]
         [SerializeField] private float requiredCookProgress = 100f; // 목표 조리 진행도
@@ -36,6 +48,11 @@ namespace Marea.Cooking
         public float BurnProgress { get; private set; }
 
         private Vector3 _initialSpatulaLocalPos;
+        private Quaternion _initialSpatulaLocalRotation;
+        private Quaternion _referenceSpatulaWorldRotation;
+        private Quaternion _targetSpatulaWorldRotation;
+        private float _spatulaWorldHeight;
+        private Vector3 _initialSpatulaWorldPosition;
         private Vector2 _lastMousePos;
         private bool _isStirringThisFrame;
         private bool _isDraggingSpatulaDirectly;
@@ -58,6 +75,8 @@ namespace Marea.Cooking
             {
                 _initialSpatulaLocalPos =
                     spatulaTransform.localPosition;
+                _initialSpatulaLocalRotation = spatulaTransform.localRotation;
+                ResetSpatulaPose();
             }
 
             if (clickableVeggieObjects != null)
@@ -125,6 +144,8 @@ namespace Marea.Cooking
             {
                 spatulaTransform.localPosition =
                     _initialSpatulaLocalPos;
+                spatulaTransform.localRotation = _initialSpatulaLocalRotation;
+                ResetSpatulaPose();
             }
 
             UpdateVisualState();
@@ -160,6 +181,7 @@ namespace Marea.Cooking
 
             // 2. UI Drag 방식이 작동하지 않는 환경을 대비한 3D 마우스 직접 드래그 모드
             HandleDirectMouseDrag();
+            UpdateSpatulaPose();
 
             if (!IsVeggieInPan ||
                 IsCookCompleted ||
@@ -323,29 +345,82 @@ namespace Marea.Cooking
                 return;
             }
 
+            // The model parent can be tilted, so use the horizontal world plane.
+            Vector3 previousWorldPosition = spatulaTransform.position;
+            Vector3 right = _mainCamera != null
+                ? Vector3.ProjectOnPlane(_mainCamera.transform.right, Vector3.up).normalized : Vector3.right;
+            if (right.sqrMagnitude < 0.001f) right = Vector3.right;
+            Vector3 forward = Vector3.Cross(right, Vector3.up).normalized;
+            Vector3 scale = spatulaTransform.parent != null ? spatulaTransform.parent.lossyScale : Vector3.one;
+            float scaleX = Mathf.Abs(scale.x);
+            float scaleZ = Mathf.Abs(scale.z);
+            Vector3 offset = previousWorldPosition - _initialSpatulaWorldPosition;
+            float side = Mathf.Clamp(Vector3.Dot(offset, right) + delta.x * spatulaSpeedMultiplier * scaleX,
+                -spatulaMoveRange.x * scaleX, spatulaMoveRange.x * scaleX);
+            float depth = Mathf.Clamp(Vector3.Dot(offset, forward) + delta.y * spatulaSpeedMultiplier * scaleZ,
+                -spatulaMoveRange.y * scaleZ, spatulaMoveRange.y * scaleZ);
+            Vector3 position = _initialSpatulaWorldPosition + right * side + forward * depth;
+            position.y = _spatulaWorldHeight;
+            spatulaTransform.position = position;
+
+            Vector3 movement = spatulaTransform.position - previousWorldPosition;
+            movement.y = 0f;
+            if (movement.sqrMagnitude <= 0.000001f) return;
+            Vector3 direction = movement.normalized;
+            Vector3 rotationOffset = new Vector3(
+                -Vector3.Dot(direction, forward) * spatulaPitchAngle,
+                0f,
+                -Vector3.Dot(direction, right) * spatulaRollAngle);
+            _targetSpatulaWorldRotation = Quaternion.Euler(_referenceSpatulaWorldRotation.eulerAngles + rotationOffset);
             _isStirringThisFrame = true;
+            MoveIngredientsWithSpatula(movement);
+        }
 
-            // Delta 값을 주걱의 Local Position으로 변환 및 이동
-            Vector3 newPos =
-                spatulaTransform.localPosition +
-                new Vector3(delta.x, 0f, delta.y) *
-                spatulaSpeedMultiplier;
+        private void ResetSpatulaPose()
+        {
+            _spatulaWorldHeight = spatulaTransform.position.y;
+            _initialSpatulaWorldPosition = spatulaTransform.position;
+            _referenceSpatulaWorldRotation = spatulaTransform.rotation;
+            _targetSpatulaWorldRotation = _referenceSpatulaWorldRotation;
+        }
 
-            // 이동 범위 제한 (Clamp)
-            newPos.x = Mathf.Clamp(
-                newPos.x,
-                _initialSpatulaLocalPos.x - spatulaMoveRange.x,
-                _initialSpatulaLocalPos.x + spatulaMoveRange.x
-            );
+        private void UpdateSpatulaPose()
+        {
+            if (spatulaTransform == null || !IsVeggieInPan) return;
+            Vector3 position = spatulaTransform.position;
+            position.y = _spatulaWorldHeight;
+            spatulaTransform.position = position;
+            if (IsCookCompleted || IsBurned) return;
+            // Front/back movement tilts X; sideways movement tilts Z.
+            spatulaTransform.rotation = Quaternion.RotateTowards(
+                spatulaTransform.rotation, _targetSpatulaWorldRotation, spatulaTurnSpeed * Time.deltaTime);
+        }
 
-            newPos.z = Mathf.Clamp(
-                newPos.z,
-                _initialSpatulaLocalPos.z - spatulaMoveRange.y,
-                _initialSpatulaLocalPos.z + spatulaMoveRange.y
-            );
+        private void MoveIngredientsWithSpatula(Vector3 worldMovement)
+        {
+            if (panInsideTransform == null || clickableVeggieObjects == null) return;
 
-            spatulaTransform.localPosition =
-                newPos;
+            Vector3 movement = panInsideTransform.InverseTransformVector(worldMovement) * ingredientFollowMultiplier;
+            movement.y = 0f;
+            float radiusX = Mathf.Max(0.001f, ingredientMoveRange.x);
+            float radiusZ = Mathf.Max(0.001f, ingredientMoveRange.y);
+
+            foreach (GameObject veggie in clickableVeggieObjects)
+            {
+                if (veggie == null || !veggie.activeInHierarchy || veggie.transform.parent != panInsideTransform) continue;
+                Vector3 position = veggie.transform.localPosition + movement;
+                // Clamp to an ellipse rather than a rectangle to stay inside the pan rim.
+                Vector2 normalized = new Vector2(position.x / radiusX, position.z / radiusZ);
+                if (normalized.sqrMagnitude > 1f)
+                {
+                    normalized.Normalize();
+                    position.x = normalized.x * radiusX;
+                    position.z = normalized.y * radiusZ;
+                }
+                veggie.transform.localPosition = position;
+                float turn = (movement.x - movement.z) * ingredientTurnDegreesPerUnit;
+                veggie.transform.localRotation = Quaternion.AngleAxis(turn, Vector3.up) * veggie.transform.localRotation;
+            }
         }
 
         private void CheckVeggieClickHit()
