@@ -38,6 +38,13 @@ namespace Marea.Cooking
         [Tooltip("자리별 조개 종류. i번 자리는 slotStages[i % 개수]를 쓴다 (홍합 · 가리비 · 전복). 비우면 stagePrefabs.")]
         [SerializeField] private StageSet[] slotStages;
 
+        [Tooltip("(+10/6) 조개 모습에 곱하는 크기. 프리팹은 넓이 기준으로 맞춰 두고, 놓이는 자리(싱크대 · 그릴 · 접시) 크기는 단계마다 여기서.")]
+        [SerializeField, Min(0.01f)] private float clamScale = 1f;
+
+        [Tooltip("(+10/6) 닦는 동안 잠시 끌 것 — 개수대 안에 놓인 장식 접시처럼 조개 자리를 가리는 씬 오브젝트. 끝나면 원래대로 켠다.")]
+        [SerializeField] private GameObject[] hideWhileScrubbing;
+        private readonly List<GameObject> _hidden = new();
+
         [Tooltip("모든 자리가 같은 조개일 때. 0번이 가장 더러운 것, 마지막이 깨끗한 것. 둘 다 비우면 임시 모양(납작한 구 · 색).")]
         [SerializeField] private GameObject[] stagePrefabs;
 
@@ -152,6 +159,11 @@ namespace Marea.Cooking
                 ShowStage(clam);
                 clam.Hit = MakeHitBox(clam);
             }
+
+            // (+10/6) 켜져 있던 것만 끄고 기억한다 — 원래 꺼져 있던 걸 끝날 때 켜 버리지 않게.
+            if (hideWhileScrubbing != null)
+                foreach (GameObject go in hideWhileScrubbing)
+                    if (go != null && go.activeSelf) { go.SetActive(false); _hidden.Add(go); }
 
             _timeLeft = timeLimit;
             IsFinished = false;
@@ -278,6 +290,7 @@ namespace Marea.Cooking
             if (clam.Prefabs != null && clam.Stage < clam.Prefabs.Length && clam.Prefabs[clam.Stage] != null)
             {
                 go = Instantiate(clam.Prefabs[clam.Stage], clam.Slot.position, clam.Slot.rotation, transform);
+                go.transform.localScale *= clamScale;   // (+10/6)
             }
             else
             {
@@ -322,13 +335,22 @@ namespace Marea.Cooking
             _running = false;
             IsFinished = true;
             _wash.Stop();
+            // (+10/6) 숨긴 접시는 여기서 안 켠다 — 끝나고도 stepTransitionDelay 동안 싱크대 화면이라 다시 보인다.
+            // 2단계가 시작되며 이 패널이 꺼질 때(OnDisable) 켠다.
         }
 
         private void OnDisable()
         {
             _running = false;
             _wash.Stop();
+            ShowHidden();
             Cleanup();
+        }
+
+        private void ShowHidden()
+        {
+            foreach (GameObject go in _hidden) if (go != null) go.SetActive(true);
+            _hidden.Clear();
         }
 
         private void Cleanup()

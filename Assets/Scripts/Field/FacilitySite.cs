@@ -62,6 +62,16 @@ namespace Marea.Field
         [Tooltip("카메라가 이 시간 안에 못 오면(카메라가 다른 데 붙잡혀 있는 등) 기다리지 않고 진행한다.")]
         [SerializeField, Min(0.1f)] private float arriveTimeout = 2f;
 
+        // (+10/6) 농사 데크 — 다리에서 한 번, 열린 데크에서 한 번. 비우면 예전처럼 한 번에 바뀐다.
+        [Header("해금 단계 (+10/6) — 비우면 한 번에")]
+        [Tooltip("해금을 여러 번에 나눠 보여준다. 단계마다 카메라가 그 부품으로 가서 이펙트와 함께 켠다. "
+               + "부품은 builtVisual 안의 자식이어야 한다. 밭 칸은 마지막 단계에 같이 켜진다.")]
+        [SerializeField] private GameObject[] revealSteps;
+        [Tooltip("두 번째 단계부터 — 카메라가 도착한 뒤 켜기까지(초). 첫 단계는 lookHold + revealDelay.")]
+        [SerializeField, Min(0f)] private float stepDelay = 0.5f;
+        [Tooltip("단계 사이 — 앞 단계 이펙트를 보여주고 다음 부품으로 넘어가기까지(초).")]
+        [SerializeField, Min(0f)] private float stepGap = 1f;
+
         private FacilityLevels _levels;
         private Coroutine _reveal;
         private CameraFollow _revealCam;
@@ -76,7 +86,16 @@ namespace Marea.Field
             if (brokenVisual == null || builtVisual == null)
                 Debug.LogError($"{name}: FacilitySite의 brokenVisual·builtVisual 중 비어 있는 게 있다. "
                              + "해금해도 모습이 안 바뀐다.", this);
+
+            // (+10/6) builtVisual 밖의 부품은 해금 전에도 켜져 있어서 단계 연출이 거짓말이 된다.
+            if (revealSteps != null && builtVisual != null)
+                foreach (GameObject part in revealSteps)
+                    if (part == null || !part.transform.IsChildOf(builtVisual.transform))
+                        Debug.LogError($"{name}: revealSteps의 '{(part != null ? part.name : "빈 칸")}'이 builtVisual 안에 없다. "
+                                     + "그 단계는 켜고 끄지 못한다.", this);
         }
+
+        private bool HasSteps => revealSteps != null && revealSteps.Length > 0;
 
         // FacilityLevels.Awake가 표를 만든 뒤라야 IsUnlocked가 맞는 값을 준다.
         private void Start()
@@ -124,7 +143,8 @@ namespace Marea.Field
         private void HandleUnlocked(FacilityKind changed)
         {
             if (changed != kind) return;
-            StartReveal(BoundsOf(brokenVisual != null && brokenVisual.activeInHierarchy ? brokenVisual : gameObject).center);
+            if (HasSteps) StartReveal(RevealSteps());
+            else StartReveal(Reveal(BoundsOf(brokenVisual != null && brokenVisual.activeInHierarchy ? brokenVisual : gameObject).center));
         }
 
         // (+10/6) 새 칸이 생기는 레벨업만 연출한다. 수치만 오르는 레벨업은 예전처럼 그 자리에서 이펙트.
@@ -137,14 +157,14 @@ namespace Marea.Field
             int target = _levels.IsUnlocked(kind) ? Mathf.Min(TargetSlots(), levelSlots?.Length ?? 0) : 0;
             if (target > shown)
             {
-                StartReveal(CenterOfSlots(shown, target));
+                StartReveal(Reveal(CenterOfSlots(shown, target)));
                 return;
             }
             Refresh();
             PlayDone();
         }
 
-        private void StartReveal(Vector3 focusPoint)
+        private void StartReveal(IEnumerator routine)
         {
             if (_reveal != null) return;   // 이미 도는 중 — 끝에서 Refresh가 최신 상태를 읽는다
 
@@ -166,24 +186,57 @@ namespace Marea.Field
             if (_revealPlayer == null)
                 Debug.LogError($"{name}: 씬에 PlayerController가 없다. 해금 연출 중 입력을 못 막는다.", this);
 
-            _reveal = StartCoroutine(Reveal(focusPoint));
+            if (_revealPlayer != null) _revealPlayer.BeginBusy();
+            _reveal = StartCoroutine(routine);
+        }
+
+        // 날아가는 시간은 1초에 안 넣는다 — 도착부터 잰다.
+        private IEnumerator FlyTo(Vector3 point)
+        {
+            _revealCam.FocusOn(point);
+            for (float t = 0f; !_revealCam.IsAtFocus && t < arriveTimeout; t += Time.deltaTime)
+                yield return null;
         }
 
         private IEnumerator Reveal(Vector3 focusPoint)
         {
-            if (_revealPlayer != null) _revealPlayer.BeginBusy();
-            _revealCam.FocusOn(focusPoint);
-
-            // 날아가는 시간은 1초에 안 넣는다 — 도착부터 잰다.
-            for (float t = 0f; !_revealCam.IsAtFocus && t < arriveTimeout; t += Time.deltaTime)
-                yield return null;
-
+            yield return FlyTo(focusPoint);
             yield return new WaitForSeconds(lookHold + revealDelay);
             Refresh();
             PlayDone();
             yield return new WaitForSeconds(afterReveal);
 
             EndReveal();
+        }
+
+        /// <summary>
+        /// (+10/6) 단계별 해금 — 부품마다 카메라가 가서 이펙트와 함께 켠다. 마지막 단계에서 나머지(밭 칸)까지 Refresh로 맞춘다.
+        /// 부품은 아직 꺼져 있어 렌더러 상자가 비므로 메시 상자로 초점을 잡는다.
+        /// </summary>
+        private IEnumerator RevealSteps()
+        {
+            int last = revealSteps.Length - 1;
+            for (int i = 0; i <= last; i++)
+            {
+                GameObject part = revealSteps[i];
+                yield return FlyTo(part != null ? MeshBounds(part).center : transform.position);
+                yield return new WaitForSeconds(i == 0 ? lookHold + revealDelay : stepDelay);
+
+                ShowStep(i);
+                PlayDoneAt(part != null ? BoundsOf(part) : BoundsOf(builtVisual != null ? builtVisual : gameObject));
+                yield return new WaitForSeconds(i < last ? stepGap : afterReveal);
+            }
+            EndReveal();
+        }
+
+        /// <summary>i번 단계까지 켠다. 마지막이면 Refresh — 해금 상태 그대로(밭 칸 포함).</summary>
+        private void ShowStep(int i)
+        {
+            if (i >= revealSteps.Length - 1) { Refresh(); return; }
+            if (brokenVisual != null) brokenVisual.SetActive(false);
+            if (builtVisual != null) builtVisual.SetActive(true);
+            for (int j = 0; j < revealSteps.Length; j++)
+                if (revealSteps[j] != null) revealSteps[j].SetActive(j <= i);
         }
 
         private void EndReveal()
@@ -203,8 +256,10 @@ namespace Marea.Field
         /// 「완성 시설이 잘 보이도록 제한」(기획) — 크기는 시설 폭에 맞추되 상한을 둔다.
         /// </summary>
         private void PlayDone()
+            => PlayDoneAt(BoundsOf(builtVisual != null && builtVisual.activeInHierarchy ? builtVisual : gameObject));
+
+        private void PlayDoneAt(Bounds b)
         {
-            Bounds b = BoundsOf(builtVisual != null && builtVisual.activeInHierarchy ? builtVisual : gameObject);
             float size = Mathf.Clamp(Mathf.Max(b.extents.x, b.extents.z), 1f, 4f) * vfxScale;
             Vfx.Play(dustVfx, new Vector3(b.center.x, b.min.y, b.center.z), size);
             Vfx.Play(doneVfx, b.center + Vector3.up * b.extents.y * 0.5f, size);
@@ -222,6 +277,29 @@ namespace Marea.Field
                 if (!has) { b = r.bounds; has = true; }
                 else b.Encapsulate(r.bounds);
             }
+            return b;
+        }
+
+        /// <summary>(+10/6) 꺼져 있어도 되는 상자 — 메시 상자를 월드로 옮겨 감싼다. 메시가 없으면 그 자리.</summary>
+        private static Bounds MeshBounds(GameObject go)
+        {
+            Bounds b = new Bounds(go.transform.position, Vector3.zero);
+            bool has = false;
+            void Add(Mesh mesh, Transform t)
+            {
+                if (mesh == null) return;
+                Bounds lb = mesh.bounds;
+                for (int k = 0; k < 8; k++)
+                {
+                    Vector3 corner = lb.center + Vector3.Scale(lb.extents,
+                        new Vector3((k & 1) == 0 ? -1 : 1, (k & 2) == 0 ? -1 : 1, (k & 4) == 0 ? -1 : 1));
+                    Vector3 w = t.TransformPoint(corner);
+                    if (!has) { b = new Bounds(w, Vector3.zero); has = true; }
+                    else b.Encapsulate(w);
+                }
+            }
+            foreach (MeshFilter f in go.GetComponentsInChildren<MeshFilter>(true)) Add(f.sharedMesh, f.transform);
+            foreach (SkinnedMeshRenderer r in go.GetComponentsInChildren<SkinnedMeshRenderer>(true)) Add(r.sharedMesh, r.transform);
             return b;
         }
 
@@ -254,6 +332,10 @@ namespace Marea.Field
         {
             if (brokenVisual != null) brokenVisual.SetActive(!unlocked);
             if (builtVisual != null) builtVisual.SetActive(unlocked);
+            // (+10/6) 단계 연출이 중간에 끈 부품을 해금 상태에선 다 켠다. 잠긴 동안은 builtVisual째 꺼져 있어 손대지 않는다.
+            if (unlocked && revealSteps != null)
+                foreach (GameObject part in revealSteps)
+                    if (part != null) part.SetActive(true);
 
             if (levelSlots == null) return;
 

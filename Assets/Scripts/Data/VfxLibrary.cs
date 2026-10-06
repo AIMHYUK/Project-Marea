@@ -25,6 +25,53 @@ namespace Marea.Data
         Fail = 13,          // VFX_13 충돌 폭발 — 실패 · 떨어뜨림
 
         SparkleHigh = 102,  // VFX_02 고급 — 높은 등급 · 금빛 (정리 시트 02-2)
+
+        // ── (+10/6) 테스트용 — 스튜가 연기에 가려 어둡게 보이는 문제로 연기 · 불 후보를 다 꽂아 본다.
+        //    인스펙터에서 steamVfx · burnerVfx 같은 칸을 바꿔 보고 고르면, 고른 프리팹을 위 공용 ID에 옮기고 이 줄들은 지운다.
+        //    날아가는 불(Fireball · Fire Breath · Fire Trail · Fire Ring) · 폭발 연기(Explosion)는 화구 · 증기에 안 맞아 뺐다.
+        SmokeGasLeak = 201,             // CFXR Gas Leak (커밋된 VFX_03)
+        SmokeGasLeakStew = 202,         // CFXR Gas Leak_Stew (사용자 편집본, 지금 VFX_03에 꽂혀 있음)
+        SmokePoof = 203,
+        SmokePoofAlt = 204,
+        SmokePoofDense = 205,
+        SmokePoofCircleFlat = 206,
+        SmokePoofCircleScreen = 207,
+        SmokeSource3D = 208,
+        SmokeSource3DEdit = 209,        // CFXR Smoke Source 3D_edit (사용자 편집본)
+        SmokeSourceSpiral = 210,
+        SmokeSourceSpiral3D = 211,
+        SmokeSoupSimmer = 212,          // Prefabs/Minigame/Stew/SoupSimmer_Steam (프로젝트 것)
+
+        Fire = 301,                     // CFXR Fire (커밋된 VFX_01)
+        FirePlain = 302,
+        FireCrisp = 303,
+        FireCircle = 304,
+        FireLine = 305,
+        FirePlainCircle = 306,
+        FirePlainLine = 307,
+        FireCrispCircle = 308,
+        FireCrispLine = 309,
+        FireDistortion = 310,           // CFXR Fire + Screen Distortion
+        FlameBasic = 311,               // CFXR Flame — 공용 Flame(=1)과 이름이 겹쳐서
+        FlameCalm = 312,
+        FlameCalmFine = 313,
+        FlameFine = 314,
+        FlameUnstable = 315,
+        FlameUnstableFine = 316,
+        FlamePlain = 321,
+        FlamePlainCalm = 322,
+        FlamePlainCalmFine = 323,
+        FlamePlainFine = 324,
+        FlamePlainUnstable = 325,
+        FlamePlainUnstableFine = 326,
+        FlameCrisp = 331,               // 지금 VFX_01에 꽂혀 있음(사용자 변경)
+        FlameCrispCalm = 332,
+        FlameCrispCalmFine = 333,
+        FlameCrispFine = 334,
+        FlameCrispUnstable = 335,
+        FlameCrispUnstableFine = 336,
+        FlameCandle = 341,
+        FlameCandleUnstable = 342,
     }
 
     /// <summary>

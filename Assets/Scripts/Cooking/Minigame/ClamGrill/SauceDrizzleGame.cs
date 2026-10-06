@@ -35,6 +35,8 @@ namespace Marea.Cooking
 
         [Tooltip("줄기 끝이 이 반경(m) 안이면 조개 위다.")]
         [SerializeField, Min(0.01f)] private float targetRadius = 0.12f;
+        [Tooltip("(+10/6) 조개 모습에 곱하는 크기. 프리팹은 넓이 기준으로 맞춰 두고 접시 크기에 맞춘다.")]
+        [SerializeField, Min(0.01f)] private float clamScale = 1f;
 
         [Tooltip("조개 하나에 이만큼(초) 뿌리면 묻은 것으로 친다.")]
         [SerializeField, Min(0.05f)] private float coatSeconds = 0.5f;
@@ -153,6 +155,7 @@ namespace Marea.Cooking
                 t.Visual = prefab != null
                     ? Instantiate(prefab, anchor.position, anchor.rotation, transform)
                     : MakePlaceholder(anchor);
+                if (prefab != null) t.Visual.transform.localScale *= clamScale;   // (+10/6)
                 StripColliders(t.Visual);
                 _targets.Add(t);
             }
@@ -273,6 +276,7 @@ namespace Marea.Cooking
                 {
                     Destroy(tg.Visual);
                     tg.Visual = Instantiate(coated, tg.Anchor.position, tg.Anchor.rotation, transform);
+                    tg.Visual.transform.localScale *= clamScale;   // (+10/6)
                     StripColliders(tg.Visual);
                 }
                 else

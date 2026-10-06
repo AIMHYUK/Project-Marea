@@ -75,6 +75,22 @@ namespace Marea.Cooking
 
         private VfxLoop _burner, _steam;
         private SoundLoop _boil;
+        private bool _ambienceOn;   // (+10/6) 디버거가 "지금 도는 중이면 갈아 끼운다"를 판단할 때 본다
+
+        public VfxId SteamVfx => steamVfx;
+        public VfxId BurnerVfx => burnerVfx;
+        public bool AmbienceOn => _ambienceOn;
+
+        /// <summary>
+        /// (+10/6) 개발용 — StewVfxDebug가 부른다. 증기 · 화구 효과를 바꾸고, 미니게임 중이면 그 자리에서 다시 띄운다.
+        /// 프리팹 값은 안 바꾼다(플레이를 끄면 원래대로).
+        /// </summary>
+        public void DebugSetAmbience(VfxId steam, VfxId burner)
+        {
+            steamVfx = steam;
+            burnerVfx = burner;
+            if (_ambienceOn) StartAmbience();
+        }
 
         private MenuData _targetMenu;
         private Action<CookingResult> _onCompleteCallback;
@@ -296,6 +312,7 @@ namespace Marea.Cooking
         private void StartAmbience()
         {
             StopAmbience();
+            _ambienceOn = true;
             _boil = SoundManager.PlayLoop(boilLoop, boilVolume);   // (+10/6)
             if (stewPot == null) return;
             Bounds b = new Bounds(stewPot.transform.position, Vector3.zero);
@@ -316,6 +333,7 @@ namespace Marea.Cooking
             _burner.Stop();
             _steam.Stop();
             _boil.Stop();
+            _ambienceOn = false;
         }
 
         private IEnumerator ShowResultRoutine(CookingResult result)

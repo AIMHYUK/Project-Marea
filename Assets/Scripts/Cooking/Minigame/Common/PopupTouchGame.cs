@@ -80,6 +80,9 @@ namespace Marea.Cooking
         /// <summary>(+10/6) 고정 슬롯 자리. 컨트롤러가 그릴 위치를 잡을 때 읽는다(불꽃 · 증기).</summary>
         public IReadOnlyList<Transform> SlotAnchors => slots;
 
+        [Tooltip("(+10/6) 슬롯 모습에 곱하는 크기 — 조개구이 그릴 위 조개. 프리팹은 넓이 기준으로 맞춰 두고 자리 크기는 여기서.")]
+        [SerializeField, Min(0.01f)] private float slotScale = 1f;
+
         [Tooltip("열리기 전 모습(닫힌 조개). 비우면 임시 모양.")]
         [SerializeField] private GameObject idlePrefab;
 
@@ -325,7 +328,16 @@ namespace Marea.Cooking
                 {
                     sl.State = SlotState.Open;
                     sl.OpenedAt = _elapsed;
-                    ShowSlot(sl, Pick(slotOpenPrefabs, sl.Index, popupPrefab), openColor, true);
+                    // (+10/6) 여는 연출이 있는 조개는 그 자리에서 연다 — 가리비는 뚜껑만(그대로 둠), 전복은 뒤집힌 뒤 열린 모습으로 갈아 끼운다.
+                    // 누르는 건 연출 중에도 된다(반응 시간은 지금부터 잰다).
+                    ClamOpener opener = sl.Visual != null ? sl.Visual.GetComponentInChildren<ClamOpener>() : null;
+                    if (opener != null)
+                    {
+                        if (sl.Col != null) sl.Col.enabled = true;
+                        Slot opening = sl;
+                        opener.Open(opener.ReplaceWhenDone ? () => ReplaceWhenOpened(opening) : null);
+                    }
+                    else ShowSlot(sl, Pick(slotOpenPrefabs, sl.Index, popupPrefab), openColor, true);
                     SoundManager.Play(appearClip, appearVolume, 0.1f);   // (+10/6)
                 }
                 else if (sl.State == SlotState.Open && _elapsed - sl.OpenedAt > reactionWindow)
@@ -376,6 +388,13 @@ namespace Marea.Cooking
             }
         }
 
+        /// <summary>(+10/6) 여는 연출이 끝났을 때 — 아직 열린 채(안 눌렀고 안 탔다)일 때만 열린 모습으로 갈아 끼운다.</summary>
+        private void ReplaceWhenOpened(Slot sl)
+        {
+            if (sl.State != SlotState.Open || !_slots.Contains(sl)) return;
+            ShowSlot(sl, Pick(slotOpenPrefabs, sl.Index, popupPrefab), openColor, true);
+        }
+
         /// <summary>슬롯 모습을 갈아 끼운다. 프리팹이 없으면 납작한 구에 색.</summary>
         private void ShowSlot(Slot sl, GameObject prefab, Color placeholderColor, bool clickable)
         {
@@ -385,6 +404,7 @@ namespace Marea.Cooking
             if (prefab != null)
             {
                 go = Instantiate(prefab, sl.Anchor.position, sl.Anchor.rotation, transform);
+                go.transform.localScale *= slotScale;   // (+10/6)
             }
             else
             {

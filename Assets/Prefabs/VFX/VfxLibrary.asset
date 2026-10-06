@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.VfxLibrary
   entries:
   - id: 1
-    prefab: {fileID: 6294508013172393196, guid: 043176b6a68be2b43b073aaaa4782c7d, type: 3}
+    prefab: {fileID: 8472909211152734771, guid: 58edebfc2a47aba4a887d699566eb4ad, type: 3}
     scale: 0.35
     tint: {r: 1, g: 1, b: 1, a: 1}
     note: "VFX_01 \uC791\uC740 \uBD88\uAF43 \u2014 \uD654\uAD6C\xB7\uADF8\uB9B4.
@@ -32,9 +32,9 @@ MonoBehaviour:
     note: "VFX_02 \uACE0\uAE09 \uBC18\uC9DD\uC784 \u2014 \uB192\uC740 \uB4F1\uAE09
       (\uC815\uB9AC \uC2DC\uD2B8 02-2)"
   - id: 3
-    prefab: {fileID: 1695191526168693321, guid: a0a1803193f53814fb46f639dc12d8c2, type: 3}
-    scale: 0.5
-    tint: {r: 1, g: 1, b: 1, a: 0.6}
+    prefab: {fileID: 8656522925564163052, guid: 115ba6bcd5c17a443ab7455ecd57b9f5, type: 3}
+    scale: 1
+    tint: {r: 1, g: 1, b: 1, a: 0.2509804}
     note: "VFX_03 \uD770 \uC99D\uAE30 \u2014 \uC587\uACE0 \uBD80\uB4DC\uB7FD\uAC8C.
       \uC74C\uC2DD\xB7\uC785\uB825 \uAC00\uC774\uB4DC\uB97C \uAC00\uB9AC\uC9C0 \uC54A\uAC8C
       \uC54C\uD30C \uB0AE\uCDA4."
@@ -86,3 +86,218 @@ MonoBehaviour:
     scale: 0.35
     tint: {r: 1, g: 1, b: 1, a: 1}
     note: "VFX_13 \uC2E4\uD328\xB7\uB5A8\uC5B4\uB728\uB9BC"
+  - id: 13
+    prefab: {fileID: 5880797563127281583, guid: 265d3a5ba69981a4698ceabcedf368b0, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "VFX_13 \uC2E4\uD328\xB7\uB5A8\uC5B4\uB728\uB9BC"
+  - id: 201
+    prefab: {fileID: 1695191526168693321, guid: a0a1803193f53814fb46f639dc12d8c2, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Gas Leak"
+  - id: 202
+    prefab: {fileID: 1695191526168693321, guid: c2487af8d103cdf45844d5443be4c3b6, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Gas Leak_Stew"
+  - id: 203
+    prefab: {fileID: 395031058680739610, guid: b2f0b8902a31c8a46a1c4bb24ed9ea36, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Smoke Poof"
+  - id: 204
+    prefab: {fileID: 1688076354444117600, guid: f0ad7a5f1c59e164aa62b3689281c0f8, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Smoke Poof Alt"
+  - id: 205
+    prefab: {fileID: 1597686569084602476, guid: 78ee1fc7beb65da41ad23fc1c2e427b9, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Smoke Poof (Dense)"
+  - id: 206
+    prefab: {fileID: 481947888716730270, guid: b4f04d135faa2bc42b6a131603b9e813, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Smoke Poof Circle Flat"
+  - id: 207
+    prefab: {fileID: 4301057783707249758, guid: 74ccf31d718fbea49a5c201d4b7c5af2, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Smoke Poof Circle Screen"
+  - id: 208
+    prefab: {fileID: 8656522925564163052, guid: e509867be4f82f246a95eca1ee5a2d61, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Smoke Source 3D"
+  - id: 209
+    prefab: {fileID: 8656522925564163052, guid: 115ba6bcd5c17a443ab7455ecd57b9f5, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Smoke Source 3D_edit"
+  - id: 210
+    prefab: {fileID: 4093843839106411717, guid: 67965e7702c053d4384c60ca98873fe7, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Smoke Source Spiral"
+  - id: 211
+    prefab: {fileID: 8656522925564163052, guid: d618707dc03cd0649a29d9fd2964a3d9, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Smoke Source Spiral 3D"
+  - id: 212
+    prefab: {fileID: 602928418530455177, guid: de9fc4bb657a2bf4f9b8c0ee896c5853, type: 3}
+    scale: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 SoupSimmer_Steam"
+  - id: 301
+    prefab: {fileID: 6294508013172393196, guid: 043176b6a68be2b43b073aaaa4782c7d, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Fire"
+  - id: 302
+    prefab: {fileID: 4784697908349020703, guid: 49579f62da0aee447a31081859650b38, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Fire Plain"
+  - id: 303
+    prefab: {fileID: 2421574060677634809, guid: c60357c46a159754eba03905357f7e16, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Fire Crisp"
+  - id: 304
+    prefab: {fileID: 2582430159885675525, guid: bcc074927ac10b2418c810175c149a32, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Fire (circle)"
+  - id: 305
+    prefab: {fileID: 6289083642670543003, guid: 81ee569a85623724b90d580e6cceffaf, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Fire (line)"
+  - id: 306
+    prefab: {fileID: 1099996207167655866, guid: 716df017d35e81e4eb65b9465a6a3cf0, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Fire Plain (circle)"
+  - id: 307
+    prefab: {fileID: 249039486040399095, guid: bf1058f0d86d77949bd7e9408e31a800, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Fire Plain (line)"
+  - id: 308
+    prefab: {fileID: 8721083536024371823, guid: 2290d3e650d0e654eb25f8b7cfd06c15, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Fire Crisp (circle)"
+  - id: 309
+    prefab: {fileID: 844719500402404469, guid: 22681795ad6c3e2469debe19939b74d3, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Fire Crisp (line)"
+  - id: 310
+    prefab: {fileID: 8203709440716365095, guid: d9175d1b93ed82541bf9d05667978a1e, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Fire + Screen Distortion"
+  - id: 311
+    prefab: {fileID: 2421226186157800132, guid: af304c622ca86a045a1280a5154d2bb1, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame"
+  - id: 312
+    prefab: {fileID: 8818964782298714928, guid: bc80a59138aeb0a4d81bb48165bfc8bb, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame (calm)"
+  - id: 313
+    prefab: {fileID: 4171128305689061520, guid: 80d22dd62228ce342a4884d2eaec1bb9, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame (calm, fine)"
+  - id: 314
+    prefab: {fileID: 6143352032927436564, guid: 476867b86a1f2a44191481bea8d3be04, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame (fine)"
+  - id: 315
+    prefab: {fileID: 635707360471444879, guid: 2908fde47719ace4e859dce7814bd442, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame (unstable)"
+  - id: 316
+    prefab: {fileID: 2842798192728658127, guid: e221fbb1bddb1fe4595661b7ebcbaec2, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame (unstable, fine)"
+  - id: 321
+    prefab: {fileID: 1098160956081438697, guid: d1e625b78e1411e47aacc48bb3e7015b, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Plain"
+  - id: 322
+    prefab: {fileID: 3843061204572705818, guid: 1163cc26635f4b242b13d2677ca001e1, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Plain (calm)"
+  - id: 323
+    prefab: {fileID: 7556107611002657901, guid: 2addd25a21e750b448029183e8378645, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Plain (calm, fine)"
+  - id: 324
+    prefab: {fileID: 8086622670806260380, guid: a8a882ff3072d7c40a0f24cfa7344312, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Plain (fine)"
+  - id: 325
+    prefab: {fileID: 2776249002573902959, guid: f383cd0abae91634cb00a4c07ba4c8b8, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Plain (unstable)"
+  - id: 326
+    prefab: {fileID: 1499886220577752690, guid: b9a77f5c0fc6cee4abe387ab505e39c0, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Plain (unstable, fine)"
+  - id: 331
+    prefab: {fileID: 8472909211152734771, guid: 58edebfc2a47aba4a887d699566eb4ad, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Crisp"
+  - id: 332
+    prefab: {fileID: 1408651921425439353, guid: c32efec7d8472954393144b3d047db4b, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Crisp (calm)"
+  - id: 333
+    prefab: {fileID: 3561656763626378486, guid: e16894692fdf0d14980194b1c4a79886, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Crisp (calm, fine)"
+  - id: 334
+    prefab: {fileID: 1194429359967562488, guid: fe265579c887720459978a06d9d8a103, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Crisp (fine)"
+  - id: 335
+    prefab: {fileID: 1285573236619351809, guid: a9776c87680a0b14bbe15bd2b00d27b6, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Crisp (unstable)"
+  - id: 336
+    prefab: {fileID: 2135673965668040432, guid: 5f8c79e4d4cd6d342884a635e89b4b9c, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Crisp (unstable, fine)"
+  - id: 341
+    prefab: {fileID: 5573095971081480757, guid: 02d157e67c082bb4f9ddfb67d0b86d46, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Candle"
+  - id: 342
+    prefab: {fileID: 3440604648953100428, guid: 46b5ef140d3205946af692bbf7766d9a, type: 3}
+    scale: 0.35
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    note: "\uD14C\uC2A4\uD2B8 (+10/6) \u2014 CFXR Flame Candle (unstable)"
