@@ -1,6 +1,9 @@
+using System.Collections;
+using System.Collections.Generic;
 using Marea.Core;
 using Marea.Economy;
 using Marea.Data;
+using Marea.Player;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -43,8 +46,27 @@ namespace Marea.Field
         [SerializeField] private VfxId doneVfx = VfxId.Sparkle;
         [Tooltip("효과 크기 배율. 시설 크기에 맞춰 자동으로 키운 값에 곱한다.")]
         [SerializeField, Min(0.1f)] private float vfxScale = 1f;
+        [Tooltip("(+10/6) 모습이 바뀌는 순간 \"뚝딱/쿵\" 설치음. 기획 UPG-02 sfx_upgrade_apply. 비우면 조용하다.")]
+        [SerializeField] private AudioClip doneClip;
+        [SerializeField, Range(0f, 1f)] private float doneVolume = 0.9f;
+
+        // (+10/6, 이슈 117) 해금 · 새 칸이 생기는 레벨업 — 카메라가 와서 보고, 그다음 바뀐다.
+        // 순서: 카메라 이동(시간 제한만 있음) → 도착 → lookHold → revealDelay → 이펙트 + 모양 변경 → afterReveal → 복귀.
+        [Header("해금 연출 (+10/6, 이슈 117)")]
+        [Tooltip("카메라가 도착한 뒤 바뀌기 전 모습을 보여주는 시간.")]
+        [SerializeField, Min(0f)] private float lookHold = 0.3f;
+        [Tooltip("그다음 이펙트 · 모양 변경까지 더 기다리는 시간.")]
+        [SerializeField, Min(0f)] private float revealDelay = 0.0f;
+        [Tooltip("바뀐 뒤 플레이어로 돌아가기 전까지 보여주는 시간.")]
+        [SerializeField, Min(0f)] private float afterReveal = 1f;
+        [Tooltip("카메라가 이 시간 안에 못 오면(카메라가 다른 데 붙잡혀 있는 등) 기다리지 않고 진행한다.")]
+        [SerializeField, Min(0.1f)] private float arriveTimeout = 2f;
 
         private FacilityLevels _levels;
+        private Coroutine _reveal;
+        private CameraFollow _revealCam;
+        private PlayerController _revealPlayer;
+        private readonly List<UiPanel> _hiddenPanels = new();
 
         /// <summary>이 실물이 어느 시설인가. 해금 클릭(FacilityUnlockClick)이 읽는다.</summary>
         public FacilityKind Kind => kind;
@@ -82,6 +104,16 @@ namespace Marea.Field
             Refresh();
         }
 
+        // 연출 도중 꺼지면 카메라 · 플레이어를 놓아주고, 미뤄둔 모양 변경을 바로 적용한다.
+        // 안 그러면 플레이어가 잠긴 채로 남고 카메라가 시설만 본다.
+        private void OnDisable()
+        {
+            if (_reveal == null) return;
+            StopCoroutine(_reveal);
+            EndReveal();
+            if (_levels != null) Refresh();
+        }
+
         private void OnDestroy()
         {
             if (_levels == null) return;
@@ -92,15 +124,78 @@ namespace Marea.Field
         private void HandleUnlocked(FacilityKind changed)
         {
             if (changed != kind) return;
+            StartReveal(BoundsOf(brokenVisual != null && brokenVisual.activeInHierarchy ? brokenVisual : gameObject).center);
+        }
+
+        // (+10/6) 새 칸이 생기는 레벨업만 연출한다. 수치만 오르는 레벨업은 예전처럼 그 자리에서 이펙트.
+        private void HandleLevelChanged(FacilityKind changed, int level)
+        {
+            if (changed != kind) return;
+            if (_reveal != null) return;   // 연출 중 — 끝날 때 Refresh가 최신 상태를 읽는다
+
+            int shown = ActiveSlotCount();
+            int target = _levels.IsUnlocked(kind) ? Mathf.Min(TargetSlots(), levelSlots?.Length ?? 0) : 0;
+            if (target > shown)
+            {
+                StartReveal(CenterOfSlots(shown, target));
+                return;
+            }
             Refresh();
             PlayDone();
         }
 
-        private void HandleLevelChanged(FacilityKind changed, int level)
+        private void StartReveal(Vector3 focusPoint)
         {
-            if (changed != kind) return;
+            if (_reveal != null) return;   // 이미 도는 중 — 끝에서 Refresh가 최신 상태를 읽는다
+
+            _revealCam = Camera.main != null ? Camera.main.GetComponent<CameraFollow>() : null;
+            if (_revealCam == null)
+            {
+                // 연출만 빠지고 해금은 보여야 한다 — 여기서 멈추면 시설이 영영 안 바뀐다.
+                Debug.LogError($"{name}: MainCamera에 CameraFollow가 없다. 해금 연출 없이 바로 바꾼다.", this);
+                Refresh();
+                PlayDone();
+                return;
+            }
+            // (+10/6) 열린 창은 가렸다가 연출이 끝나면 되돌린다 — 창이 화면을 가리면 연출이 안 보인다.
+            // 닫지 않고 가리는 이유는 UiPanel.Suspend 주석.
+            foreach (UiPanel panel in FindObjectsByType<UiPanel>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (panel.IsVisible) { panel.Suspend(); _hiddenPanels.Add(panel); }
+
+            _revealPlayer = FindAnyObjectByType<PlayerController>();
+            if (_revealPlayer == null)
+                Debug.LogError($"{name}: 씬에 PlayerController가 없다. 해금 연출 중 입력을 못 막는다.", this);
+
+            _reveal = StartCoroutine(Reveal(focusPoint));
+        }
+
+        private IEnumerator Reveal(Vector3 focusPoint)
+        {
+            if (_revealPlayer != null) _revealPlayer.BeginBusy();
+            _revealCam.FocusOn(focusPoint);
+
+            // 날아가는 시간은 1초에 안 넣는다 — 도착부터 잰다.
+            for (float t = 0f; !_revealCam.IsAtFocus && t < arriveTimeout; t += Time.deltaTime)
+                yield return null;
+
+            yield return new WaitForSeconds(lookHold + revealDelay);
             Refresh();
             PlayDone();
+            yield return new WaitForSeconds(afterReveal);
+
+            EndReveal();
+        }
+
+        private void EndReveal()
+        {
+            if (_revealCam != null) _revealCam.ClearFocus();
+            if (_revealPlayer != null) _revealPlayer.EndBusy();
+            foreach (UiPanel panel in _hiddenPanels)
+                if (panel != null) panel.Resume();   // 그사이 진짜로 닫힌 창(해금 확인 창)은 Resume이 아무것도 안 한다
+            _hiddenPanels.Clear();
+            _revealCam = null;
+            _revealPlayer = null;
+            _reveal = null;
         }
 
         /// <summary>
@@ -109,7 +204,16 @@ namespace Marea.Field
         /// </summary>
         private void PlayDone()
         {
-            GameObject shown = builtVisual != null && builtVisual.activeInHierarchy ? builtVisual : gameObject;
+            Bounds b = BoundsOf(builtVisual != null && builtVisual.activeInHierarchy ? builtVisual : gameObject);
+            float size = Mathf.Clamp(Mathf.Max(b.extents.x, b.extents.z), 1f, 4f) * vfxScale;
+            Vfx.Play(dustVfx, new Vector3(b.center.x, b.min.y, b.center.z), size);
+            Vfx.Play(doneVfx, b.center + Vector3.up * b.extents.y * 0.5f, size);
+            SoundManager.Play(doneClip, doneVolume);   // (+10/6) 연출로 카메라가 와서 보고 있으니 화면 소리로
+        }
+
+        /// <summary>켜져 있는 렌더러를 다 감싼 상자. 꺼진 렌더러는 bounds가 비어 있어 못 쓴다.</summary>
+        private static Bounds BoundsOf(GameObject shown)
+        {
             Bounds b = new Bounds(shown.transform.position, Vector3.one);
             bool has = false;
             foreach (Renderer r in shown.GetComponentsInChildren<Renderer>())
@@ -118,14 +222,33 @@ namespace Marea.Field
                 if (!has) { b = r.bounds; has = true; }
                 else b.Encapsulate(r.bounds);
             }
-            float size = Mathf.Clamp(Mathf.Max(b.extents.x, b.extents.z), 1f, 4f) * vfxScale;
-            Vfx.Play(dustVfx, new Vector3(b.center.x, b.min.y, b.center.z), size);
-            Vfx.Play(doneVfx, b.center + Vector3.up * b.extents.y * 0.5f, size);
+            return b;
         }
 
+        // 새로 켜질 칸들은 아직 꺼져 있어 렌더러 상자를 못 쓴다 — 위치 평균으로 본다.
+        private Vector3 CenterOfSlots(int from, int to)
+        {
+            Vector3 sum = Vector3.zero;
+            int n = 0;
+            for (int i = from; i < to; i++)
+                if (levelSlots[i] != null) { sum += levelSlots[i].transform.position; n++; }
+            return n > 0 ? sum / n : transform.position;
+        }
+
+        private int ActiveSlotCount()
+        {
+            if (levelSlots == null) return 0;
+            int n = 0;
+            foreach (GameObject slot in levelSlots)
+                if (slot != null && slot.activeSelf) n++;
+            return n;
+        }
+
+        private int TargetSlots()
+            => baseSlots + Mathf.RoundToInt(_levels.EffectValue(kind, FacilityEffectType.FarmSlotAdd));
+
         private void Refresh()
-            => Apply(_levels.IsUnlocked(kind),
-                     baseSlots + Mathf.RoundToInt(_levels.EffectValue(kind, FacilityEffectType.FarmSlotAdd)));
+            => Apply(_levels.IsUnlocked(kind), TargetSlots());
 
         private void Apply(bool unlocked, int slots)
         {

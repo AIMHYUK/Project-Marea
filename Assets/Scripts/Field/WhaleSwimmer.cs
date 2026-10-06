@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Marea.Core;
 using UnityEngine;
 
 namespace Marea.Field
@@ -59,6 +60,11 @@ namespace Marea.Field
         [SerializeField, Range(0f, 10f)] private float bodyRock = 3f;
         [SerializeField, Range(0f, 40f)] private float finAmplitude = 20f;
         [SerializeField, Range(0f, 2f)] private float bobHeight = 0.35f;
+
+        [Header("소리 (+10/6, 이슈 117)")]
+        [Tooltip("수면까지 다 떠오른 순간 한 번 우는 소리. 고래가 멀리(최대 cameraRange) 나와서 화면 소리(2D)로 낸다.")]
+        [SerializeField] private AudioClip callClip;
+        [SerializeField, Range(0f, 1f)] private float callVolume = 1f;
 
         private Quaternion[] _spineBase;
         private Quaternion[] _finBase;
@@ -206,9 +212,11 @@ namespace Marea.Field
             // 떠오르기 + 헤엄 + 잠수를 한 줄기 이동으로 — 이동 내내 앞으로 간다.
             float swimDuration = total / swimSpeed;
             float t = 0f;
+            bool called = false;
             while (t < swimDuration)
             {
                 t += Time.deltaTime;
+                if (!called && t >= riseTime) { called = true; SoundManager.Play(callClip, callVolume); }   // (+10/6)
                 float along = Mathf.Clamp01(t / swimDuration);
                 Vector3 pos = Vector3.Lerp(a, b, along);
 

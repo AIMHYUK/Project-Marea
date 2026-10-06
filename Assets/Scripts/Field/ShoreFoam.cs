@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
 using Marea.Core;
 using Marea.Data;
+using Marea.Economy;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Marea.Field
 {
@@ -12,7 +15,11 @@ namespace Marea.Field
     /// 카메라 근처 · 화면 안에 있는 것 중 하나를 골라 가끔 거품을 낸다. 구조물을 새로 놓아도 따로 할 일이 없다.
     /// 작은 것(기둥)은 가운데, 큰 것(부두)은 둘레 아무 데서. 간헐적으로 작은 물방울도 튄다.
     ///
-    /// 찾는 건 refreshSeconds마다 다시 한다(움직이는 배 · 새로 지은 시설). 지형 · 물 자체처럼 큰 것은 maxSize로 뺀다.
+    /// 지형 · 물 자체처럼 큰 것은 maxSize로 뺀다.
+    ///
+    /// (+10/6) 찾기는 시작할 때 한 번, 그 뒤엔 시설이 해금 · 레벨업할 때만 다시 한다. 예전엔 10초마다 씬의
+    /// MeshRenderer를 전부 훑었다 — 아트 에셋이 많은 씬이라 그 프레임이 튄다. 바다에 닿는 구조물이 바뀌는 건
+    /// 시설 모습이 바뀔 때뿐이다(런타임에 생기는 구조물 없음, 움직이는 배는 처음 찾은 렌더러를 그대로 쓴다).
     /// </summary>
     public class ShoreFoam : MonoBehaviour
     {
@@ -28,17 +35,47 @@ namespace Marea.Field
         [SerializeField, Range(0f, 1f)] private float splashChance = 0.15f;
         [SerializeField] private VfxId foamVfx = VfxId.Wake;
         [SerializeField] private VfxId splashVfx = VfxId.Splash;
-        [SerializeField, Min(1f)] private float refreshSeconds = 10f;
+        [Tooltip("시설이 해금 · 레벨업한 뒤 이만큼 기다렸다 다시 찾는다(초). 해금 연출(카메라 이동 + 1.5초 뒤 모습 변경)보다 길어야 바뀐 모습을 잡는다.")]
+        [SerializeField, Min(0f)] private float recollectDelay = 5f;
 
         private readonly List<Renderer> _structures = new();
         private readonly List<Renderer> _visible = new();
-        private float _nextFoam, _nextRefresh;
+        private float _nextFoam;
+        private float _recollectAt = float.PositiveInfinity;   // 다시 찾기 예약. 없으면 무한대
+        private int _waterLayer;
+        private FacilityLevels _levels;
+
+        private void Awake() => _waterLayer = LayerMask.NameToLayer("Water");
+
+        // FacilitySite.Start가 처음 모습을 켠 뒤에 찾아야 한다 — 같은 Start 순서라 한 프레임 미룬다.
+        private void Start()
+        {
+            _recollectAt = 0f;
+            _levels = FacilityLevels.Instance;
+            if (_levels == null)
+            {
+                Debug.LogError($"{name}: 씬에 FacilityLevels가 없다. 시설이 바뀌어도 거품 자리를 다시 안 찾는다.", this);
+                return;
+            }
+            _levels.OnUnlocked += HandleUnlocked;
+            _levels.OnLevelChanged += HandleLevelChanged;
+        }
+
+        private void OnDestroy()
+        {
+            if (_levels == null) return;
+            _levels.OnUnlocked -= HandleUnlocked;
+            _levels.OnLevelChanged -= HandleLevelChanged;
+        }
+
+        private void HandleUnlocked(FacilityKind _) => _recollectAt = Time.time + recollectDelay;
+        private void HandleLevelChanged(FacilityKind _, int __) => _recollectAt = Time.time + recollectDelay;
 
         private void Update()
         {
-            if (Time.time >= _nextRefresh)
+            if (Time.time >= _recollectAt)
             {
-                _nextRefresh = Time.time + refreshSeconds;
+                _recollectAt = float.PositiveInfinity;
                 Collect();
             }
             if (Time.time < _nextFoam) return;
@@ -87,11 +124,13 @@ namespace Marea.Field
                 Bounds b = r.bounds;
                 if (b.min.y > seaLevel || b.max.y < seaLevel) continue;
                 if (b.size.x > maxSize || b.size.z > maxSize) continue;
-                if (r.gameObject.layer == LayerMask.NameToLayer("Water")) continue;
-                string n = r.name.ToLowerInvariant();
-                if (n.Contains("water") || n.Contains("sea") || n.Contains("ocean")) continue;
+                if (r.gameObject.layer == _waterLayer) continue;
+                string n = r.name;
+                if (Has(n, "water") || Has(n, "sea") || Has(n, "ocean")) continue;
                 _structures.Add(r);
             }
         }
+
+        private static bool Has(string s, string word) => s.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 }

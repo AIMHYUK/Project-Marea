@@ -329,7 +329,7 @@ MonoBehaviour:
   splashChance: 0.15
   foamVfx: 11
   splashVfx: 4
-  refreshSeconds: 10
+  recollectDelay: 5
 --- !u!1 &7809901502402275335
 GameObject:
   m_ObjectHideFlags: 0
@@ -340,6 +340,7 @@ GameObject:
   m_Component:
   - component: {fileID: 415340375073279383}
   - component: {fileID: 2540703285820803666}
+  - component: {fileID: 5938375209147317045}
   m_Layer: 0
   m_Name: SoundManager
   m_TagString: Untagged
@@ -378,3 +379,24 @@ MonoBehaviour:
   sfxVolume: 1
   minDistance: 3
   maxDistance: 40
+--- !u!114 &5938375209147317045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7809901502402275335}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e41ab9f7009e3bf43a92d07c812a6a31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Core.BgmPlayer
+  defaultTracks:
+  - {fileID: 8300000, guid: a90a09bb09ccf744687c093e7dd1cab8, type: 3}
+  - {fileID: 8300000, guid: d8220f8943d41e844941d057deba642f, type: 3}
+  bgmVolume: 0.5
+  fadeSeconds: 1.5
+  ambienceLoops:
+  - {fileID: 8300000, guid: ffab9191e9bd8a5479b4f0ca752223af, type: 3}
+  - {fileID: 8300000, guid: fa155b4b8afa1cc4bad7ec16005833ea, type: 3}
+  ambienceVolume: 0.35

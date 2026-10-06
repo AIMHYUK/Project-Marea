@@ -79,6 +79,11 @@ namespace Marea.Cooking
         [SerializeField] private Color catchTint = new Color(0.85f, 0.7f, 0.5f, 1f);
         [SerializeField, Min(0.1f)] private float catchVfxScale = 1f;
 
+        [Header("소리 (+10/6, 이슈 117) — 기획 sfx_ingredient_catch")]
+        [Tooltip("재료가 그릇에 들어갈 때.")]
+        [SerializeField] private AudioClip catchClip;
+        [SerializeField, Range(0f, 1f)] private float catchVolume = 0.8f;
+
         [Header("시간")]
         [Tooltip("제한시간(초). 기획 CookingMiniGameData MG_OBJECT_CATCH = 10.")]
         [SerializeField, Min(1f)] private float timeLimit = 10f;
@@ -208,6 +213,7 @@ namespace Marea.Cooking
                     {
                         _caught++;
                         Vfx.Play(catchVfx, f.T.position, catchVfxScale, catchTint);   // (+10/6)
+                        SoundManager.Play(catchClip, catchVolume, 0.08f);             // (+10/6)
                         Destroy(f.T.gameObject);
                         OnProgress?.Invoke(_caught, _total);
                     }

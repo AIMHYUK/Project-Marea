@@ -68,7 +68,13 @@ namespace Marea.Cooking
         [SerializeField, Min(0.1f)] private float burnerScale = 1f;
         [SerializeField, Min(0.1f)] private float steamScale = 1f;
 
+        [Header("소리 (+10/6, 이슈 117) — 기획 sfx_cook_boil_loop")]
+        [Tooltip("미니게임 내내 보글보글.")]
+        [SerializeField] private AudioClip boilLoop;
+        [SerializeField, Range(0f, 1f)] private float boilVolume = 0.5f;
+
         private VfxLoop _burner, _steam;
+        private SoundLoop _boil;
 
         private MenuData _targetMenu;
         private Action<CookingResult> _onCompleteCallback;
@@ -290,6 +296,7 @@ namespace Marea.Cooking
         private void StartAmbience()
         {
             StopAmbience();
+            _boil = SoundManager.PlayLoop(boilLoop, boilVolume);   // (+10/6)
             if (stewPot == null) return;
             Bounds b = new Bounds(stewPot.transform.position, Vector3.zero);
             bool has = false;
@@ -308,6 +315,7 @@ namespace Marea.Cooking
         {
             _burner.Stop();
             _steam.Stop();
+            _boil.Stop();
         }
 
         private IEnumerator ShowResultRoutine(CookingResult result)

@@ -83,6 +83,9 @@ MonoBehaviour:
   waterTint: {r: 0.8, g: 0.92, b: 1, a: 1}
   splashInterval: 0.25
   stageSplashScale: 1.4
+  washLoop: {fileID: 8300000, guid: f2c40b3567f218a429e65f71efb191cd, type: 3}
+  washVolume: 0.6
+  washHold: 0.15
   brush: {fileID: 8083672672054322716}
   brushContact: 0.04
   brushLift: 0.08
@@ -1034,6 +1037,14 @@ MonoBehaviour:
   perfectScore: 0.75
   missVfx: 0
   vfxScale: 1
+  appearClip: {fileID: 8300000, guid: 25c2ed3a0280ed840a08eb515221c72d, type: 3}
+  appearVolume: 0.5
+  hitClip: {fileID: 8300000, guid: a868b25c999da2949b464c4bf208095b, type: 3}
+  hitVolume: 0.8
+  successClip: {fileID: 0}
+  perfectClip: {fileID: 0}
+  missClip: {fileID: 0}
+  judgeVolume: 0.7
   timeLimit: 12
   slots:
   - {fileID: 5986020527754011102}
@@ -1310,6 +1321,11 @@ MonoBehaviour:
   splashSpeed: 150
   splashInterval: 0.35
   splashScale: 0.7
+  stirLoop: {fileID: 8300000, guid: 956f546d7c17cb9448b40d7ae7f26bff, type: 3}
+  stirVolume: 0.7
+  stirFullSpeed: 120
+  gaugeLoop: {fileID: 8300000, guid: 5b0072484373d454380ecf81f7a2c585, type: 3}
+  gaugeVolume: 0.35
 --- !u!1 &2002079091230783438
 GameObject:
   m_ObjectHideFlags: 0
@@ -1492,6 +1508,8 @@ MonoBehaviour:
   steamVfx: 3
   burnerScale: 1
   steamScale: 1
+  boilLoop: {fileID: 8300000, guid: 273e883b686d93947aa86abba5612716, type: 3}
+  boilVolume: 0.5
 --- !u!1 &2214455072488888768
 GameObject:
   m_ObjectHideFlags: 0
@@ -4010,6 +4028,8 @@ MonoBehaviour:
   oilTint: {r: 1, g: 0.85, b: 0.45, a: 1}
   flameDrop: 0.15
   oilInterval: {x: 0.5, y: 1.2}
+  grillLoop: {fileID: 8300000, guid: 744eb87f43069464983b786ca98d0dd3, type: 3}
+  grillVolume: 0.5
   resultDelay: 1.2
 --- !u!1 &5673077831513154239
 GameObject:
@@ -5156,6 +5176,14 @@ MonoBehaviour:
   perfectScore: 0.75
   missVfx: 0
   vfxScale: 1
+  appearClip: {fileID: 8300000, guid: 211b9b1f855cea84f8e3906731fdac77, type: 3}
+  appearVolume: 0.5
+  hitClip: {fileID: 8300000, guid: 28fdbd3896ddc4e4b9a1cf72fc76b83c, type: 3}
+  hitVolume: 0.8
+  successClip: {fileID: 0}
+  perfectClip: {fileID: 0}
+  missClip: {fileID: 0}
+  judgeVolume: 0.7
   timeLimit: 10
   slots: []
   idlePrefab: {fileID: 0}
@@ -6920,6 +6948,8 @@ MonoBehaviour:
   sauceSplashVfx: 4
   sauceTint: {r: 0.75, g: 0.12, b: 0.05, a: 1}
   splashInterval: 0.2
+  squeezeLoop: {fileID: 8300000, guid: 17757c8d183e60a4296dd76ecb7003d0, type: 3}
+  squeezeVolume: 0.7
   timeLimit: 8
   coatedColor: {r: 0.85, g: 0.35, b: 0.1, a: 1}
   plainColor: {r: 0.96, g: 0.93, b: 0.86, a: 1}
@@ -7119,6 +7149,8 @@ MonoBehaviour:
   catchVfx: 4
   catchTint: {r: 0.85, g: 0.7, b: 0.5, a: 1}
   catchVfxScale: 1
+  catchClip: {fileID: 8300000, guid: 17d57cd207b1b634c90bd43856d882d1, type: 3}
+  catchVolume: 0.8
   timeLimit: 10
 --- !u!1001 &1058666229786740330
 PrefabInstance:

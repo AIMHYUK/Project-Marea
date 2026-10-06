@@ -61,6 +61,11 @@ namespace Marea.Field
         [SerializeField] private Marea.Data.VfxId tripDustVfx = Marea.Data.VfxId.Dust;
         [SerializeField] private Marea.Data.VfxId tripFailVfx = Marea.Data.VfxId.Fail;
 
+        [Header("소리 (+10/6, 이슈 117) — 기획 SRV-02 sfx_srv_pickup · 발소리(SRV-01)는 Footsteps")]
+        [Tooltip("조리대에서 접시를 집을 때 \"달그락\". 그 자리에서 난다(3D).")]
+        [SerializeField] private AudioClip pickupClip;
+        [SerializeField, Range(0f, 1f)] private float pickupVolume = 0.8f;
+
         private AgentMover _mover;
         private State _state = State.Idle;
         private ServeTask _task;
@@ -246,6 +251,7 @@ namespace Marea.Field
                 onArrived: () =>
                 {
                     ShowIcon(_task.FoodIcon);
+                    SoundManager.PlayAt(pickupClip, transform.position, pickupVolume);   // (+10/6)
                     _state = State.ToTarget;
 
                     // 콜백 안에서 다시 GoTo를 건다.

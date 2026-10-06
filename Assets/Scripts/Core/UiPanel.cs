@@ -28,7 +28,22 @@ namespace Marea.Core
 
         [SerializeField] private bool openOnStart;
 
-        public bool IsOpen => panel != null && panel.activeSelf;
+        [Header("소리 (+10/6, 이슈 117) — 기획 MNU-01 ui_menu_open · MNU-04 sfx_inv_open")]
+        [Tooltip("열 때. 비우면 조용하다. 연출 때문에 잠깐 가렸다 되돌릴 땐 안 난다.")]
+        [SerializeField] private AudioClip openClip;
+        [Tooltip("닫을 때. 비우면 조용하다.")]
+        [SerializeField] private AudioClip closeClip;
+        [SerializeField, Range(0f, 1f)] private float openCloseVolume = 0.8f;
+
+        // (+10/6, 이슈 117) 해금 연출 동안 잠깐 가린다 — Suspend / Resume.
+        // Close로 닫으면 OnClosed가 대상(어느 밭, 어느 탐사정)을 놓아서 다시 열 수가 없다.
+        // 가린 동안 IsOpen은 그대로 true다 — 논리상 열린 창이고, 화면에만 안 보인다.
+        private bool _suspended;
+
+        public bool IsOpen => panel != null && (panel.activeSelf || _suspended);
+
+        /// <summary>지금 화면에 보이는가. 가려진 창은 열려 있어도 false. (+10/6)</summary>
+        public bool IsVisible => panel != null && panel.activeSelf;
 
         /// <summary>열리거나 닫힐 때. HUD가 버튼 표시를 맞추는 데 쓴다.</summary>
         public event Action<bool> OnOpenChanged;
@@ -49,11 +64,43 @@ namespace Marea.Core
         public void Close() => SetOpen(false);
         public void Toggle() => SetOpen(!IsOpen);
 
+        /// <summary>보이는 창을 잠깐 가린다. 대상은 그대로 든다. (+10/6)</summary>
+        public void Suspend()
+        {
+            if (!IsVisible) return;
+            _suspended = true;
+            panel.SetActive(false);
+        }
+
+        /// <summary>가렸던 창을 다시 보인다. 가린 동안 바뀐 값은 OnOpened로 맞춘다. (+10/6)</summary>
+        public void Resume()
+        {
+            if (!_suspended) return;
+            _suspended = false;
+            panel.SetActive(true);
+            OnOpened();
+        }
+
         private void SetOpen(bool open)
         {
-            if (panel == null || panel.activeSelf == open) return;
+            if (panel == null) return;
+
+            // (+10/6) 가린 동안 열기는 무시한다(연출 중 U · Tab). 닫기는 진짜로 닫는다 —
+            // 해금 확인 창은 연출이 시작된 뒤에 [실행] 성공으로 Close가 온다. 이걸 무시하면 연출 끝에 다시 뜬다.
+            if (_suspended)
+            {
+                if (open) return;
+                _suspended = false;
+                SoundManager.Play(closeClip, openCloseVolume);   // (+10/6)
+                OnClosed();
+                OnOpenChanged?.Invoke(false);
+                return;
+            }
+
+            if (panel.activeSelf == open) return;
 
             panel.SetActive(open);
+            SoundManager.Play(open ? openClip : closeClip, openCloseVolume);   // (+10/6)
             if (open) OnOpened();
             else OnClosed();
             OnOpenChanged?.Invoke(open);

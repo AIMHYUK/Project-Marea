@@ -60,6 +60,11 @@ namespace Marea.Cooking
         [SerializeField] private VfxId steamVfx = VfxId.Steam;
         [SerializeField, Min(0.1f)] private float vfxScale = 1f;
 
+        [Header("소리 (+10/6, 이슈 117) — 기획 sfx_cook_done")]
+        [Tooltip("요리가 튀어 오를 때 밝은 \"딩동\". 실패한 요리엔 안 낸다. 비우면 조용하다.")]
+        [SerializeField] private AudioClip doneClip;
+        [SerializeField, Range(0f, 1f)] private float doneVolume = 0.8f;
+
         private float Dt => useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
 
         private Coroutine _routine;
@@ -182,6 +187,7 @@ namespace Marea.Cooking
         private void PlayDoneVfx(CookingResult result)
         {
             if (!result.isSuccess) return;
+            SoundManager.Play(doneClip, doneVolume);   // (+10/6)
             Vfx.PlayOnUI(doneVfx, dish, vfxScale);
             if (result.bestGrade == HitGrade.Perfect) Vfx.PlayOnUI(highGradeVfx, dish, vfxScale);
             _steam.Stop();

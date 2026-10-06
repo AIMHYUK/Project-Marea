@@ -56,6 +56,13 @@ namespace Marea.Field
         [Tooltip("보상을 받을 때 배 위에서 반짝.")]
         [SerializeField] private VfxId rewardVfx = VfxId.Sparkle;
 
+        [Header("소리 (+10/6, 이슈 117) — 기획 EXP-01 sfx_explore_depart")]
+        [Tooltip("파견하는 순간 출발 엔진음.")]
+        [SerializeField] private AudioClip departClip;
+        [Tooltip("돌아온 순간 뱃고동.")]
+        [SerializeField] private AudioClip returnClip;
+        [SerializeField, Range(0f, 1f)] private float clipVolume = 0.9f;
+
         [Header("떠날 때 연출 (+9/30)")]
         [Tooltip("파견하고 배가 사라질 때까지 걸리는 초.")]
         [SerializeField, Min(0f)] private float departSeconds = 2.5f;
@@ -122,6 +129,7 @@ namespace Marea.Field
                 Current = State.Returned;
                 Show();
                 if (boat != null) Vfx.Play(splashVfx, boat.transform.position, 2f);   // (+10/6) 돌아온 순간
+                SoundManager.Play(returnClip, clipVolume);   // (+10/6) 화면 밖에서 돌아와도 알게 화면 소리로
             }
 
             // 라벨은 보이고 싶은 프레임마다 부른다. 대기 중엔 안 불러서 저절로 꺼진다.
@@ -196,6 +204,7 @@ namespace Marea.Field
             _returnAt = Time.time + DurationOf(area);
             Current = State.Away;
             Show();
+            SoundManager.PlayAt(departClip, boat != null ? boat.transform.position : transform.position, clipVolume);   // (+10/6)
             return true;
         }
 

@@ -11,8 +11,10 @@ namespace Marea.Core
     ///
     ///   SoundManager.Play(clip);                 // 화면 소리(2D) — UI · 해금 연출
     ///   SoundManager.PlayAt(clip, position);     // 그 자리에서 나는 소리(3D) — 월드 오브젝트
+    ///   SoundManager.Hold(ref loop, clip, on);   // (+10/6) 조건이 참인 동안만 도는 소리 — 휘젓기 · 소스 짜기
+    ///   loop = SoundManager.PlayLoop(clip); loop.Stop();   // (+10/6) 단계 내내 도는 소리 — 끓기 · 그릴
     ///
-    /// BGM은 안 맡는다. 기존 AudioSource 쓰는 스크립트들은 그대로 두었다 — 옮길 때 이걸 쓰면 된다.
+    /// BGM · 앰비언스는 BgmPlayer가 맡는다. 기존 AudioSource 쓰는 스크립트들은 그대로 두었다 — 옮길 때 이걸 쓰면 된다.
     /// 동시에 나는 소리가 sourceCount를 넘으면 가장 오래 울린 것을 끊고 새 소리를 낸다.
     /// </summary>
     public class SoundManager : MonoBehaviour
@@ -86,12 +88,45 @@ namespace Marea.Core
 
         // 클립이 비면 조용히 넘긴다(소리는 선택 사항이라 부르는 쪽 필드가 빌 수 있다).
         // 관리자가 없으면 설정 누락이라 알린다.
+        // (+10/6) 에러는 한 번만 — Hold는 매 프레임 불려서 안 막으면 콘솔이 덮인다.
+        private static bool _warnedMissing;
+
         private static bool Ready(AudioClip clip)
         {
             if (clip == null) return false;
             if (Instance != null && Instance.enabled) return true;
-            Debug.LogError($"[SoundManager] 씬에 SoundManager가 없다 — '{clip.name}'을 못 낸다. 씬에 하나 둘 것.");
+            if (!_warnedMissing)
+                Debug.LogError($"[SoundManager] 씬에 SoundManager가 없다 — '{clip.name}'을 못 낸다. 씬에 하나 둘 것.");
+            _warnedMissing = true;
             return false;
+        }
+
+        /// <summary>
+        /// (+10/6) 계속 도는 화면 소리(2D). 끝낼 때 Stop(). 미니게임 시점은 카메라가 바로 앞이라 3D로 안 낸다.
+        /// 풀을 안 쓴다 — 루프는 단계마다 한두 번 시작하는 게 전부라, 원샷 풀을 붙잡아 다른 소리를 끊는 쪽이 더 나쁘다.
+        /// </summary>
+        public static SoundLoop PlayLoop(AudioClip clip, float volume = 1f)
+        {
+            if (!Ready(clip)) return default;
+            var go = new GameObject($"Loop_{clip.name}");
+            go.transform.SetParent(Instance.transform, false);
+            var s = go.AddComponent<AudioSource>();
+            s.playOnAwake = false;
+            s.loop = true;
+            s.spatialBlend = 0f;
+            s.clip = clip;
+            var loop = new SoundLoop(s);
+            loop.SetVolume(volume);
+            s.Play();
+            return loop;
+        }
+
+        /// <summary>(+10/6) on이 참이면 돌리고(이미 돌면 크기만 맞춘다), 거짓이면 멈춘다. 매 프레임 불러도 된다.</summary>
+        public static void Hold(ref SoundLoop loop, AudioClip clip, bool on, float volume = 1f)
+        {
+            if (!on) { loop.Stop(); return; }
+            if (loop.IsPlaying) loop.SetVolume(volume);
+            else loop = PlayLoop(clip, volume);
         }
 
         private void Emit(AudioClip clip, float volume, float pitchJitter, Vector3? position)
@@ -121,6 +156,30 @@ namespace Marea.Core
             for (int i = 1; i < _sources.Length; i++)
                 if (_startedAt[i] < _startedAt[oldest]) oldest = i;
             return _sources[oldest];
+        }
+    }
+
+    /// <summary>(+10/6) PlayLoop이 돌려주는 손잡이. 기본값(빈 손잡이)에 Stop을 불러도 된다 — VfxLoop과 같은 모양.</summary>
+    public struct SoundLoop
+    {
+        private AudioSource _source;
+
+        internal SoundLoop(AudioSource source) => _source = source;
+
+        public bool IsPlaying => _source != null;
+
+        /// <summary>0~1. 전체 효과음 크기(SfxVolume)가 곱해진다.</summary>
+        public void SetVolume(float volume)
+        {
+            if (_source == null) return;
+            float master = SoundManager.Instance != null ? SoundManager.Instance.SfxVolume : 1f;
+            _source.volume = Mathf.Clamp01(volume) * master;
+        }
+
+        public void Stop()
+        {
+            if (_source != null) Object.Destroy(_source.gameObject);
+            _source = null;
         }
     }
 }

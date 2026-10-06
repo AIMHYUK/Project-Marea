@@ -55,6 +55,9 @@ namespace Marea.Economy
         [SerializeField] private Button upgradeButton;
         [Tooltip("(+10/6, 이슈 117) 해금 · 업그레이드에 성공하면 새로 가진 단계 칸에서 터지는 효과. 기획 「레시피·기능 해금」 VFX_02.")]
         [SerializeField] private Data.VfxId boughtVfx = Data.VfxId.Sparkle;
+        [Tooltip("(+10/6, 이슈 117) 해금 · 업그레이드 구매 확정음 + 코인 소모음. 기획 UPG-01 ui_upgrade_buy. 골드 부족(UPG-03)은 꺼진 버튼이라 UiClickSound 거절음이 낸다.")]
+        [SerializeField] private AudioClip buyClip;
+        [SerializeField, Range(0f, 1f)] private float buyVolume = 0.8f;
         [SerializeField] private TextMeshProUGUI upgradeButtonLabel;
 
         [Tooltip("비워두면 같은 씬에서 찾는다.")]
@@ -190,7 +193,9 @@ namespace Marea.Economy
             RefreshAll();
 
             // (+10/6) 방금 가진 단계 칸에서 반짝 — 해금이면 첫 칸(0레벨 해금은 칸이 없어 버튼에서).
-            if (result != FacilityUpgrade.Result.Ok) return;
+            // (+10/6) 해금 연출이 창을 가렸으면 반짝이도 없다 — 안 보이는 버튼 자리 허공에서 터진다.
+            if (result == FacilityUpgrade.Result.Ok) SoundManager.Play(buyClip, buyVolume);   // (+10/6) 창이 가려져도 산 소리는 난다
+            if (result != FacilityUpgrade.Result.Ok || !IsVisible) return;
             int owned = _levels.LevelOf(_kind);
             RectTransform at = owned >= 1 && owned <= _nodes.Count && _nodes[owned - 1].gameObject.activeInHierarchy
                 ? (RectTransform)_nodes[owned - 1].transform

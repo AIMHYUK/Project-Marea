@@ -74,6 +74,13 @@ namespace Marea.Cooking
 
         private float _nextSplash;
 
+        [Header("소리 (+10/6, 이슈 117) — 기획 sfx_sauce_squeeze_loop")]
+        [Tooltip("소스가 나오는 동안.")]
+        [SerializeField] private AudioClip squeezeLoop;
+        [SerializeField, Range(0f, 1f)] private float squeezeVolume = 0.7f;
+
+        private SoundLoop _squeeze;
+
         [Header("시간")]
         [Tooltip("제한시간(초). 기획 MG_GUIDE_DRAG = 8.")]
         [SerializeField, Min(1f)] private float timeLimit = 8f;
@@ -183,6 +190,7 @@ namespace Marea.Cooking
             UpdateFlip();
             bool pouring = _holding && Quaternion.Angle(bottle.localRotation, _pourRot) < pourAngle;
             SetStream(pouring);
+            SoundManager.Hold(ref _squeeze, squeezeLoop, pouring, squeezeVolume);   // (+10/6)
             if (pouring) Pour();
             else _lastBottlePos = bottle.position;
 
@@ -298,6 +306,7 @@ namespace Marea.Cooking
             _running = false;
             _holding = false;
             SetStream(false);
+            _squeeze.Stop();
             IsFinished = true;
         }
 
@@ -306,6 +315,7 @@ namespace Marea.Cooking
             _running = false;
             _holding = false;
             SetStream(false);
+            _squeeze.Stop();
             Cleanup();
             if (bottle != null && surface != null)
             {

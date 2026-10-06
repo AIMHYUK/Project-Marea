@@ -58,6 +58,18 @@ namespace Marea.Cooking
         [SerializeField, Min(0.05f)] private float splashInterval = 0.35f;
         [SerializeField, Min(0.1f)] private float splashScale = 0.7f;
 
+        [Header("소리 (+10/6, 이슈 117) — 기획 sfx_stir_loop · sfx_gauge")]
+        [Tooltip("국자를 돌리는 동안. 크기는 국물 도는 빠르기를 따른다.")]
+        [SerializeField] private AudioClip stirLoop;
+        [SerializeField, Range(0f, 1f)] private float stirVolume = 0.7f;
+        [Tooltip("국물이 이 빠르기(도/초)일 때 stirVolume 그대로. 느리면 작아진다.")]
+        [SerializeField, Min(1f)] private float stirFullSpeed = 120f;
+        [Tooltip("국자가 원(세이프존) 안에 있는 동안 — 게이지가 차는 소리.")]
+        [SerializeField] private AudioClip gaugeLoop;
+        [SerializeField, Range(0f, 1f)] private float gaugeVolume = 0.35f;
+
+        private SoundLoop _stirSound, _gaugeSound;
+
         private float _angle, _dir = 1f, _speed, _segmentLeft;
         private float _time, _inside;
         private Vector3 _lastLadle;      // 지난 프레임 국자 위치(냄비 중심 기준, 수평)
@@ -159,6 +171,11 @@ namespace Marea.Cooking
                 Vfx.Play(stirSplashVfx, ladle, splashScale, soupTint);   // (+10/6)
             }
 
+            // (+10/6)
+            float stir = Mathf.Clamp01(Mathf.Abs(_soupSpeed) / stirFullSpeed);
+            SoundManager.Hold(ref _stirSound, stirLoop, stir > 0.05f, stir * stirVolume);
+            SoundManager.Hold(ref _gaugeSound, gaugeLoop, IsInside, gaugeVolume);
+
             if (_time >= duration) Finish();
         }
 
@@ -197,12 +214,20 @@ namespace Marea.Cooking
             _running = false;
             IsFinished = true;
             if (zoneVisual != null) zoneVisual.gameObject.SetActive(false);
+            StopSounds();
         }
 
         private void OnDisable()
         {
             _running = false;
             if (zoneVisual != null) zoneVisual.gameObject.SetActive(false);
+            StopSounds();
+        }
+
+        private void StopSounds()
+        {
+            _stirSound.Stop();
+            _gaugeSound.Stop();
         }
     }
 }

@@ -35,6 +35,17 @@ namespace Marea.Economy
         [Tooltip("(+10/6, 이슈 117) 지난번에 못 보던 새로 열린 메뉴 카드에서 터지는 효과. 기획 「레시피·기능 해금」 VFX_02.")]
         [SerializeField] private VfxId newMenuVfx = VfxId.Sparkle;
 
+        [Header("소리 (+10/6, 이슈 117) — 기획 MNU-02 · MNU-03 · SYS-03")]
+        [Tooltip("메뉴를 고를 때 \"톡\" (ui_menu_select).")]
+        [SerializeField] private AudioClip selectClip;
+        [Tooltip("메뉴를 뺄 때 낮은 \"툭\".")]
+        [SerializeField] private AudioClip deselectClip;
+        [Tooltip("못 고를 때 — 재료 부족 · 한도 · 잠김 (ui_error_soft).")]
+        [SerializeField] private AudioClip errorClip;
+        [Tooltip("[영업 시작]을 눌러 영업이 열리는 순간 뱃고동 (sfx_sys_open).")]
+        [SerializeField] private AudioClip openBusinessClip;
+        [SerializeField, Range(0f, 1f)] private float clipVolume = 0.8f;
+
         private readonly List<MenuCard> _cards = new();
         private TodayMenu _menu;
         private Wallet _wallet;
@@ -110,8 +121,11 @@ namespace Marea.Economy
 
         private void HandleCardClicked(MenuData menu)
         {
-            // 실패(한도 · 재료 부족 · 영업 중)는 조용하다 — 카드에 이미 이유가 보인다.
-            if (_menu != null) _menu.Toggle(menu);
+            // 실패(한도 · 재료 부족 · 영업 중)는 글로는 조용하다 — 카드에 이미 이유가 보인다. (+10/6) 소리만 낸다.
+            if (_menu == null) return;
+            bool wasSelected = _menu.IsSelected(menu);
+            bool ok = _menu.Toggle(menu);
+            SoundManager.Play(!ok ? errorClip : wasSelected ? deselectClip : selectClip, clipVolume);
         }
 
         private void Refresh()
@@ -142,7 +156,10 @@ namespace Marea.Economy
             if (business == null)
                 Debug.LogError($"{name}: 씬에 BusinessManager가 없다. 메뉴는 확정했지만 영업을 시작할 수 없다.", this);
             else
+            {
                 business.StartBusiness();
+                SoundManager.Play(openBusinessClip, clipVolume);   // (+10/6)
+            }
 
             Close();
         }

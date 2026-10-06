@@ -56,6 +56,19 @@ namespace Marea.Cooking
         [SerializeField] private VfxId missVfx = VfxId.None;
         [SerializeField, Min(0.1f)] private float vfxScale = 1f;
 
+        [Header("소리 (+10/6, 이슈 117) — 같은 부품을 스튜 · 조개가 같이 쓴다, 칸은 인스턴스마다")]
+        [Tooltip("나타날 때. 스튜 = sfx_foam_spawn(거품), 조개 = sfx_shell_open(입 벌림).")]
+        [SerializeField] private AudioClip appearClip;
+        [SerializeField, Range(0f, 1f)] private float appearVolume = 0.5f;
+        [Tooltip("눌러서 없앨 때. 스튜 = sfx_foam_remove, 조개 = sfx_shell_pickup.")]
+        [SerializeField] private AudioClip hitClip;
+        [SerializeField, Range(0f, 1f)] private float hitVolume = 0.8f;
+        [Tooltip("판정음 — 보통 성공(sfx_cook_success) / 빨리 맞힘(sfx_cook_perfect, perfectScore 이상) / 놓침 · 탐(sfx_cook_fail). 파일이 오면 꽂는다.")]
+        [SerializeField] private AudioClip successClip;
+        [SerializeField] private AudioClip perfectClip;
+        [SerializeField] private AudioClip missClip;
+        [SerializeField, Range(0f, 1f)] private float judgeVolume = 0.7f;
+
         [Header("시간")]
         [Tooltip("제한시간(초). 기획 CookingMiniGameData MG_POPUP_TOUCH = 10.")]
         [SerializeField, Min(1f)] private float timeLimit = 10f;
@@ -201,6 +214,7 @@ namespace Marea.Cooking
                 if (p.Age >= p.Life)
                 {
                     Vfx.Play(missVfx, p.T.position, vfxScale);   // (+10/6)
+                    SoundManager.Play(missClip, judgeVolume);     // (+10/6)
                     Destroy(p.T.gameObject);   // 놓쳤다
                     _alive.RemoveAt(i);
                     OnProgress?.Invoke(_popped, _spawned);
@@ -266,6 +280,7 @@ namespace Marea.Cooking
                 Life = UnityEngine.Random.Range(lifetimeRange.x, Mathf.Max(lifetimeRange.x, lifetimeRange.y)),
             });
             _spawned++;
+            SoundManager.Play(appearClip, appearVolume, 0.1f);   // (+10/6)
             OnProgress?.Invoke(_popped, _spawned);
         }
 
@@ -311,12 +326,14 @@ namespace Marea.Cooking
                     sl.State = SlotState.Open;
                     sl.OpenedAt = _elapsed;
                     ShowSlot(sl, Pick(slotOpenPrefabs, sl.Index, popupPrefab), openColor, true);
+                    SoundManager.Play(appearClip, appearVolume, 0.1f);   // (+10/6)
                 }
                 else if (sl.State == SlotState.Open && _elapsed - sl.OpenedAt > reactionWindow)
                 {
                     sl.State = SlotState.Done;   // 탔다
                     sl.Score = 0f;
                     if (sl.Anchor != null) Vfx.Play(missVfx, sl.Anchor.position, vfxScale);   // (+10/6)
+                    SoundManager.Play(missClip, judgeVolume);                                  // (+10/6)
                     GameObject burnt = Pick(slotBurntPrefabs, sl.Index, null);
                     if (burnt != null) ShowSlot(sl, burnt, burntColor, false);
                     else Tint(sl.Visual, burntColor);
@@ -407,6 +424,8 @@ namespace Marea.Cooking
         {
             Vfx.Play(hitRingVfx, at, vfxScale);
             if (score >= perfectScore) Vfx.Play(perfectVfx, at + Vector3.up * 0.05f, vfxScale);
+            SoundManager.Play(hitClip, hitVolume, 0.08f);
+            SoundManager.Play(score >= perfectScore ? perfectClip : successClip, judgeVolume);
         }
 
         private void Finish()

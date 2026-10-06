@@ -41,7 +41,13 @@ namespace Marea.Cooking
         [Tooltip("기름이 튀는 간격(초) 범위.")]
         [SerializeField] private Vector2 oilInterval = new Vector2(0.5f, 1.2f);
 
+        [Header("소리 (+10/6, 이슈 117) — 기획 sfx_grill_loop")]
+        [Tooltip("굽기(2단계) 동안 지글지글.")]
+        [SerializeField] private AudioClip grillLoop;
+        [SerializeField, Range(0f, 1f)] private float grillVolume = 0.5f;
+
         private VfxLoop _flame, _steam;
+        private SoundLoop _grill;
         private float _nextOil;
 
         [Tooltip("결과를 보여주고 돌려주기까지(초).")]
@@ -112,6 +118,7 @@ namespace Marea.Cooking
         private void StartGrillAmbience()
         {
             StopGrillAmbience();
+            _grill = SoundManager.PlayLoop(grillLoop, grillVolume);   // (+10/6)
             if (!TryGrillCenter(out Vector3 c)) return;
             Transform at = grillGame.transform;
             _flame = Vfx.PlayLoop(grillFlameVfx, at, at.InverseTransformPoint(c + Vector3.down * flameDrop));
@@ -123,6 +130,7 @@ namespace Marea.Cooking
         {
             _flame.Stop();
             _steam.Stop();
+            _grill.Stop();
         }
 
         /// <summary>굽는 동안 아무 조개 자리에서 가끔 기름이 튄다.</summary>

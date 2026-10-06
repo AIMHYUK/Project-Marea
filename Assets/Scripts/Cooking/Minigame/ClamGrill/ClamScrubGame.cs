@@ -70,6 +70,16 @@ namespace Marea.Cooking
 
         private float _nextSplash;
 
+        [Header("소리 (+10/6, 이슈 117) — 기획 sfx_wash_loop")]
+        [Tooltip("조개를 문지르는 동안.")]
+        [SerializeField] private AudioClip washLoop;
+        [SerializeField, Range(0f, 1f)] private float washVolume = 0.6f;
+        [Tooltip("문지르기를 멈추고 이만큼(초) 지나면 소리를 끊는다 — 마우스가 잠깐 멈출 때마다 끊기지 않게.")]
+        [SerializeField, Min(0f)] private float washHold = 0.15f;
+
+        private SoundLoop _wash;
+        private float _lastScrub = float.NegativeInfinity;
+
         [Header("솔 (+10/5)")]
         [Tooltip("조개를 닦는 솔. 기준점 = 솔털 끝 가운데. 커서를 따라 조개 위를 오가고, 누르면 내려가 닿는다. " +
                  "비우면 솔 없이 닦인다.")]
@@ -166,6 +176,7 @@ namespace Marea.Cooking
             _timeLeft -= Time.deltaTime;
             ReadMouse();
             MoveBrush();
+            SoundManager.Hold(ref _wash, washLoop, Time.time - _lastScrub <= washHold, washVolume);   // (+10/6)
             if (_timeLeft <= 0f || CleanCount == _clams.Count) Finish();
         }
 
@@ -242,6 +253,7 @@ namespace Marea.Cooking
             if (clam.Stage >= StageCountOf(clam) - 1) return;
 
             clam.Accum += pixels;
+            _lastScrub = Time.time;   // (+10/6) 문지르는 소리
             Vector3 at = brush != null ? brush.position : clam.Slot.position;
             if (Time.time >= _nextSplash)
             {
@@ -309,11 +321,13 @@ namespace Marea.Cooking
         {
             _running = false;
             IsFinished = true;
+            _wash.Stop();
         }
 
         private void OnDisable()
         {
             _running = false;
+            _wash.Stop();
             Cleanup();
         }
 
