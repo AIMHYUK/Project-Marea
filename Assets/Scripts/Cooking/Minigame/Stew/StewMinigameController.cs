@@ -67,6 +67,10 @@ namespace Marea.Cooking
         [SerializeField] private VfxId steamVfx = VfxId.Steam;
         [SerializeField, Min(0.1f)] private float burnerScale = 1f;
         [SerializeField, Min(0.1f)] private float steamScale = 1f;
+        [Tooltip("(+10/6) 화구 불꽃이 나올 자리. 씬에서 끌어 옮겨 맞춘다. 비우면 냄비 바닥 가운데.")]
+        [SerializeField] private Transform burnerAnchor;
+        [Tooltip("(+10/6) 김이 나올 자리. 냄비를 따라 움직이게 냄비 아래에 두는 게 좋다. 비우면 국물 가운데 5cm 위.")]
+        [SerializeField] private Transform steamAnchor;
 
         [Header("소리 (+10/6, 이슈 117) — 기획 sfx_cook_boil_loop")]
         [Tooltip("미니게임 내내 보글보글.")]
@@ -323,9 +327,14 @@ namespace Marea.Cooking
                 if (!has) { b = r.bounds; has = true; } else b.Encapsulate(r.bounds);
             }
             Transform station = stewPot.transform.parent != null ? stewPot.transform.parent : stewPot.transform;
-            _burner = Vfx.PlayLoop(burnerVfx, station, station.InverseTransformPoint(new Vector3(b.center.x, b.min.y, b.center.z)), burnerScale);
+            // (+10/6) 기준점이 있으면 그 자리(오프셋 0), 없으면 예전처럼 계산.
+            _burner = burnerAnchor != null
+                ? Vfx.PlayLoop(burnerVfx, burnerAnchor, Vector3.zero, burnerScale)
+                : Vfx.PlayLoop(burnerVfx, station, station.InverseTransformPoint(new Vector3(b.center.x, b.min.y, b.center.z)), burnerScale);
             Vector3 surface = stewPot.HasLiquid ? stewPot.StirCenter : b.center;
-            _steam = Vfx.PlayLoop(steamVfx, stewPot.transform, stewPot.transform.InverseTransformPoint(surface + Vector3.up * 0.05f), steamScale);
+            _steam = steamAnchor != null
+                ? Vfx.PlayLoop(steamVfx, steamAnchor, Vector3.zero, steamScale)
+                : Vfx.PlayLoop(steamVfx, stewPot.transform, stewPot.transform.InverseTransformPoint(surface + Vector3.up * 0.05f), steamScale);
         }
 
         private void StopAmbience()

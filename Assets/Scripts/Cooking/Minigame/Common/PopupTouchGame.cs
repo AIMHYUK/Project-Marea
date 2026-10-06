@@ -331,7 +331,14 @@ namespace Marea.Cooking
                     // (+10/6) 여는 연출이 있는 조개는 그 자리에서 연다 — 가리비는 뚜껑만(그대로 둠), 전복은 뒤집힌 뒤 열린 모습으로 갈아 끼운다.
                     // 누르는 건 연출 중에도 된다(반응 시간은 지금부터 잰다).
                     ClamOpener opener = sl.Visual != null ? sl.Visual.GetComponentInChildren<ClamOpener>() : null;
-                    if (opener != null)
+                    if (opener != null && opener.SwapBeforeOpen)
+                    {
+                        // (+10/6) 전복 — 살 있는 열린 모습으로 먼저 갈아 끼우고, 그 모습이 뒤집힌 자세에서 튀어 오르며 제자리로.
+                        // opener는 지워질 옛 모습에 붙어 있지만 Destroy는 프레임 끝이라 이 프레임 안엔 쓸 수 있다.
+                        ShowSlot(sl, Pick(slotOpenPrefabs, sl.Index, popupPrefab), openColor, true);
+                        opener.PlayOnSwapped(sl.Visual, null);
+                    }
+                    else if (opener != null)
                     {
                         if (sl.Col != null) sl.Col.enabled = true;
                         Slot opening = sl;

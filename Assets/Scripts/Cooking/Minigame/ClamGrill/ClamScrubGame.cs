@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Marea.Core;
 using Marea.Data;
@@ -58,8 +59,9 @@ namespace Marea.Cooking
         [SerializeField] private Vector3 placeholderSize = new(0.22f, 0.07f, 0.18f);
 
         [Header("닦기")]
-        [Tooltip("한 단계 넘어가는 데 필요한 드래그 거리(화면 px). 한 번 문지르기가 대략 100~150px — 2~3번이면 넘어간다.")]
-        [SerializeField, Min(10f)] private float dragPerStage = 300f;
+        // (+10/6) 화면 px로 세다가 월드 거리(m)로 바꿨다 — px은 카메라를 당기거나 해상도가 높으면 같은 손짓이 더 길게 잡혀 너무 빨리 닦였다.
+        [Tooltip("한 단계 넘어가는 데 필요한 문지른 거리(m) — 솔이 조개 위에서 실제로 움직인 거리. 조개 폭 약 25cm라 1.5면 6번쯤 왕복.")]
+        [SerializeField, Min(0.05f)] private float scrubPerStage = 1.5f;
 
         [Tooltip("제한시간(초). 기획 MG_SURFACE_DRAG = 10.")]
         [SerializeField, Min(1f)] private float timeLimit = 10f;
@@ -75,6 +77,20 @@ namespace Marea.Cooking
         [Tooltip("한 단계 깨끗해질 때 크게 한 번.")]
         [SerializeField, Min(0.1f)] private float stageSplashScale = 1.4f;
 
+        [Header("단계 바뀔 때 거품 (+10/6)")]
+        [Tooltip("한 단계 깨끗해질 때 조개를 덮는 거품. 이게 커진 뒤(coverSwapDelay)에 모습을 바꿔서 바뀌는 순간을 가린다. None이면 바로 바꾼다.")]
+        [SerializeField] private VfxId stageCoverVfx = VfxId.SmokePoofDense;
+        [SerializeField, Min(0.01f)] private float stageCoverScale = 0.55f;
+        [SerializeField] private Color stageCoverTint = new Color(1f, 1f, 1f, 0.95f);
+        [Tooltip("거품을 터뜨리고 모습을 바꾸기까지(초). 그동안 옛 모습이 squashScale까지 오그라든다.")]
+        [SerializeField, Min(0f)] private float coverSwapDelay = 0.1f;
+        [Tooltip("(+10/6) 크기 팝 — 옛 모습이 오그라드는 크기(원래의 비율). 새 모습도 이 크기에서 튀어나온다. 1이면 팝 없음.")]
+        [SerializeField, Range(0.1f, 1f)] private float squashScale = 0.6f;
+        [Tooltip("새 모습이 튀어나와 원래 크기로 돌아오는 시간(초).")]
+        [SerializeField, Min(0.01f)] private float popTime = 0.18f;
+        [Tooltip("튀어나올 때 원래 크기를 넘었다 돌아오는 정도(1.1이면 10% 넘게).")]
+        [SerializeField, Min(1f)] private float popOvershoot = 1.12f;
+
         private float _nextSplash;
 
         [Header("소리 (+10/6, 이슈 117) — 기획 sfx_wash_loop")]
@@ -86,6 +102,8 @@ namespace Marea.Cooking
 
         private SoundLoop _wash;
         private float _lastScrub = float.NegativeInfinity;
+        private Clam _scrubClam;          // (+10/6) 지난 프레임에 문지르던 조개와 그 위 지점 — 거리를 잴 기준
+        private Vector3 _scrubPoint;
 
         [Header("솔 (+10/5)")]
         [Tooltip("조개를 닦는 솔. 기준점 = 솔털 끝 가운데. 커서를 따라 조개 위를 오가고, 누르면 내려가 닿는다. " +
@@ -108,6 +126,7 @@ namespace Marea.Cooking
             public Collider Hit;           // 판정용 — 모습을 갈아 끼워도 자리에 그대로 남는다
             public int Stage;
             public float Accum;
+            public Coroutine Swap;         // (+10/6) 진행 중인 크기 팝 — 단계가 또 오르면 끊고 새로 한다
         }
 
         private readonly List<Clam> _clams = new();
@@ -245,26 +264,32 @@ namespace Marea.Cooking
         {
             Mouse mouse = Mouse.current;
             Camera cam = Camera.main;
-            if (mouse == null || cam == null || !mouse.leftButton.isPressed) return;
-
-            float pixels = mouse.delta.ReadValue().magnitude;
-            if (pixels <= 0f) return;
+            if (mouse == null || cam == null || !mouse.leftButton.isPressed) { _scrubClam = null; return; }
 
             Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
             foreach (RaycastHit hit in Physics.RaycastAll(ray, 100f, ~0, QueryTriggerInteraction.Collide))
             {
                 Clam clam = _clams.Find(c => c.Hit == hit.collider);
                 if (clam == null) continue;
-                AddScrub(clam, pixels);
+                // 같은 조개를 이어서 문지를 때만 지난 지점과의 수평 거리를 더한다(다른 조개로 넘어간 첫 프레임은 기준만 잡는다).
+                if (clam == _scrubClam)
+                {
+                    Vector3 d = hit.point - _scrubPoint;
+                    d.y = 0f;
+                    if (d.sqrMagnitude > 1e-8f) AddScrub(clam, d.magnitude);
+                }
+                _scrubClam = clam;
+                _scrubPoint = hit.point;
                 return;
             }
+            _scrubClam = null;
         }
 
-        private void AddScrub(Clam clam, float pixels)
+        private void AddScrub(Clam clam, float meters)
         {
             if (clam.Stage >= StageCountOf(clam) - 1) return;
 
-            clam.Accum += pixels;
+            clam.Accum += meters;
             _lastScrub = Time.time;   // (+10/6) 문지르는 소리
             Vector3 at = brush != null ? brush.position : clam.Slot.position;
             if (Time.time >= _nextSplash)
@@ -272,13 +297,57 @@ namespace Marea.Cooking
                 _nextSplash = Time.time + splashInterval;
                 Vfx.Play(scrubSplashVfx, at, 0.6f, waterTint);   // (+10/6)
             }
-            if (clam.Accum < dragPerStage) return;
+            if (clam.Accum < scrubPerStage) return;
 
             clam.Accum = 0f;
             clam.Stage++;
-            ShowStage(clam);
             Vfx.Play(scrubSplashVfx, clam.Slot.position, stageSplashScale, waterTint);   // (+10/6) 한 단계 깨끗해짐
+            // (+10/6) 거품으로 덮고, 커진 뒤에 모습을 바꾼다. 점수 · 진행은 Stage로 바로 반영된다.
+            if (stageCoverVfx != VfxId.None)
+            {
+                Vfx.Play(stageCoverVfx, clam.Slot.position + Vector3.up * 0.03f, stageCoverScale, stageCoverTint);
+                if (clam.Swap != null) StopCoroutine(clam.Swap);
+                clam.Swap = StartCoroutine(PopToStage(clam));
+            }
+            else ShowStage(clam);
             OnProgress?.Invoke(CleanCount, _clams.Count);
+        }
+
+        /// <summary>
+        /// (+10/6) 크기 팝 — 옛 모습이 coverSwapDelay 동안 squashScale까지 오그라들고, 그 순간 갈아 끼운 새 모습이
+        /// squashScale에서 popOvershoot까지 튀었다가 원래 크기로 돌아온다. 바뀌는 순간이 움직임과 거품에 묻힌다.
+        /// 패널이 꺼지면(Cleanup) 코루틴도 같이 멈춘다.
+        /// </summary>
+        private IEnumerator PopToStage(Clam clam)
+        {
+            GameObject old = clam.Visual;
+            Vector3 oldFull = old != null ? old.transform.localScale : Vector3.one;
+            for (float t = 0f; t < coverSwapDelay; t += Time.deltaTime)
+            {
+                if (old != null) old.transform.localScale = oldFull * Mathf.Lerp(1f, squashScale, t / coverSwapDelay);
+                yield return null;
+            }
+            if (!_clams.Contains(clam)) yield break;
+
+            ShowStage(clam);
+            Transform shown = clam.Visual != null ? clam.Visual.transform : null;
+            if (shown == null) { clam.Swap = null; yield break; }
+            Vector3 full = shown.localScale;
+            for (float t = 0f; t < popTime; t += Time.deltaTime)
+            {
+                if (shown == null) yield break;
+                shown.localScale = full * PopCurve(t / popTime);
+                yield return null;
+            }
+            if (shown != null) shown.localScale = full;
+            clam.Swap = null;
+        }
+
+        // squashScale → popOvershoot(앞 60%) → 1(뒤 40%). 부드럽게.
+        private float PopCurve(float u)
+        {
+            if (u < 0.6f) return Mathf.Lerp(squashScale, popOvershoot, Mathf.SmoothStep(0f, 1f, u / 0.6f));
+            return Mathf.Lerp(popOvershoot, 1f, Mathf.SmoothStep(0f, 1f, (u - 0.6f) / 0.4f));
         }
 
         /// <summary>지금 단계 모습으로 갈아 끼운다. 프리팹이 없으면 임시 모양.</summary>

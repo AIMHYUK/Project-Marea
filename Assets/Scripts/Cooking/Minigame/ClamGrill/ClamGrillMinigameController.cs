@@ -38,6 +38,10 @@ namespace Marea.Cooking
         [SerializeField] private Color oilTint = new Color(1f, 0.85f, 0.45f, 1f);
         [Tooltip("불꽃이 그릴(조개 자리 평균)보다 이만큼 아래(m).")]
         [SerializeField] private float flameDrop = 0.15f;
+        [Tooltip("(+10/6) 불꽃이 나올 자리. 씬에서 끌어 옮겨 맞춘다. 비우면 조개 자리 평균에서 flameDrop 아래.")]
+        [SerializeField] private Transform flameAnchor;
+        [Tooltip("(+10/6) 김이 나올 자리. 비우면 조개 자리 평균 5cm 위.")]
+        [SerializeField] private Transform steamAnchor;
         [Tooltip("기름이 튀는 간격(초) 범위.")]
         [SerializeField] private Vector2 oilInterval = new Vector2(0.5f, 1.2f);
 
@@ -119,11 +123,14 @@ namespace Marea.Cooking
         {
             StopGrillAmbience();
             _grill = SoundManager.PlayLoop(grillLoop, grillVolume);   // (+10/6)
-            if (!TryGrillCenter(out Vector3 c)) return;
-            Transform at = grillGame.transform;
-            _flame = Vfx.PlayLoop(grillFlameVfx, at, at.InverseTransformPoint(c + Vector3.down * flameDrop));
-            _steam = Vfx.PlayLoop(grillSteamVfx, at, at.InverseTransformPoint(c + Vector3.up * 0.05f));
             _nextOil = Time.time + UnityEngine.Random.Range(oilInterval.x, oilInterval.y);
+            // (+10/6) 기준점이 있으면 그 자리에 붙인다(오프셋 0). 없을 때만 조개 자리 평균으로 계산.
+            bool hasCenter = TryGrillCenter(out Vector3 c);
+            Transform at = grillGame != null ? grillGame.transform : transform;
+            if (flameAnchor != null) _flame = Vfx.PlayLoop(grillFlameVfx, flameAnchor, Vector3.zero);
+            else if (hasCenter) _flame = Vfx.PlayLoop(grillFlameVfx, at, at.InverseTransformPoint(c + Vector3.down * flameDrop));
+            if (steamAnchor != null) _steam = Vfx.PlayLoop(grillSteamVfx, steamAnchor, Vector3.zero);
+            else if (hasCenter) _steam = Vfx.PlayLoop(grillSteamVfx, at, at.InverseTransformPoint(c + Vector3.up * 0.05f));
         }
 
         private void StopGrillAmbience()
