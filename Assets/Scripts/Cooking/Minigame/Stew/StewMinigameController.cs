@@ -69,6 +69,10 @@ namespace Marea.Cooking
         [SerializeField, Min(0.1f)] private float steamScale = 1f;
         [Tooltip("(+10/6) 화구 불꽃이 나올 자리. 씬에서 끌어 옮겨 맞춘다. 비우면 냄비 바닥 가운데.")]
         [SerializeField] private Transform burnerAnchor;
+        [Tooltip("(+10/6) 화구 불꽃을 더 낼 자리들. 같은 효과 · 크기로 하나씩 더 켠다.")]
+        [SerializeField] private Transform[] extraBurnerAnchors;
+        [Tooltip("(+10/6) 미니게임 동안만 켤 조명 — 김 · 연기에 가려 어두워진 스튜를 밝힌다. 평소엔 꺼 둔다(식당이 밝아지지 않게).")]
+        [SerializeField] private Light[] minigameLights;
         [Tooltip("(+10/6) 김이 나올 자리. 냄비를 따라 움직이게 냄비 아래에 두는 게 좋다. 비우면 국물 가운데 5cm 위.")]
         [SerializeField] private Transform steamAnchor;
 
@@ -78,6 +82,7 @@ namespace Marea.Cooking
         [SerializeField, Range(0f, 1f)] private float boilVolume = 0.5f;
 
         private VfxLoop _burner, _steam;
+        private readonly System.Collections.Generic.List<VfxLoop> _extraBurners = new();
         private SoundLoop _boil;
         private bool _ambienceOn;   // (+10/6) 디버거가 "지금 도는 중이면 갈아 끼운다"를 판단할 때 본다
 
@@ -317,6 +322,7 @@ namespace Marea.Cooking
         {
             StopAmbience();
             _ambienceOn = true;
+            SetLights(true);   // (+10/6)
             _boil = SoundManager.PlayLoop(boilLoop, boilVolume);   // (+10/6)
             if (stewPot == null) return;
             Bounds b = new Bounds(stewPot.transform.position, Vector3.zero);
@@ -331,10 +337,19 @@ namespace Marea.Cooking
             _burner = burnerAnchor != null
                 ? Vfx.PlayLoop(burnerVfx, burnerAnchor, Vector3.zero, burnerScale)
                 : Vfx.PlayLoop(burnerVfx, station, station.InverseTransformPoint(new Vector3(b.center.x, b.min.y, b.center.z)), burnerScale);
+            if (extraBurnerAnchors != null)
+                foreach (Transform a in extraBurnerAnchors)
+                    if (a != null) _extraBurners.Add(Vfx.PlayLoop(burnerVfx, a, Vector3.zero, burnerScale));
             Vector3 surface = stewPot.HasLiquid ? stewPot.StirCenter : b.center;
             _steam = steamAnchor != null
                 ? Vfx.PlayLoop(steamVfx, steamAnchor, Vector3.zero, steamScale)
                 : Vfx.PlayLoop(steamVfx, stewPot.transform, stewPot.transform.InverseTransformPoint(surface + Vector3.up * 0.05f), steamScale);
+        }
+
+        private void SetLights(bool on)
+        {
+            if (minigameLights == null) return;
+            foreach (Light l in minigameLights) if (l != null) l.enabled = on;
         }
 
         private void StopAmbience()
@@ -342,6 +357,9 @@ namespace Marea.Cooking
             _burner.Stop();
             _steam.Stop();
             _boil.Stop();
+            foreach (VfxLoop loop in _extraBurners) loop.Stop();
+            _extraBurners.Clear();
+            SetLights(false);   // (+10/6)
             _ambienceOn = false;
         }
 

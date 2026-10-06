@@ -34,6 +34,27 @@ namespace Marea.Cooking
         [Tooltip("(+10/2) 2단계에서 국자가 냄비 중심에 다가갈 수 있는 최소 거리(m).")]
         [SerializeField, Min(0f)] private float minLadleRadius = 0.06f;
 
+        // (+10/6) 피벗(SM_scoop)은 국물 속 머리가 아니라 중심에서 0.31m 떨어진 엉뚱한 점이고, 실제 막대가 국물 면을
+        // 뚫는 점은 0.13m였다 — 판정은 피벗 근처, 눈에 보이는 막대는 18cm 안쪽이라 원을 따라가는 게 어긋났다.
+        [Tooltip("(+10/6) 국자 막대가 국물 면을 뚫고 나오는 점 — 국자(ladlePivot) 아래 빈 오브젝트. 마우스는 이 점을 옮기고, 세이프존 판정도 이 점으로 한다. 비우면 피벗.")]
+        [SerializeField] private Transform ladleShaftPoint;
+        [Tooltip("(+10/6) 막대가 냄비 중심에서 갈 수 있는 최대 거리(m) — 국물 반경(0.64)에서 국자 머리 폭을 뺀 값.")]
+        [SerializeField, Min(0.05f)] private float maxShaftRadius = 0.5f;
+
+        private Vector3 _shaftOffsetSpace;   // 평소 자세에서 피벗 → 막대 점 (냄비 공간 벡터)
+
+        /// <summary>(+10/6) 지금 막대가 국물 면에 닿은 점(월드, 높이는 국물 면). 보이는 그대로라 판정에 쓴다.</summary>
+        public Vector3 LadleShaftPoint
+        {
+            get
+            {
+                Transform t = ladleShaftPoint != null ? ladleShaftPoint : ladlePivot;
+                Vector3 p = t != null ? t.position : StirCenter;
+                p.y = StirCenter.y;
+                return p;
+            }
+        }
+
         private Quaternion _initialLadleLocalRot;
         private Quaternion _targetLadleLocalRot;
 
@@ -49,21 +70,23 @@ namespace Marea.Cooking
             if (ladlePivot == null) return center;
             Transform space = ladlePivot.parent != null ? ladlePivot.parent : ladlePivot;
 
-            Vector3 restWorld = space.TransformPoint(_initialLadleLocalPos);
-            Vector3 restOff = restWorld - center; restOff.y = 0f;
-            float restR = restOff.magnitude;
-            if (restR < 0.01f) { restOff = Vector3.forward; restR = 0.01f; }
+            // (+10/6) 막대 점을 커서로 옮긴다 — 평소 자세를 냄비 중심축으로 돌리고, 막대 점이 커서에 오도록 피벗을 놓는다.
+            Vector3 pivotRest = space.TransformPoint(_initialLadleLocalPos);
+            Vector3 shaftOff = space.TransformVector(_shaftOffsetSpace);
+            Vector3 restDir = pivotRest + shaftOff - center; restDir.y = 0f;
+            if (restDir.sqrMagnitude < 1e-6f) restDir = Vector3.forward;
 
             Vector3 d = worldPoint - center; d.y = 0f;
-            Vector3 dir = d.sqrMagnitude > 1e-6f ? d.normalized : restOff.normalized;
-            float r = Mathf.Clamp(d.magnitude, minLadleRadius, restR + 0.02f);
+            Vector3 dir = d.sqrMagnitude > 1e-6f ? d.normalized : restDir.normalized;
+            float r = Mathf.Clamp(d.magnitude, minLadleRadius, maxShaftRadius);
 
-            Quaternion turn = Quaternion.AngleAxis(Vector3.SignedAngle(restOff, dir, Vector3.up), Vector3.up);
-            Vector3 newWorld = center + turn * (restOff.normalized * r) + Vector3.up * (restWorld.y - center.y);
-            _targetLadleLocalPos = space.InverseTransformPoint(newWorld);
+            Quaternion turn = Quaternion.AngleAxis(Vector3.SignedAngle(restDir, dir, Vector3.up), Vector3.up);
+            Vector3 pivot = center + dir * r - turn * shaftOff;
+            pivot.y = pivotRest.y;
+            _targetLadleLocalPos = space.InverseTransformPoint(pivot);
             _targetLadleLocalRot = Quaternion.Inverse(space.rotation) * (turn * (space.rotation * _initialLadleLocalRot));
 
-            return center + dir * r;
+            return LadleShaftPoint;   // 지금 보이는 막대 자리 — 판정이 보이는 것과 같게
         }
 
         private void Awake()
@@ -82,6 +105,10 @@ namespace Marea.Cooking
                 _targetLadleLocalPos = _initialLadleLocalPos;
                 _initialLadleLocalRot = ladlePivot.localRotation;
                 _targetLadleLocalRot = _initialLadleLocalRot;
+                Transform space = ladlePivot.parent != null ? ladlePivot.parent : ladlePivot;
+                Vector3 off = ladleShaftPoint != null ? ladleShaftPoint.position - ladlePivot.position : Vector3.zero;
+                off.y = 0f;
+                _shaftOffsetSpace = space.InverseTransformVector(off);
                 ladlePivot.gameObject.SetActive(true);
             }
 
