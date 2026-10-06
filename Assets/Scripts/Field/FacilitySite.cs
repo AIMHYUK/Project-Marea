@@ -39,6 +39,12 @@ namespace Marea.Field
         [FormerlySerializedAs("slotsPerLevel")]
         [SerializeField, Min(1)] private int baseSlots = 2;
 
+        // (+10/6) 식당 부지 — 영업 시설은 처음부터 열려 있어서 "해금되면 완성"으로는 못 쓴다. 레벨로 정한다.
+        [Header("완성 조건 (+10/6)")]
+        [Tooltip("0이면 해금되면 완성(농사 데크 · 탐사정). 1 이상이면 그 레벨이 돼야 폐허에서 완성으로 — "
+               + "처음부터 열린 시설의 부지처럼. 기획 영업 시설 4레벨 「부지 확장」.")]
+        [SerializeField, Min(0)] private int requiredLevel;
+
         [Header("연출 (+10/6, 이슈 117)")]
         [Tooltip("해금 · 업그레이드 완료 순간 바닥에서 퍼지는 효과. 기획 「시설 업그레이드·확장 완료」 VFX_10.")]
         [SerializeField] private VfxId dustVfx = VfxId.Dust;
@@ -118,6 +124,10 @@ namespace Marea.Field
                                  + $"{needed}개가 필요하다. 자리를 더 깔거나 baseSlots를 줄일 것.", this);
             }
 
+            FacilityData site = _levels.DataOf(kind);
+            if (site != null && requiredLevel > site.MaxLevel)
+                Debug.LogError($"{name}: requiredLevel {requiredLevel}이 {kind} 최대 레벨 {site.MaxLevel}보다 크다. 영영 폐허로 남는다.", this);
+
             _levels.OnUnlocked += HandleUnlocked;
             _levels.OnLevelChanged += HandleLevelChanged;
             Refresh();
@@ -143,15 +153,30 @@ namespace Marea.Field
         private void HandleUnlocked(FacilityKind changed)
         {
             if (changed != kind) return;
+            if (!IsBuilt) { Refresh(); return; }   // (+10/6) 해금됐지만 아직 requiredLevel 전 — 폐허 그대로
+            RevealBuilt();
+        }
+
+        /// <summary>폐허 → 완성 연출. 단계가 있으면 단계별, 없으면 폐허 자리를 한 번 본다.</summary>
+        private void RevealBuilt()
+        {
             if (HasSteps) StartReveal(RevealSteps());
             else StartReveal(Reveal(BoundsOf(brokenVisual != null && brokenVisual.activeInHierarchy ? brokenVisual : gameObject).center));
         }
+
+        /// <summary>(+10/6) 완성된 모습이어야 하나 — 해금 + requiredLevel 이상.</summary>
+        private bool IsBuilt => _levels.IsUnlocked(kind) && _levels.LevelOf(kind) >= requiredLevel;
 
         // (+10/6) 새 칸이 생기는 레벨업만 연출한다. 수치만 오르는 레벨업은 예전처럼 그 자리에서 이펙트.
         private void HandleLevelChanged(FacilityKind changed, int level)
         {
             if (changed != kind) return;
             if (_reveal != null) return;   // 연출 중 — 끝날 때 Refresh가 최신 상태를 읽는다
+
+            // (+10/6) requiredLevel에 막 닿았다 — 폐허가 보이고 있는데 이제 완성이어야 한다. 해금 때와 같은 연출.
+            bool showingBroken = brokenVisual != null && brokenVisual.activeSelf;
+            if (requiredLevel > 0 && showingBroken && IsBuilt) { RevealBuilt(); return; }
+            if (!IsBuilt) { Refresh(); return; }   // 아직 폐허 — 폐허 위에 완성 이펙트를 터뜨리지 않는다
 
             int shown = ActiveSlotCount();
             int target = _levels.IsUnlocked(kind) ? Mathf.Min(TargetSlots(), levelSlots?.Length ?? 0) : 0;
@@ -326,7 +351,7 @@ namespace Marea.Field
             => baseSlots + Mathf.RoundToInt(_levels.EffectValue(kind, FacilityEffectType.FarmSlotAdd));
 
         private void Refresh()
-            => Apply(_levels.IsUnlocked(kind), TargetSlots());
+            => Apply(IsBuilt, TargetSlots());
 
         private void Apply(bool unlocked, int slots)
         {
