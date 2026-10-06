@@ -182,7 +182,7 @@ namespace Marea.Cooking
             float radius = guideClickRadius * _mainCamera.pixelHeight / 1080f;
             bool clickedGuide = guideScreen.z > _mainCamera.nearClipPlane &&
                 Vector2.Distance(mousePosition, guideScreen) <= radius;
-            if (clickedGuide || VeggieClickArea.Contains(_mainCamera, targetOnionObject,
+            if (clickedGuide || CookingClickArea.Contains(_mainCamera, targetOnionObject,
                     mousePosition, ingredientClickPadding, out _))
                 StartCoroutine(PerformSliceAnimation(currentGuide));
         }

@@ -30,7 +30,10 @@ namespace Marea.Cooking
         [SerializeField] private float badMax = 0.97f;
 
         [Header("3단계: 플레이팅 항목")]
+        [Tooltip("추가 연결할 플레이팅 재료. Step3Panel 아래의 MinigameDraggable 재료는 자동으로 포함됩니다.")]
         [SerializeField] private List<MinigameDraggable> platingItems;
+        private readonly List<MinigameDraggable> _requiredPlatingItems = new();
+        private int _lastPlacedCount = -1;
 
         private MenuData _currentMenu;
         private Action<CookingResult> _onCompleteCallback;
@@ -110,6 +113,8 @@ namespace Marea.Cooking
         protected override void ResetMinigame()
         {
             base.ResetMinigame();
+            CollectPlatingItems();
+            _lastPlacedCount = -1;
 
             _elapsedTime = 0f;
             _isPlaying = false;
@@ -127,15 +132,9 @@ namespace Marea.Cooking
                 }
             }
 
-            if (platingItems != null)
+            foreach (MinigameDraggable item in _requiredPlatingItems)
             {
-                for (int i = 0; i < platingItems.Count; i++)
-                {
-                    if (platingItems[i] != null)
-                    {
-                        platingItems[i].ResetObject();
-                    }
-                }
+                if (item != null) item.ResetObject();
             }
         }
 
@@ -144,7 +143,7 @@ namespace Marea.Cooking
         // ==========================================
         protected override void OnStep1Start()
         {
-            minigameUI?.SetGuide("칼집 안내선의 한쪽 끝을 누르고 반대쪽 끝까지 드래그하세요!");
+            minigameUI?.SetGuide("화살표를 따라 드래그하여 생선에 칼집 3개를 내세요!");
         }
 
         protected override void OnStep1Update()
@@ -245,28 +244,81 @@ namespace Marea.Cooking
         // ==========================================
         protected override void OnStep3Start()
         {
-            minigameUI?.SetGuide("구운 생선을 드래그하여 접시 위에 놓으세요!");
-            if (platingItems == null) return;
-            foreach (MinigameDraggable item in platingItems)
+            CollectPlatingItems();
+            _lastPlacedCount = -1;
+            foreach (MinigameDraggable item in _requiredPlatingItems)
             {
                 if (item != null) item.ResetObject();
             }
+            UpdatePlatingGuide();
         }
 
         protected override void OnStep3Update()
         {
-            if (!_isPlaying || platingItems == null || platingItems.Count == 0) return;
+            if (!_isPlaying) return;
+            UpdatePlatingGuide();
+            if (AreAllPlatingItemsPlaced()) CompleteStep3(1.0f);
+        }
 
+        private void CollectPlatingItems()
+        {
+            _requiredPlatingItems.Clear();
+            if (step3Panel != null)
+            {
+                foreach (MinigameDraggable item in step3Panel.GetComponentsInChildren<MinigameDraggable>(true))
+                    AddPlatingItem(item);
+            }
+            if (platingItems != null)
+                foreach (MinigameDraggable item in platingItems) AddPlatingItem(item);
+
+            // Newly added ingredients may have a draggable component but no placement bindings yet.
+            MinigameDraggable template = _requiredPlatingItems.Find(item => item != null && item.HasPlacementTargets);
+            if (template != null)
+                foreach (MinigameDraggable item in _requiredPlatingItems) item.UsePlacementDefaults(template);
+        }
+
+        private void AddPlatingItem(MinigameDraggable item)
+        {
+            if (item != null && !_requiredPlatingItems.Contains(item)) _requiredPlatingItems.Add(item);
+        }
+
+        private bool AreAllPlatingItemsPlaced()
+        {
+            int validCount = 0;
+            foreach (MinigameDraggable item in _requiredPlatingItems)
+            {
+                if (item == null) continue;
+                validCount++;
+                if (!item.IsPlaced) return false;
+            }
+            return validCount > 0;
+        }
+
+        private void UpdatePlatingGuide()
+        {
             int placedCount = 0;
-            for (int i = 0; i < platingItems.Count; i++)
+            int totalCount = 0;
+            foreach (MinigameDraggable item in _requiredPlatingItems)
             {
-                if (platingItems[i] != null && platingItems[i].IsPlaced) placedCount++;
+                if (item == null) continue;
+                totalCount++;
+                if (item.IsPlaced) placedCount++;
             }
+            // Several ingredients can share the same guide objects. Hide only after everyone is placed.
+            foreach (MinigameDraggable item in _requiredPlatingItems)
+                if (item != null) item.SetPlacementGuidesVisible(placedCount < totalCount);
+            if (placedCount == _lastPlacedCount) return;
+            _lastPlacedCount = placedCount;
+            minigameUI?.SetGuide($"모든 재료를 접시 위 표시된 위치에 놓으세요! ({placedCount}/{totalCount})");
+        }
 
-            if (placedCount >= platingItems.Count)
-            {
-                CompleteStep3(1.0f);
-            }
+        public override void CompleteStep3(float score = 1.0f)
+        {
+            // Also guard completion triggered by external scripts or Inspector events.
+            if (!_isPlaying || CurrentStepIndex != MinigameStepIndex.Step3) return;
+            CollectPlatingItems();
+            if (!AreAllPlatingItemsPlaced()) return;
+            base.CompleteStep3(score);
         }
 
         // ==========================================

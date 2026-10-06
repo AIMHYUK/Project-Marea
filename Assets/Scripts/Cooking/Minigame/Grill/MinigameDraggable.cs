@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using System.Collections.Generic;
 
 namespace Marea.Cooking
 {
@@ -9,10 +10,12 @@ namespace Marea.Cooking
     {
         [Header("목표 위치 (접시 위의 Target Point)")]
         [SerializeField] private Transform targetPoint;
+        [SerializeField] private List<Transform> targetPoints = new List<Transform>();
         [SerializeField] private float snapDistance = 0.5f; // 스냅 인정 거리
 
         [Header("가이드/하이라이트 표시 (선택)")]
         [SerializeField] private GameObject highlightGuide;
+        [SerializeField] private List<GameObject> highlightGuides = new List<GameObject>();
 
         [Header("플레이팅 효과음")]
         [SerializeField] private AudioSource placeAudioSource;
@@ -26,9 +29,57 @@ namespace Marea.Cooking
         private Collider[] _colliders;
         private bool _hasInitialPose;
         private bool _isDragging;
+        private Vector3 _targetPivotOffset;
         private static MinigameDraggable _activeDrag;
 
         public bool IsPlaced { get; private set; }
+        public bool HasPlacementTargets
+        {
+            get
+            {
+                if (targetPoint != null) return true;
+                if (targetPoints != null)
+                    foreach (Transform point in targetPoints) if (point != null) return true;
+                return false;
+            }
+        }
+
+        public void UsePlacementDefaults(MinigameDraggable source)
+        {
+            if (source == null || source == this) return;
+            if (!HasPlacementTargets)
+            {
+                targetPoint = source.targetPoint;
+                targetPoints = source.targetPoints != null
+                    ? new List<Transform>(source.targetPoints) : new List<Transform>();
+                snapDistance = source.snapDistance;
+                highlightGuide = source.highlightGuide;
+                highlightGuides = source.highlightGuides != null
+                    ? new List<GameObject>(source.highlightGuides) : new List<GameObject>();
+                _targetPivotOffset = source.GetVisibleCenterOffset() - GetVisibleCenterOffset();
+            }
+            if (placeAudioSource == null) placeAudioSource = source.placeAudioSource;
+        }
+
+        public void SetPlacementGuidesVisible(bool visible)
+        {
+            if (highlightGuide != null) highlightGuide.SetActive(visible);
+            if (highlightGuides != null)
+                foreach (GameObject guide in highlightGuides)
+                    if (guide != null) guide.SetActive(visible);
+        }
+
+        private Vector3 GetVisibleCenterOffset()
+        {
+            Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
+            if (renderers.Length == 0) return Vector3.zero;
+            Bounds bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
+            return Quaternion.Inverse(transform.rotation) * (bounds.center - transform.position);
+        }
+
+        private Vector3 GetPlacementPosition(Transform point) =>
+            point.position + point.rotation * _targetPivotOffset;
 
         private void Awake()
         {
@@ -48,6 +99,8 @@ namespace Marea.Cooking
             IsPlaced = false;
             RestoreInitialPose();
             if (highlightGuide != null) highlightGuide.SetActive(true);
+            foreach (var guide in highlightGuides)
+                if (guide != null) guide.SetActive(true);
         }
 
         private void EnsureInitialized()
@@ -124,26 +177,45 @@ namespace Marea.Cooking
             if (!CanInteract || !_isDragging) return;
             MoveDrag(screenPosition);
             CancelDrag();
-            if (targetPoint != null)
+            Transform placementTarget = FindClosestTarget();
+            if (placementTarget != null)
             {
-                Vector3 difference = transform.position - targetPoint.position;
+                Vector3 difference = transform.position - GetPlacementPosition(placementTarget);
                 difference.y = 0f;
                 if (difference.sqrMagnitude <= snapDistance * snapDistance)
                 {
                     // 목표 위치 및 회전값으로 스냅 고정
-                    transform.position = targetPoint.position;
-                    transform.rotation = targetPoint.rotation;
+                    transform.position = GetPlacementPosition(placementTarget);
+                    transform.rotation = placementTarget.rotation;
                     IsPlaced = true;
 
                     if (placeAudioSource != null && placeAudioSource.clip != null)
                         placeAudioSource.PlayOneShot(placeAudioSource.clip);
 
                     if (highlightGuide != null) highlightGuide.SetActive(false);
+                    foreach (var guide in highlightGuides)
+                        if (guide != null) guide.SetActive(false);
                     return;
                 }
             }
 
             RestoreInitialPose();
+        }
+
+        private Transform FindClosestTarget()
+        {
+            Transform nearest = null;
+            float bestDistance = float.PositiveInfinity;
+            if (targetPoints != null) foreach (var point in targetPoints)
+            {
+                if (point == null) continue;
+                Vector3 difference = transform.position - GetPlacementPosition(point);
+                difference.y = 0f;
+                if (difference.sqrMagnitude >= bestDistance) continue;
+                bestDistance = difference.sqrMagnitude;
+                nearest = point;
+            }
+            return nearest != null ? nearest : targetPoint;
         }
 
         private void RestoreInitialPose()

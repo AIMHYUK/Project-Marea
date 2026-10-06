@@ -27,6 +27,14 @@ namespace Marea.Cooking
         [SerializeField] private float aboveStickClearance = 0.45f;
         [SerializeField] private float insertionDuration = 0.5f;
 
+        [Header("소스 색상")]
+        [InspectorName("소스 색")]
+        [SerializeField] private Color sauceColor = new Color(0.95f, 0.3f, 0.06f, 1f);
+        [Tooltip("완전히 발랐을 때 소스 색이 반영되는 강도입니다. 1에 가까울수록 진해집니다.")]
+        [InspectorName("소스 진하기")]
+        [SerializeField, Range(0f, 1f)] private float sauceBlend = 0.65f;
+        [SerializeField] private Shader sauceTintShader;
+
         private Vector3 _travelCenter;
         private Vector3 _travelAxis;
         private float _travelOffset;
@@ -38,10 +46,12 @@ namespace Marea.Cooking
         private readonly List<GameObject> _spawnedStickIngredients = new();
         private readonly HashSet<GameObject> _saucedIngredients = new();
         private readonly Dictionary<GameObject, float> _sauceCoverage = new();
+        private readonly Dictionary<Material, Material> _sauceMaterials = new();
         private GameObject _currentMovingModel;
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int LegacyColorId = Shader.PropertyToID("_Color");
+        private static readonly int SauceTintId = Shader.PropertyToID("_SauceTint");
 
         public int SauceTargetCount => _spawnedStickIngredients.Count;
         public int AssemblyIngredientCount => _sequenceIngredients.Count;
@@ -341,34 +351,69 @@ namespace Marea.Cooking
             return false;
         }
 
-        private static void SetSauceTint(GameObject ingredient, float coverage)
+        private void SetSauceTint(GameObject ingredient, float coverage)
         {
-            const float sauceBlend = 0.65f;
-            Color sauceColor = new Color(0.95f, 0.3f, 0.06f, 1f);
             Renderer[] renderers = ingredient.GetComponentsInChildren<Renderer>();
             foreach (Renderer renderer in renderers)
             {
                 Material[] materials = renderer.sharedMaterials;
+                bool replacedMaterial = false;
                 for (int materialIndex = 0; materialIndex < materials.Length; materialIndex++)
                 {
                     Material material = materials[materialIndex];
                     if (material == null) continue;
+                    // MM_Shader's _BaseColor is a texture. Use an otherwise identical shader with a separate tint.
+                    if (material.shader.name == "Shader Graphs/MM_Shader" && sauceTintShader != null)
+                    {
+                        if (!_sauceMaterials.TryGetValue(material, out Material tinted))
+                        {
+                            tinted = new Material(material) { shader = sauceTintShader, name = material.name + " (Sauce)" };
+                            tinted.SetColor(SauceTintId, Color.white);
+                            _sauceMaterials.Add(material, tinted);
+                        }
+                        materials[materialIndex] = material = tinted;
+                        replacedMaterial = true;
+                    }
+                    int colorId = IsColorProperty(material, "_SauceTint") ? SauceTintId :
+                        IsColorProperty(material, "_BaseColor") ? BaseColorId :
+                        IsColorProperty(material, "_Color") ? LegacyColorId : -1;
+                    if (colorId == -1) continue;
                     MaterialPropertyBlock block = new MaterialPropertyBlock();
                     renderer.GetPropertyBlock(block, materialIndex);
-                    Color baseColor = Color.white;
-                    if (material.HasProperty(BaseColorId)) baseColor = material.GetColor(BaseColorId);
-                    else if (material.HasProperty(LegacyColorId)) baseColor = material.GetColor(LegacyColorId);
+                    Color baseColor = material.GetColor(colorId);
                     Color tint = Color.Lerp(baseColor, sauceColor, sauceBlend * coverage);
-                    if (material.HasProperty(BaseColorId)) block.SetColor(BaseColorId, tint);
-                    if (material.HasProperty(LegacyColorId)) block.SetColor(LegacyColorId, tint);
+                    block.SetColor(colorId, tint);
                     if (material.HasProperty("_Smoothness"))
                     {
                         block.SetFloat("_Smoothness", Mathf.Lerp(material.GetFloat("_Smoothness"), 0.8f, coverage));
                     }
                     renderer.SetPropertyBlock(block, materialIndex);
                 }
+                if (replacedMaterial) renderer.sharedMaterials = materials;
             }
         }
+
+        private static bool IsColorProperty(Material material, string property)
+        {
+            int index = material.shader.FindPropertyIndex(property);
+            return index >= 0 && material.shader.GetPropertyType(index) == UnityEngine.Rendering.ShaderPropertyType.Color;
+        }
+
+        private void OnValidate()
+        {
+            if (!Application.isPlaying) return;
+            foreach (var pair in _sauceCoverage)
+                if (pair.Key != null) SetSauceTint(pair.Key, pair.Value);
+        }
+
+        private void ClearSauceMaterials()
+        {
+            foreach (Material material in _sauceMaterials.Values)
+                if (material != null) Destroy(material);
+            _sauceMaterials.Clear();
+        }
+
+        private void OnDestroy() => ClearSauceMaterials();
 
         private static void EnsurePaintableCollider(GameObject ingredient)
         {
@@ -418,6 +463,8 @@ namespace Marea.Cooking
             _spawnedStickIngredients.Clear();
             _saucedIngredients.Clear();
             _sauceCoverage.Clear();
+
+            ClearSauceMaterials();
 
             // 슬롯 하위에 남아있는 자식 오브젝트 완전 삭제
             if (attachPoints != null)

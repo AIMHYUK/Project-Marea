@@ -25,15 +25,23 @@ namespace Marea.Cooking
         [SerializeField] private SequenceInputRailUI railUI;
 
         [Header("랜덤 패턴 생성 설정")]
-        [SerializeField] private int totalNoteCount = 15;      // 생성할 총 노트 개수
+        [SerializeField, Min(1)] private int totalNoteCount = 15; // 생성할 총 노트 개수
         [SerializeField] private float initialDelay = 1.5f;     // 첫 노트가 나오는 대기 시간 (초)
         [SerializeField] private float minInterval = 0.8f;      // 노트 간 최소 간격 (초)
         [SerializeField] private float maxInterval = 1.4f;      // 노트 간 최대 간격 (초)
+        [Tooltip("일반 노트 간격에 추가할 무작위 편차 비율.")]
+        [InspectorName("일반 간격 랜덤 편차")]
+        [SerializeField, Range(0f, 0.5f)] private float intervalVariation = 0.25f;
+        [Tooltip("같은 양념통을 빠르게 두 번 클릭하는 패턴의 발생 확률. 0보다 크면 한 판에 최소 한 쌍이 등장합니다.")]
+        [InspectorName("연속 두 번 클릭 확률")]
+        [SerializeField, Range(0f, 1f)] private float doubleClickChance = 0.35f;
+        [InspectorName("연속 클릭 간격 (최소/최대 초)")]
+        [SerializeField] private Vector2 doubleClickInterval = new Vector2(0.28f, 0.42f);
 
         public bool IsQTECompleted { get; private set; }
         public int SuccessCount { get; private set; }
         public int MissCount { get; private set; }
-        public int TotalNoteCount => totalNoteCount;
+        public int TotalNoteCount => Mathf.Max(1, totalNoteCount);
 
         private Camera _mainCamera;
         private Action _onQTEFinishedCallback;
@@ -145,31 +153,32 @@ namespace Marea.Cooking
             List<SequenceNoteData> randomNotes =
                 new List<SequenceNoteData>();
 
-            float currentSpawnTime =
-                initialDelay;
+            float currentSpawnTime = Mathf.Max(0f, initialDelay);
+            bool hasDoubleClick = false;
+            float regularMin = Mathf.Max(0.2f, Mathf.Min(minInterval, maxInterval));
+            float regularMax = Mathf.Max(regularMin, Mathf.Max(minInterval, maxInterval));
+            float doubleMin = Mathf.Max(0.2f, Mathf.Min(doubleClickInterval.x, doubleClickInterval.y));
+            float doubleMax = Mathf.Max(doubleMin, Mathf.Max(doubleClickInterval.x, doubleClickInterval.y));
 
-            for (int i = 0; i < totalNoteCount; i++)
+            while (randomNotes.Count < TotalNoteCount)
             {
-                SequenceNoteData noteData =
-                    new SequenceNoteData
-                    {
-                        // 💡 UnityEngine.Random 명시
-                        keyType =
-                            (UnityEngine.Random.value > 0.5f)
-                                ? SeasoningKey.Salt
-                                : SeasoningKey.Pepper,
+                SeasoningKey key = UnityEngine.Random.value > 0.5f ? SeasoningKey.Salt : SeasoningKey.Pepper;
+                randomNotes.Add(new SequenceNoteData { keyType = key, spawnTime = currentSpawnTime });
 
-                        spawnTime =
-                            currentSpawnTime
-                    };
+                bool canAddPair = randomNotes.Count < TotalNoteCount;
+                bool ensurePair = !hasDoubleClick && randomNotes.Count == TotalNoteCount - 1;
+                if (canAddPair && doubleClickChance > 0f &&
+                    (ensurePair || UnityEngine.Random.value < doubleClickChance))
+                {
+                    currentSpawnTime += UnityEngine.Random.Range(doubleMin, doubleMax);
+                    randomNotes.Add(new SequenceNoteData { keyType = key, spawnTime = currentSpawnTime });
+                    hasDoubleClick = true;
+                }
 
-                randomNotes.Add(noteData);
-
-                currentSpawnTime +=
-                    UnityEngine.Random.Range(
-                        minInterval,
-                        maxInterval
-                    );
+                // Resume a normal interval after each pair, preventing accidental runs of three or more.
+                float interval = UnityEngine.Random.Range(regularMin, regularMax)
+                    * UnityEngine.Random.Range(1f - intervalVariation, 1f + intervalVariation);
+                currentSpawnTime += Mathf.Max(0.2f, interval);
             }
 
             return randomNotes;
@@ -198,9 +207,9 @@ namespace Marea.Cooking
                 Vector2 mousePosition =
                     Mouse.current.position.ReadValue();
 
-                bool clickedSalt = VeggieClickArea.Contains(_mainCamera, salt3DObject,
+                bool clickedSalt = CookingClickArea.Contains(_mainCamera, salt3DObject,
                     mousePosition, seasoningClickPadding, out float saltScore);
-                bool clickedPepper = VeggieClickArea.Contains(_mainCamera, pepper3DObject,
+                bool clickedPepper = CookingClickArea.Contains(_mainCamera, pepper3DObject,
                     mousePosition, seasoningClickPadding, out float pepperScore);
                 if (clickedSalt || clickedPepper)
                 {

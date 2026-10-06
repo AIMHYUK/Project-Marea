@@ -13,6 +13,7 @@ namespace Marea.Cooking
         [Header("비주얼 요소")]
         [SerializeField] private GameObject guideLineVisual; // 안내선/화살표
         [SerializeField] private GameObject cutMarkVisual;  // 3D 칼집 자국 표식
+        [SerializeField] private Marea.Food.CutDecalReveal cutDecalReveal;
         [SerializeField] private ParticleSystem sliceEffect;
 
         [Header("드래그 완성 인정 기준 (0.0 ~ 1.0)")]
@@ -47,6 +48,7 @@ namespace Marea.Cooking
             if (sliceEffect != null)
                 sliceEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             if (guideLineVisual != null) guideLineVisual.SetActive(true);
+            if (cutDecalReveal != null) cutDecalReveal.SetProgress(0f);
             if (cutMarkVisual != null) cutMarkVisual.SetActive(false);
         }
 
@@ -121,6 +123,7 @@ namespace Marea.Cooking
             _isDragging = false;
             if (guideLineVisual != null) guideLineVisual.SetActive(false);
             if (cutMarkVisual != null) cutMarkVisual.SetActive(true);
+            if (cutDecalReveal != null) cutDecalReveal.SetProgress(1f);
         }
     }
 }

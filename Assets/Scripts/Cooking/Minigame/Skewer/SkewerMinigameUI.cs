@@ -72,6 +72,13 @@ namespace Marea.Cooking
             if (_controller != null && _controller.CurrentStepIndex == MinigameStepIndex.Step2)
             {
                 grade = timingBar != null ? timingBar.EvaluateHit() : HitGrade.Miss;
+                if (txtFeedback != null)
+                    txtFeedback.text = grade switch
+                    {
+                        HitGrade.Perfect => "<color=yellow>PERFECT!</color>",
+                        HitGrade.Good => "<color=green>GOOD!</color>",
+                        _ => "<color=red>MISS! 다시 타이밍을 맞추세요.</color>"
+                    };
             }
 
             if (_controller != null)

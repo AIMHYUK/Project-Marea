@@ -12,6 +12,10 @@ namespace Marea.Cooking
         [SerializeField] private Transform panInsideTransform;            // 프라이팬 내부 투입 지점
         [SerializeField] private Transform spatulaTransform;             // 3D 주걱 오브젝트
 
+        [Header("팬에 넣을 재료 클릭 영역")]
+        [Tooltip("재료 모델 가장자리에 추가할 클릭 여유 (1920×1080 기준 픽셀)")]
+        [SerializeField, Min(0f)] private float veggieClickPadding = 48f;
+
         [Header("주걱 수평 이동 제한")]
         [SerializeField] private Vector2 spatulaMoveRange = new Vector2(1.5f, 1.5f); // 팬 안에서 주걱이 이동할 X, Z 범위
         [SerializeField] private float spatulaSpeedMultiplier = 0.005f;
@@ -23,15 +27,37 @@ namespace Marea.Cooking
         [SerializeField, Range(0f, 20f)] private float spatulaRollAngle = 15f;
 
         [Header("팬 안 재료 움직임")]
-        [Tooltip("팬 내부 기준 X, Z 이동 반경. 재료가 팬 밖으로 나가지 않도록 제한한다.")]
-        [SerializeField] private Vector2 ingredientMoveRange = new Vector2(0.65f, 0.65f);
+        [Tooltip("팬 내부 중심부터 가장자리까지의 반지름 (월드 단위). 재료 크기를 제외한 범위 안에서 움직입니다.")]
+        [InspectorName("재료 이동 반지름")]
+        [SerializeField, Min(0.01f)] private float ingredientMoveRadius = 0.65f;
+        [Header("주걱 접촉 밀기")]
+        [Tooltip("주걱 끝부분의 접촉 지점. 비워 두면 모델의 아래쪽 끝을 사용합니다.")]
+        [SerializeField] private Transform spatulaContactPoint;
+        [InspectorName("주걱 접촉 반지름")]
+        [SerializeField, Min(0.01f)] private float spatulaContactRadius = 0.12f;
+        [InspectorName("재료 밀기 속도")]
+        [SerializeField, Min(0f)] private float ingredientPushSpeed = 0.4f;
+        [InspectorName("최대 밀림 거리")]
+        [SerializeField, Min(0f)] private float ingredientMaxPushDistance = 0.12f;
+        [Tooltip("팬 이동 반경 중 재료 사이 간격에 사용할 비율. 높일수록 재료가 넓게 배치됩니다.")]
+        [SerializeField, Range(0f, 0.8f)] private float ingredientSpreadRatio = 0.5f;
         [SerializeField, Min(0f)] private float ingredientFollowMultiplier = 0.85f;
         [SerializeField, Min(0f)] private float ingredientTurnDegreesPerUnit = 70f;
+        [Tooltip("재료마다 다르게 움직일 수 있는 거리 (팬 반경에 대한 비율).")]
+        [SerializeField, Range(0f, 0.2f)] private float ingredientMotionVariation = 0.12f;
+        [Tooltip("재료가 주걱 움직임을 따라가는 반응 속도. 각 재료에 무작위 편차가 적용됩니다.")]
+        [SerializeField, Min(0.1f)] private float ingredientResponseSpeed = 10f;
 
-        [Header("수치 설정")]
-        [SerializeField] private float requiredCookProgress = 100f; // 목표 조리 진행도
-        [SerializeField] private float burnRate = 15f;              // 안 저을 때 초당 타는 게이지 증가량
-        [SerializeField] private float cookRate = 25f;              // 저을 때 초당 조리 게이지 증가량
+        [Header("재료별 조리 시간과 점수")]
+        [Tooltip("각 재료를 실제로 저어야 하는 시간. 이 시간을 채우면 기본 점수가 만점입니다.")]
+        [InspectorName("재료별 필요 볶기 시간 (초)")]
+        [SerializeField, Min(0.1f)] private float requiredIngredientStirSeconds = 4f;
+        [Tooltip("투입 후 이 시간까지는 감점하지 않습니다. 젓지 않는 시간도 포함됩니다.")]
+        [InspectorName("감점 시작 체류 시간 (초)")]
+        [SerializeField, Min(0f)] private float ingredientSafePanSeconds = 12f;
+        [Tooltip("체류 시간을 초과한 재료의 점수에서 매초 감점하는 양 (100점 기준).")]
+        [InspectorName("시간 초과 감점 (점/초)")]
+        [SerializeField, Range(0.1f, 100f)] private float ingredientOvertimePenaltyPerSecond = 10f;
 
         [Header("시각 연출 (Material & Particle)")]
         [SerializeField] private Renderer veggieRenderer;           // 익힘/탄 재질을 적용할 렌더러
@@ -40,12 +66,14 @@ namespace Marea.Cooking
         [SerializeField] private Color burnedColor = Color.black;   // 탄 색상
         [SerializeField] private ParticleSystem cookingSteamEffect; // 조리 시 연기 이펙트
         [SerializeField] private AudioSource stirAudioSource;       // 볶는 소리 사운드
+        [SerializeField] private AudioSource ingredientInsertAudioSource;
 
         public bool IsVeggieInPan { get; private set; }
         public bool IsCookCompleted { get; private set; }
         public bool IsBurned { get; private set; }
         public float CookProgress { get; private set; }
         public float BurnProgress { get; private set; }
+        public float CookingScore { get; private set; }
 
         private Vector3 _initialSpatulaLocalPos;
         private Quaternion _initialSpatulaLocalRotation;
@@ -57,6 +85,27 @@ namespace Marea.Cooking
         private bool _isStirringThisFrame;
         private bool _isDraggingSpatulaDirectly;
         private Camera _mainCamera;
+        private readonly Dictionary<GameObject, Vector3> _panIngredientOffsets =
+            new Dictionary<GameObject, Vector3>();
+        private Vector3 _panGroupOffset;
+        private Vector3 _spatulaContactLocalPoint;
+        private sealed class IngredientMotion
+        {
+            public float FollowScale;
+            public float ResponseScale;
+            public float TurnScale;
+            public float Phase;
+            public float Frequency;
+            public Vector2 InitialWave;
+            public Vector2 Drift;
+            public Vector3 Offset;
+            public Vector3 PushOffset;
+            public float StirSeconds;
+            public float PanSeconds;
+            public float Penalty;
+        }
+        private readonly Dictionary<GameObject, IngredientMotion> _ingredientMotions =
+            new Dictionary<GameObject, IngredientMotion>();
 
         private readonly Dictionary<GameObject, Transform> _initialVeggieParents =
             new Dictionary<GameObject, Transform>();
@@ -77,6 +126,17 @@ namespace Marea.Cooking
                     spatulaTransform.localPosition;
                 _initialSpatulaLocalRotation = spatulaTransform.localRotation;
                 ResetSpatulaPose();
+                // Cache the working end so the contact point rotates with the spatula model.
+                Vector3 tip = spatulaTransform.position;
+                float lowestHeight = float.PositiveInfinity;
+                foreach (Renderer renderer in spatulaTransform.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (renderer.bounds.min.y >= lowestHeight) continue;
+                    lowestHeight = renderer.bounds.min.y;
+                    tip = renderer.bounds.center;
+                    tip.y = lowestHeight;
+                }
+                _spatulaContactLocalPoint = spatulaTransform.InverseTransformPoint(tip);
             }
 
             if (clickableVeggieObjects != null)
@@ -105,9 +165,13 @@ namespace Marea.Cooking
 
             CookProgress = 0f;
             BurnProgress = 0f;
+            CookingScore = 0f;
 
             _isDraggingSpatulaDirectly = false;
             _isStirringThisFrame = false;
+            _panIngredientOffsets.Clear();
+            _ingredientMotions.Clear();
+            _panGroupOffset = Vector3.zero;
 
             if (clickableVeggieObjects != null)
             {
@@ -162,6 +226,7 @@ namespace Marea.Cooking
             {
                 stirAudioSource.Stop();
             }
+            if (ingredientInsertAudioSource != null) ingredientInsertAudioSource.Stop();
         }
 
         private void Update()
@@ -171,15 +236,15 @@ namespace Marea.Cooking
                 _mainCamera = Camera.main;
             }
 
-            // 1. 3D 야채 클릭 감지 (팬에 넣기 전)
-            if (!IsVeggieInPan &&
+            // 3D 야채 클릭 감지 (팬에 넣기 전)
+            if (!IsCookCompleted &&
                 Mouse.current != null &&
                 Mouse.current.leftButton.wasPressedThisFrame)
             {
                 CheckVeggieClickHit();
             }
 
-            // 2. UI Drag 방식이 작동하지 않는 환경을 대비한 3D 마우스 직접 드래그 모드
+            // UI Drag 방식이 작동하지 않는 환경을 대비한 3D 마우스 직접 드래그 모드
             HandleDirectMouseDrag();
             UpdateSpatulaPose();
 
@@ -190,18 +255,10 @@ namespace Marea.Cooking
                 return;
             }
 
-            // 3. 저어주는 상태 처리
+            // 저어주는 상태 처리
+            UpdateIngredientPositions();
             if (_isStirringThisFrame)
             {
-                CookProgress +=
-                    cookRate * Time.deltaTime;
-
-                BurnProgress = Mathf.Max(
-                    0f,
-                    BurnProgress -
-                    (burnRate * 0.5f * Time.deltaTime)
-                );
-
                 if (cookingSteamEffect != null &&
                     !cookingSteamEffect.isPlaying)
                 {
@@ -216,10 +273,6 @@ namespace Marea.Cooking
             }
             else
             {
-                // 안 저으면 야채가 탐
-                BurnProgress +=
-                    burnRate * Time.deltaTime;
-
                 if (stirAudioSource != null &&
                     stirAudioSource.isPlaying)
                 {
@@ -227,19 +280,16 @@ namespace Marea.Cooking
                 }
             }
 
+            UpdateIngredientCooking(Time.deltaTime, _isStirringThisFrame);
             _isStirringThisFrame = false;
 
-            // 4. 익힘 상태 시각 반영
+            // 익힘 상태 시각 반영
             UpdateVisualState();
 
-            // 5. 완료/실패 판정
-            if (BurnProgress >= 100f)
+            if (IsCookCompleted)
             {
-                IsBurned = true;
-
-                Debug.LogWarning(
-                    "[PanStirCooking] 야채가 타버렸습니다!"
-                );
+                _isDraggingSpatulaDirectly = false;
+                Debug.Log($"[PanStirCooking] 모든 재료 조리 종료. 점수: {CookingScore:P0}");
 
                 if (cookingSteamEffect != null)
                 {
@@ -251,25 +301,48 @@ namespace Marea.Cooking
                     stirAudioSource.Stop();
                 }
             }
-            else if (CookProgress >= requiredCookProgress)
+        }
+
+        private void UpdateIngredientCooking(float deltaTime, bool stirring)
+        {
+            float requiredSeconds = Mathf.Max(0.1f, requiredIngredientStirSeconds);
+            float totalCookRatio = 0f;
+            float totalPenalty = 0f;
+            float totalScore = 0f;
+            int ingredientCount = 0;
+            int resolvedCount = 0;
+            int burnedCount = 0;
+
+            // Iterate all recipe ingredients, including ones not yet inserted, so they cannot be skipped.
+            foreach (var entry in _initialVeggieParents)
             {
-                IsCookCompleted = true;
-                CookProgress = requiredCookProgress;
+                if (entry.Key == null) continue;
+                ingredientCount++;
+                if (!_ingredientMotions.TryGetValue(entry.Key, out IngredientMotion motion)) continue;
 
-                Debug.Log(
-                    "[PanStirCooking] 볶기 완벽 성공!"
-                );
+                motion.PanSeconds += deltaTime;
+                if (stirring && motion.Penalty < 1f)
+                    motion.StirSeconds = Mathf.Min(requiredSeconds, motion.StirSeconds + deltaTime);
 
-                if (cookingSteamEffect != null)
-                {
-                    cookingSteamEffect.Stop();
-                }
-
-                if (stirAudioSource != null)
-                {
-                    stirAudioSource.Stop();
-                }
+                // Overcooking is irreversible: stirring again does not remove the time penalty.
+                float overtime = Mathf.Max(0f, motion.PanSeconds - ingredientSafePanSeconds);
+                motion.Penalty = Mathf.Max(motion.Penalty,
+                    Mathf.Clamp01(overtime * ingredientOvertimePenaltyPerSecond / 100f));
+                float cookRatio = Mathf.Clamp01(motion.StirSeconds / requiredSeconds);
+                totalCookRatio += cookRatio;
+                totalPenalty += motion.Penalty;
+                totalScore += cookRatio * (1f - motion.Penalty);
+                if (motion.Penalty >= 1f) burnedCount++;
+                // Fully burned ingredients resolve at zero score so the stage cannot get stuck.
+                if (motion.StirSeconds >= requiredSeconds || motion.Penalty >= 1f) resolvedCount++;
             }
+
+            if (ingredientCount == 0) return;
+            CookProgress = totalCookRatio / ingredientCount * 100f;
+            BurnProgress = totalPenalty / ingredientCount * 100f;
+            CookingScore = Mathf.Clamp01(totalScore / ingredientCount);
+            IsCookCompleted = resolvedCount == ingredientCount;
+            IsBurned = IsCookCompleted && burnedCount == ingredientCount;
         }
 
         // 3D 공간 상에서의 직접 마우스 드래그 처리
@@ -402,25 +475,116 @@ namespace Marea.Cooking
 
             Vector3 movement = panInsideTransform.InverseTransformVector(worldMovement) * ingredientFollowMultiplier;
             movement.y = 0f;
-            float radiusX = Mathf.Max(0.001f, ingredientMoveRange.x);
-            float radiusZ = Mathf.Max(0.001f, ingredientMoveRange.y);
+            Vector3 panScale = panInsideTransform.lossyScale;
+            float radiusX = ingredientMoveRadius / Mathf.Max(0.001f, Mathf.Abs(panScale.x));
+            float radiusZ = ingredientMoveRadius / Mathf.Max(0.001f, Mathf.Abs(panScale.z));
 
-            foreach (GameObject veggie in clickableVeggieObjects)
+            // Move the group within a smaller ellipse so individual offsets never collapse at the rim.
+            float groupRange = Mathf.Max(0.001f, 1f - ingredientSpreadRatio - ingredientMotionVariation);
+            _panGroupOffset += movement;
+            Vector2 normalized = new Vector2(
+                _panGroupOffset.x / (radiusX * groupRange),
+                _panGroupOffset.z / (radiusZ * groupRange));
+            if (normalized.sqrMagnitude > 1f)
             {
+                normalized.Normalize();
+                _panGroupOffset.x = normalized.x * radiusX * groupRange;
+                _panGroupOffset.z = normalized.y * radiusZ * groupRange;
+            }
+
+            foreach (var entry in _panIngredientOffsets)
+            {
+                GameObject veggie = entry.Key;
                 if (veggie == null || !veggie.activeInHierarchy || veggie.transform.parent != panInsideTransform) continue;
-                Vector3 position = veggie.transform.localPosition + movement;
-                // Clamp to an ellipse rather than a rectangle to stay inside the pan rim.
-                Vector2 normalized = new Vector2(position.x / radiusX, position.z / radiusZ);
-                if (normalized.sqrMagnitude > 1f)
-                {
-                    normalized.Normalize();
-                    position.x = normalized.x * radiusX;
-                    position.z = normalized.y * radiusZ;
-                }
-                veggie.transform.localPosition = position;
-                float turn = (movement.x - movement.z) * ingredientTurnDegreesPerUnit;
+                if (!_ingredientMotions.TryGetValue(veggie, out IngredientMotion motion)) continue;
+
+                // Sample random values once on insertion, then vary smoothly with actual stirring distance.
+                float distance = movement.magnitude;
+                Vector2 normalizedMovement = new Vector2(movement.x / radiusX, movement.z / radiusZ);
+                motion.Drift = Vector2.ClampMagnitude(
+                    motion.Drift * Mathf.Exp(-distance * 3f) + normalizedMovement * (motion.FollowScale - 1f),
+                    ingredientMotionVariation * 0.5f);
+                float previousWave = Mathf.Sin(motion.Phase);
+                motion.Phase += distance * motion.Frequency;
+                Vector2 wave = new Vector2(Mathf.Sin(motion.Phase), Mathf.Cos(motion.Phase * 0.83f));
+                Vector2 variation = Vector2.ClampMagnitude(
+                    motion.Drift + (wave - motion.InitialWave) * (ingredientMotionVariation * 0.25f),
+                    ingredientMotionVariation);
+                motion.Offset = new Vector3(variation.x * radiusX, 0f, variation.y * radiusZ);
+                float turn = (movement.x - movement.z) * ingredientTurnDegreesPerUnit * motion.TurnScale
+                    + (Mathf.Sin(motion.Phase) - previousWave) * 5f;
                 veggie.transform.localRotation = Quaternion.AngleAxis(turn, Vector3.up) * veggie.transform.localRotation;
             }
+        }
+
+        private void UpdateIngredientPositions()
+        {
+            foreach (var entry in _panIngredientOffsets)
+            {
+                GameObject veggie = entry.Key;
+                if (veggie == null || !veggie.activeInHierarchy || veggie.transform.parent != panInsideTransform ||
+                    !_ingredientMotions.TryGetValue(veggie, out IngredientMotion motion)) continue;
+                Vector3 target = _panGroupOffset + entry.Value + motion.Offset;
+                if (_isStirringThisFrame && spatulaTransform != null)
+                {
+                    Bounds bounds = GetIngredientBounds(veggie);
+                    Vector3 contact = spatulaContactPoint != null ? spatulaContactPoint.position
+                        : spatulaTransform.TransformPoint(_spatulaContactLocalPoint);
+                    Vector3 away = bounds.center - contact;
+                    float heightDifference = Mathf.Abs(away.y);
+                    away.y = 0f;
+                    float distance = away.magnitude;
+                    float contactRange = spatulaContactRadius + GetFootprintRadius(bounds);
+                    motion.PushOffset *= Mathf.Exp(-Time.deltaTime * 0.5f);
+                    if (distance < contactRange && heightDifference < bounds.extents.y + spatulaContactRadius)
+                    {
+                        if (distance < 0.001f)
+                        {
+                            away = bounds.center - panInsideTransform.position;
+                            away.y = 0f;
+                            if (away.sqrMagnitude < 0.000001f) away = Vector3.right;
+                        }
+                        float strength = Mathf.Clamp01((contactRange - distance) / Mathf.Max(0.001f, contactRange));
+                        Vector3 push = away.normalized * ingredientPushSpeed * strength * Time.deltaTime;
+                        Vector3 worldOffset = panInsideTransform.TransformVector(motion.PushOffset) + push;
+                        motion.PushOffset = panInsideTransform.InverseTransformVector(
+                            Vector3.ClampMagnitude(worldOffset, ingredientMaxPushDistance));
+                    }
+                }
+                target += motion.PushOffset;
+                float blend = 1f - Mathf.Exp(-ingredientResponseSpeed * motion.ResponseScale * Time.deltaTime);
+                veggie.transform.localPosition = Vector3.Lerp(veggie.transform.localPosition, target, blend);
+                ClampIngredientToPan(veggie);
+            }
+        }
+
+        private static Bounds GetIngredientBounds(GameObject veggie)
+        {
+            Bounds bounds = new Bounds(veggie.transform.position, Vector3.zero);
+            bool found = false;
+            foreach (Renderer renderer in veggie.GetComponentsInChildren<Renderer>())
+            {
+                if (!renderer.enabled) continue;
+                if (!found) { bounds = renderer.bounds; found = true; }
+                else bounds.Encapsulate(renderer.bounds);
+            }
+            return bounds;
+        }
+
+        private static float GetFootprintRadius(Bounds bounds)
+        {
+            return new Vector2(bounds.extents.x, bounds.extents.z).magnitude;
+        }
+
+        private void ClampIngredientToPan(GameObject veggie)
+        {
+            Bounds bounds = GetIngredientBounds(veggie);
+            Vector3 offset = bounds.center - panInsideTransform.position;
+            offset.y = 0f;
+            float availableRadius = Mathf.Max(0f, ingredientMoveRadius - GetFootprintRadius(bounds));
+            Vector3 correction = Vector3.ClampMagnitude(offset, availableRadius) - offset;
+            // Correct the visible mesh center, since some imported models have an offset pivot.
+            veggie.transform.position += correction;
         }
 
         private void CheckVeggieClickHit()
@@ -433,53 +597,77 @@ namespace Marea.Cooking
             Vector2 mousePos =
                 Mouse.current.position.ReadValue();
 
-            Ray ray =
-                _mainCamera.ScreenPointToRay(mousePos);
-
-            if (Physics.Raycast(
-                ray,
-                out RaycastHit hit,
-                100f))
+            if (clickableVeggieObjects == null) return;
+            GameObject closestVeggie = null;
+            float closestScore = float.PositiveInfinity;
+            foreach (var veggie in clickableVeggieObjects)
             {
-                if (clickableVeggieObjects != null &&
-                    clickableVeggieObjects.Contains(
-                        hit.collider.gameObject))
+                if (veggie == null || _panIngredientOffsets.ContainsKey(veggie)) continue;
+                if (CookingClickArea.Contains(_mainCamera, veggie, mousePos, veggieClickPadding, out float score)
+                    && score < closestScore)
                 {
-                    OnClickVeggieToPan();
+                    closestVeggie = veggie;
+                    closestScore = score;
                 }
             }
+            if (closestVeggie != null) InsertVeggie(closestVeggie);
         }
 
         public void OnClickVeggieToPan()
         {
-            if (IsVeggieInPan)
+            if (IsCookCompleted || clickableVeggieObjects == null) return;
+            // Keep existing UnityEvent bindings, but insert only one remaining ingredient per call.
+            foreach (var veggie in clickableVeggieObjects)
             {
-                return;
-            }
-
-            IsVeggieInPan = true;
-
-            if (clickableVeggieObjects != null &&
-                panInsideTransform != null)
-            {
-                foreach (var veggie in clickableVeggieObjects)
+                if (veggie != null && !_panIngredientOffsets.ContainsKey(veggie))
                 {
-                    if (veggie != null)
-                    {
-                        veggie.transform.position =
-                            panInsideTransform.position;
-
-                        veggie.transform.SetParent(
-                            panInsideTransform,
-                            true
-                        );
-                    }
+                    InsertVeggie(veggie);
+                    return;
                 }
             }
+        }
+
+        private void InsertVeggie(GameObject veggie)
+        {
+            if (panInsideTransform == null || veggie == null ||
+                IsCookCompleted || IsBurned || _panIngredientOffsets.ContainsKey(veggie)) return;
+
+            var ingredients = new List<GameObject>();
+            foreach (var candidate in clickableVeggieObjects)
+                if (candidate != null && !ingredients.Contains(candidate)) ingredients.Add(candidate);
+            int index = ingredients.IndexOf(veggie);
+            if (index < 0) return;
+
+            float angle = index * Mathf.PI * 2f / ingredients.Count + Mathf.PI * 0.25f;
+            Vector3 panScale = panInsideTransform.lossyScale;
+            Vector3 offset = ingredients.Count == 1 ? Vector3.zero : new Vector3(
+                Mathf.Cos(angle) * ingredientMoveRadius / Mathf.Max(0.001f, Mathf.Abs(panScale.x)) * ingredientSpreadRatio,
+                0f,
+                Mathf.Sin(angle) * ingredientMoveRadius / Mathf.Max(0.001f, Mathf.Abs(panScale.z)) * ingredientSpreadRatio);
+            veggie.transform.SetParent(panInsideTransform, true);
+            veggie.transform.localPosition = _panGroupOffset + offset;
+            ClampIngredientToPan(veggie);
+            _panIngredientOffsets.Add(veggie, offset);
+            float phase = Random.Range(0f, Mathf.PI * 2f);
+            _ingredientMotions.Add(veggie, new IngredientMotion
+            {
+                FollowScale = Random.Range(0.75f, 1.25f),
+                ResponseScale = Random.Range(0.7f, 1.3f),
+                TurnScale = Random.Range(0.65f, 1.35f),
+                Phase = phase,
+                Frequency = Random.Range(6f, 10f),
+                InitialWave = new Vector2(Mathf.Sin(phase), Mathf.Cos(phase * 0.83f))
+            });
+
+            // Any inserted ingredient can be stirred while the remaining ingredients are still waiting.
+            IsVeggieInPan = _panIngredientOffsets.Count > 0;
 
             Debug.Log(
                 "[PanStirCooking] 야채가 프라이팬 내부로 투입되었습니다."
             );
+            if (panInsideTransform != null && ingredientInsertAudioSource != null &&
+                ingredientInsertAudioSource.clip != null)
+                ingredientInsertAudioSource.PlayOneShot(ingredientInsertAudioSource.clip);
         }
 
         private void UpdateVisualState()
@@ -492,7 +680,7 @@ namespace Marea.Cooking
             float cookRatio =
                 Mathf.Clamp01(
                     CookProgress /
-                    requiredCookProgress
+                    100f
                 );
 
             float burnRatio =

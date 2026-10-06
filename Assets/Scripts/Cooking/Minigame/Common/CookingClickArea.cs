@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Marea.Cooking
 {
-    internal static class VeggieClickArea
+    internal static class CookingClickArea
     {
         // 화면에 보이는 모델 전체를 선택한다. 도마 등 주변 콜라이더에 막히지 않는다.
         public static bool Contains(Camera camera, GameObject target, Vector2 position,
