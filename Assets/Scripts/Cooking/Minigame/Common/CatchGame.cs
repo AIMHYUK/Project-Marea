@@ -78,6 +78,8 @@ namespace Marea.Cooking
         [Tooltip("방울 색 — 국물 · 기름 색에 맞춘다.")]
         [SerializeField] private Color catchTint = new Color(0.85f, 0.7f, 0.5f, 1f);
         [SerializeField, Min(0.1f)] private float catchVfxScale = 1f;
+        [Tooltip("(+10/6) 받은 재료가 여기(국물 면 — SM_Soup_Pot_Inside)에 닿을 때 튀고 사라진다. 비우면 예전처럼 입구에서 바로.")]
+        [SerializeField] private Renderer splashSurface;
 
         [Header("소리 (+10/6, 이슈 117) — 기획 sfx_ingredient_catch")]
         [Tooltip("재료가 그릇에 들어갈 때.")]
@@ -95,6 +97,7 @@ namespace Marea.Cooking
             public Transform T;
             public float Speed;
             public bool Resolved;
+            public bool Sinking;     // (+10/6) 받았고 국물 면으로 떨어지는 중 — 닿으면 튀고 사라진다
             public Motion Kind;
             public float Y;          // 입구 높이 기준 높이(m)
             public float Along;      // 좌우 축 위치(m, 입구 기준)
@@ -197,6 +200,12 @@ namespace Marea.Cooking
                 f.T.position = _mouthHome + _axis * f.Along + Vector3.up * f.Y;
                 f.T.Rotate(f.SpinAxis, f.Spin * Time.deltaTime, Space.World);
 
+                if (f.Sinking)
+                {
+                    // (+10/6) 국물 면에 닿으면 그 자리에서 튄다. 냄비가 움직여서 높이를 매 프레임 다시 잰다.
+                    if (f.T.position.y <= SurfaceY(rimY)) Splash(f);
+                    continue;
+                }
                 if (f.Resolved)
                 {
                     // 놓친 재료는 입구 아래로 조금 더 떨어진 뒤 지운다.
@@ -212,17 +221,18 @@ namespace Marea.Cooking
                     if (d.magnitude <= catchRadius)
                     {
                         _caught++;
-                        Vfx.Play(catchVfx, f.T.position, catchVfxScale, catchTint);   // (+10/6)
-                        SoundManager.Play(catchClip, catchVolume, 0.08f);             // (+10/6)
-                        Destroy(f.T.gameObject);
                         OnProgress?.Invoke(_caught, _total);
+                        // (+10/6) 점수는 입구에서 바로, 튀는 건 국물 면에 닿을 때. 국물 면이 없으면 예전처럼 여기서.
+                        if (splashSurface != null) f.Sinking = true;
+                        else Splash(f);
                     }
                 }
             }
             _falling.RemoveAll(f => f.T == null);
 
             _timeLeft -= Time.deltaTime;
-            bool allDone = _queue.Count == 0 && _falling.TrueForAll(f => f.Resolved);
+            // 가라앉는 중인 재료가 국물에 닿기 전에 끝내면 마지막 하나가 안 튄다.
+            bool allDone = _queue.Count == 0 && _falling.TrueForAll(f => f.Resolved && !f.Sinking);
             if (allDone || _timeLeft <= 0f) Finish();
         }
 
@@ -349,6 +359,17 @@ namespace Marea.Cooking
             f.DashFrom = along;
             f.DashTo = SideStep(along, dashDistance);
             _falling.Add(f);
+        }
+
+        /// <summary>(+10/6) 국물 면 높이 — 렌더러 상자 위쪽. 없으면 입구 높이.</summary>
+        private float SurfaceY(float rimY) => splashSurface != null ? splashSurface.bounds.max.y : rimY;
+
+        private void Splash(Falling f)
+        {
+            Vfx.Play(catchVfx, f.T.position, catchVfxScale, catchTint);   // (+10/6)
+            SoundManager.Play(catchClip, catchVolume, 0.08f);             // (+10/6)
+            Destroy(f.T.gameObject);
+            f.Sinking = false;
         }
 
         private void Finish()
