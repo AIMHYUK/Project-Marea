@@ -13,6 +13,7 @@ namespace Marea.Cooking
         [SerializeField] private List<Transform> sliceGuidePoints; // 썰어야 할 위치 가이드 지점들
         [SerializeField] private Material crossSectionMaterial; // 잘린 단면 재질
         [SerializeField] private GameObject knifeVisual; // 칼 비주얼
+        [SerializeField] private bool uniformSliceSpacing = true;
 
         [Header("슬라이스 연출 설정")]
         [SerializeField] private float cutImpulseForce = 0.6f; // 잘린 조각이 튕겨 나가는 힘 (살짝 감소)
@@ -57,6 +58,7 @@ namespace Marea.Cooking
             _isSlicingCompleted = false;
 
             RestoreOriginalOnion();
+            PositionEvenSliceGuides();
 
             if (targetOnionObject != null && targetOnionObject.TryGetComponent<Rigidbody>(out var rb))
             {
@@ -108,6 +110,36 @@ namespace Marea.Cooking
                 _knifeInitialLocalPosition = knifeVisual.transform.localPosition;
                 _knifeInitialLocalRotation = knifeVisual.transform.localRotation;
                 _hasKnifeInitialTransform = true;
+            }
+        }
+
+        private void PositionEvenSliceGuides()
+        {
+            if (!uniformSliceSpacing || targetOnionObject == null || sliceGuidePoints == null ||
+                sliceGuidePoints.Count == 0 || sliceGuidePoints[0] == null) return;
+            MeshFilter mesh = targetOnionObject.GetComponent<MeshFilter>();
+            if (mesh == null || mesh.sharedMesh == null) return;
+
+            Vector3 normal = sliceGuidePoints[0].right.normalized;
+            Vector3 guideOrigin = sliceGuidePoints[0].position;
+            float min = float.PositiveInfinity;
+            float max = float.NegativeInfinity;
+            foreach (Vector3 vertex in mesh.sharedMesh.vertices)
+            {
+                float distance = Vector3.Dot(mesh.transform.TransformPoint(vertex), normal);
+                min = Mathf.Min(min, distance);
+                max = Mathf.Max(max, distance);
+            }
+            if (max - min <= 0.001f) return;
+
+            float spacing = (max - min) / (sliceGuidePoints.Count + 1);
+            for (int i = 0; i < sliceGuidePoints.Count; i++)
+            {
+                Transform guide = sliceGuidePoints[i];
+                if (guide == null) continue;
+                guide.position = guideOrigin + normal *
+                    (min + spacing * (i + 1) - Vector3.Dot(guideOrigin, normal));
+                guide.rotation = sliceGuidePoints[0].rotation;
             }
         }
 
