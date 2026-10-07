@@ -30,6 +30,7 @@ namespace Marea.Cooking
         private bool _hasInitialPose;
         private bool _isDragging;
         private Vector3 _targetPivotOffset;
+        private Renderer _plateSurface;
         private static MinigameDraggable _activeDrag;
 
         public bool IsPlaced { get; private set; }
@@ -42,6 +43,12 @@ namespace Marea.Cooking
                     foreach (Transform point in targetPoints) if (point != null) return true;
                 return false;
             }
+        }
+
+        public void UseFreePlateArea(Renderer surface)
+        {
+            _plateSurface = surface;
+            SetPlacementGuidesVisible(false);
         }
 
         public void UsePlacementDefaults(MinigameDraggable source)
@@ -63,6 +70,7 @@ namespace Marea.Cooking
 
         public void SetPlacementGuidesVisible(bool visible)
         {
+            if (_plateSurface != null) visible = false;
             if (highlightGuide != null) highlightGuide.SetActive(visible);
             if (highlightGuides != null)
                 foreach (GameObject guide in highlightGuides)
@@ -98,9 +106,7 @@ namespace Marea.Cooking
             CancelDrag();
             IsPlaced = false;
             RestoreInitialPose();
-            if (highlightGuide != null) highlightGuide.SetActive(true);
-            foreach (var guide in highlightGuides)
-                if (guide != null) guide.SetActive(true);
+            SetPlacementGuidesVisible(true);
         }
 
         private void EnsureInitialized()
@@ -177,6 +183,12 @@ namespace Marea.Cooking
             if (!CanInteract || !_isDragging) return;
             MoveDrag(screenPosition);
             CancelDrag();
+            if (_plateSurface != null)
+            {
+                if (TryPlaceOnPlate()) FinishPlacement();
+                else RestoreInitialPose();
+                return;
+            }
             Transform placementTarget = FindClosestTarget();
             if (placementTarget != null)
             {
@@ -186,20 +198,45 @@ namespace Marea.Cooking
                 {
                     // 목표 위치 및 회전값으로 스냅 고정
                     transform.position = GetPlacementPosition(placementTarget);
-                    transform.rotation = placementTarget.rotation;
-                    IsPlaced = true;
-
-                    if (placeAudioSource != null && placeAudioSource.clip != null)
-                        placeAudioSource.PlayOneShot(placeAudioSource.clip);
-
-                    if (highlightGuide != null) highlightGuide.SetActive(false);
-                    foreach (var guide in highlightGuides)
-                        if (guide != null) guide.SetActive(false);
+                    FinishPlacement();
                     return;
                 }
             }
 
             RestoreInitialPose();
+        }
+
+        private bool TryPlaceOnPlate()
+        {
+            Renderer[] renderers = GetComponentsInChildren<Renderer>();
+            Bounds foodBounds = new Bounds(transform.position, Vector3.zero);
+            bool found = false;
+            foreach (Renderer renderer in renderers)
+            {
+                if (!renderer.enabled) continue;
+                if (!found) { foodBounds = renderer.bounds; found = true; }
+                else foodBounds.Encapsulate(renderer.bounds);
+            }
+            Bounds plateBounds = _plateSurface.localBounds;
+            Vector3 center = _plateSurface.transform.InverseTransformPoint(foodBounds.center) - plateBounds.center;
+            float radiusX = Mathf.Max(0.001f, plateBounds.extents.x);
+            float radiusZ = Mathf.Max(0.001f, plateBounds.extents.z);
+            Vector2 normalized = new Vector2(center.x / radiusX, center.z / radiusZ);
+            if (normalized.sqrMagnitude > 1f) return false;
+
+            // Keep the release position and orientation; only settle the food onto the plate surface.
+            Vector3 position = transform.position;
+            position.y += _plateSurface.bounds.max.y + 0.01f - foodBounds.min.y;
+            transform.position = position;
+            return true;
+        }
+
+        private void FinishPlacement()
+        {
+            IsPlaced = true;
+            if (placeAudioSource != null && placeAudioSource.clip != null)
+                placeAudioSource.PlayOneShot(placeAudioSource.clip);
+            SetPlacementGuidesVisible(false);
         }
 
         private Transform FindClosestTarget()

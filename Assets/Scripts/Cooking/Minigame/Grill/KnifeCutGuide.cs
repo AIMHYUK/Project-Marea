@@ -26,6 +26,7 @@ namespace Marea.Cooking
         private BaseCookingMinigame _minigame;
         private bool _isDragging;
         private bool _reverseStroke;
+        private float _strokeStartProjection;
 
         public bool IsCompleted => _isCompleted;
 
@@ -87,11 +88,29 @@ namespace Marea.Cooking
         {
             if (_minigame != null && _minigame.CurrentStepIndex != MinigameStepIndex.Step1) return;
             if (_isDragging || _isCompleted || !GetScreenLine(out Vector2 start, out Vector2 end)) return;
-            float startDistance = Vector2.Distance(position, start);
-            float endDistance = Vector2.Distance(position, end);
-            float tolerance = Mathf.Min(pointerTolerancePixels, Vector2.Distance(start, end) * 0.4f);
-            if (Mathf.Min(startDistance, endDistance) > tolerance) return;
-            _reverseStroke = endDistance < startDistance;
+            Vector2 line = end - start;
+            float earliest = 0f;
+            // The arrow sits beside the fish. Include its shaft in the input corridor.
+            if (guideLineVisual != null)
+            {
+                foreach (LineRenderer renderer in guideLineVisual.GetComponentsInChildren<LineRenderer>(false))
+                {
+                    for (int i = 0; i < renderer.positionCount; i++)
+                    {
+                        Vector3 world = renderer.useWorldSpace ? renderer.GetPosition(i)
+                            : renderer.transform.TransformPoint(renderer.GetPosition(i));
+                        Vector3 screen = _mainCamera.WorldToScreenPoint(world);
+                        if (screen.z <= 0f) continue;
+                        float projection = Vector2.Dot((Vector2)screen - start, line) / line.sqrMagnitude;
+                        earliest = Mathf.Min(earliest, Mathf.Max(-2f, projection));
+                    }
+                }
+            }
+            float pointerProjection = Vector2.Dot(position - start, line) / line.sqrMagnitude;
+            Vector2 nearest = start + line * Mathf.Clamp(pointerProjection, earliest, 1f);
+            if (Vector2.Distance(position, nearest) > pointerTolerancePixels) return;
+            _reverseStroke = pointerProjection > 0.5f;
+            _strokeStartProjection = _reverseStroke ? 1f - pointerProjection : pointerProjection;
             _currentProgress = 0f;
             _isDragging = true;
         }
@@ -103,15 +122,20 @@ namespace Marea.Cooking
             if (_reverseStroke) (start, end) = (end, start);
             Vector2 line = end - start;
             float projected = Vector2.Dot(position - start, line) / line.sqrMagnitude;
-            Vector2 nearest = start + line * Mathf.Clamp01(projected);
+            Vector2 nearest = start + line * projected;
             if (Vector2.Distance(position, nearest) > pointerTolerancePixels) return;
-            _currentProgress = Mathf.Max(_currentProgress, Mathf.Clamp01(projected));
+            // Require a real stroke even when the player starts partway along the fish.
+            _currentProgress = Mathf.Max(_currentProgress,
+                Mathf.Clamp01((projected - _strokeStartProjection)
+                    / Mathf.Max(0.5f, 1f - _strokeStartProjection)));
             if (_currentProgress >= cutThreshold) CompleteCut();
         }
 
         public void CompleteCut()
         {
             if (_isCompleted) return;
+            if (_minigame is FishGrillMinigameController fishGrill)
+                fishGrill.PlayCutSound();
             if (startPoint3D != null && endPoint3D != null)
             {
                 Vector3 stroke = endPoint3D.position - startPoint3D.position;
