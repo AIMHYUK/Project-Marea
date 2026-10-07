@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using TMPro;
+using Marea.Core;
+using Marea.Data;
 
 namespace Marea.Cooking
 {
@@ -18,6 +20,10 @@ namespace Marea.Cooking
         [Header("3D 및 연출")]
         [SerializeField] private GameObject skewer3DModel;
         [SerializeField] private ParticleSystem smokeEffect;
+        [Header("그릴 불꽃 · 조개구이와 같은 공용 연출")]
+        [SerializeField] private VfxId grillFlameVfx = VfxId.Flame;
+        [SerializeField] private Transform flameAnchor;
+        private VfxLoop _grillFlame;
         [Header("꼬치 클릭 영역")]
         [SerializeField, Min(0f)] private float skewerClickPadding = 48f;
 
@@ -83,7 +89,11 @@ namespace Marea.Cooking
                 skewer3DModel.transform.localRotation = _frontRotation;
             }
 
+            UpdateSmokePlacement();
             if (smokeEffect != null) smokeEffect.Play();
+            _grillFlame.Stop();
+            if (flameAnchor != null)
+                _grillFlame = Vfx.PlayLoop(grillFlameVfx, flameAnchor, Vector3.zero);
 
             SetupTargetZoneUI();
             UpdateUI();
@@ -113,6 +123,8 @@ namespace Marea.Cooking
             {
                 smokeEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             }
+            _grillFlame.Stop();
+            _grillFlame = default;
 
             SetupTargetZoneUI();
             UpdateGaugeColor();
@@ -140,6 +152,8 @@ namespace Marea.Cooking
         private void Update()
         {
             if (!_isCooking || _isCompleted) return;
+
+            UpdateSmokePlacement();
 
             // 시간에 따른 익힘도 증가 (애니메이션 연출 중에는 잠시 멈춤)
             if (!_isAnimating)
@@ -205,6 +219,9 @@ namespace Marea.Cooking
         private IEnumerator AnimateFlipCoroutine(Vector3 startPos, Vector3 endPos, Quaternion startRot, Quaternion endRot, bool isFinalFinish)
         {
             _isAnimating = true;
+            // Smoke already emitted keeps rising; do not emit while the skewer is lifted.
+            if (smokeEffect != null)
+                smokeEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
 
             float elapsedTime = 0f;
 
@@ -246,6 +263,8 @@ namespace Marea.Cooking
             }
             else
             {
+                UpdateSmokePlacement();
+                if (smokeEffect != null) smokeEffect.Play();
                 SetupTargetZoneUI();
                 UpdateUI();
                 Debug.Log($"[SeafoodSkewersGrill] 1번째 클릭 뒤집기 애니메이션 완료 (앞면 익힘도: {_frontDoneness:F2})");
@@ -258,6 +277,8 @@ namespace Marea.Cooking
             _isCompleted = true;
 
             if (smokeEffect != null) smokeEffect.Stop();
+            _grillFlame.Stop();
+            _grillFlame = default;
 
             float frontScore = EvaluateSideScore(_frontDoneness, targetFrontMin, targetFrontMax);
             float backScore = EvaluateSideScore(_backDoneness, targetBackMin, targetBackMax);
@@ -267,6 +288,34 @@ namespace Marea.Cooking
             Debug.Log($"[SeafoodSkewersGrill] 3단계 완료! 앞면: {_frontDoneness:F2}, 뒷면: {_backDoneness:F2}, 최종점수: {FinalGrillScore:F2}");
 
             OnGrillCompleted?.Invoke();
+        }
+
+        private void UpdateSmokePlacement()
+        {
+            if (smokeEffect == null || skewer3DModel == null) return;
+            Bounds bounds = default;
+            bool found = false;
+            foreach (Renderer renderer in skewer3DModel.GetComponentsInChildren<Renderer>())
+            {
+                if (!renderer.enabled || renderer is ParticleSystemRenderer) continue;
+                if (!found) { bounds = renderer.bounds; found = true; }
+                else bounds.Encapsulate(renderer.bounds);
+            }
+            if (!found) return;
+            smokeEffect.transform.SetPositionAndRotation(
+                new Vector3(bounds.center.x, bounds.max.y + 0.01f, bounds.center.z),
+                Quaternion.Euler(-90f, 0f, 0f));
+            var shape = smokeEffect.shape;
+            shape.scale = new Vector3(Mathf.Max(0.04f, bounds.size.x * 0.65f),
+                Mathf.Max(0.04f, bounds.size.z * 0.85f), 0.02f);
+        }
+
+        private void OnDisable()
+        {
+            if (smokeEffect != null)
+                smokeEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            _grillFlame.Stop();
+            _grillFlame = default;
         }
 
         private float EvaluateSideScore(float doneness, float minTarget, float maxTarget)

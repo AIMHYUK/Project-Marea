@@ -16,6 +16,13 @@ namespace Marea.Cooking
         [SerializeField] private Marea.Food.CutDecalReveal cutDecalReveal;
         [SerializeField] private ParticleSystem sliceEffect;
 
+        [Header("화살표 안내 애니메이션")]
+        [SerializeField] private bool animateArrow = true;
+        [InspectorName("화살표 이동 거리")]
+        [SerializeField, Min(0f)] private float arrowTravelDistance = 0.035f;
+        [InspectorName("화살표 반복 시간 (초)")]
+        [SerializeField, Min(0.1f)] private float arrowCycleSeconds = 1.3f;
+
         [Header("드래그 완성 인정 기준 (0.0 ~ 1.0)")]
         [SerializeField] private float cutThreshold = 0.75f;
         [SerializeField, Min(1f)] private float pointerTolerancePixels = 24f;
@@ -27,6 +34,10 @@ namespace Marea.Cooking
         private bool _isDragging;
         private bool _reverseStroke;
         private float _strokeStartProjection;
+        private Vector3 _guideInitialLocalPosition;
+        private Vector3 _guideWorldOffset;
+        private float _arrowElapsed;
+        private bool _guidePoseCached;
 
         public bool IsCompleted => _isCompleted;
 
@@ -43,6 +54,7 @@ namespace Marea.Cooking
 
         public void ResetGuide()
         {
+            RestoreArrowPose();
             _isCompleted = false;
             _currentProgress = 0f;
             _isDragging = false;
@@ -55,12 +67,15 @@ namespace Marea.Cooking
 
         private void Update()
         {
-            if (Mouse.current == null || _isCompleted) return;
+            if (_isCompleted) return;
             if (_minigame != null && _minigame.CurrentStepIndex != MinigameStepIndex.Step1)
             {
                 _isDragging = false;
+                RestoreArrowPose();
                 return;
             }
+            AnimateArrow();
+            if (Mouse.current == null) return;
             Vector2 position = Mouse.current.position.ReadValue();
             if (Mouse.current.leftButton.wasPressedThisFrame) BeginStroke(position);
             if (_isDragging && Mouse.current.leftButton.isPressed) ContinueStroke(position);
@@ -70,6 +85,42 @@ namespace Marea.Cooking
         public void OnPointerDown(PointerEventData eventData) => BeginStroke(eventData.position);
         public void OnDrag(PointerEventData eventData) => ContinueStroke(eventData.position);
         public void OnPointerUp(PointerEventData eventData) => _isDragging = false;
+
+        private void RestoreArrowPose()
+        {
+            if (guideLineVisual == null) return;
+            if (!_guidePoseCached)
+            {
+                _guideInitialLocalPosition = guideLineVisual.transform.localPosition;
+                _guidePoseCached = true;
+            }
+            guideLineVisual.transform.localPosition = _guideInitialLocalPosition;
+            _guideWorldOffset = Vector3.zero;
+            _arrowElapsed = 0f;
+        }
+
+        private void AnimateArrow()
+        {
+            if (!animateArrow || _isDragging || guideLineVisual == null ||
+                startPoint3D == null || endPoint3D == null)
+            {
+                RestoreArrowPose();
+                return;
+            }
+            if (!_guidePoseCached) RestoreArrowPose();
+            _arrowElapsed += Time.unscaledDeltaTime;
+            float phase = _arrowElapsed / Mathf.Max(0.1f, arrowCycleSeconds);
+            float travel = (1f - Mathf.Cos(phase * Mathf.PI * 2f)) * 0.5f;
+            Vector3 direction = Vector3.ProjectOnPlane(
+                endPoint3D.position - startPoint3D.position, Vector3.up).normalized;
+            Transform arrow = guideLineVisual.transform;
+            Vector3 origin = arrow.parent != null
+                ? arrow.parent.TransformPoint(_guideInitialLocalPosition) : _guideInitialLocalPosition;
+            _guideWorldOffset = direction * (travel * arrowTravelDistance);
+            arrow.position = origin + _guideWorldOffset;
+        }
+
+        private void OnDisable() => RestoreArrowPose();
 
         private bool GetScreenLine(out Vector2 start, out Vector2 end)
         {
@@ -99,6 +150,8 @@ namespace Marea.Cooking
                     {
                         Vector3 world = renderer.useWorldSpace ? renderer.GetPosition(i)
                             : renderer.transform.TransformPoint(renderer.GetPosition(i));
+                        // Use the resting arrow position for a stable input corridor.
+                        if (!renderer.useWorldSpace) world -= _guideWorldOffset;
                         Vector3 screen = _mainCamera.WorldToScreenPoint(world);
                         if (screen.z <= 0f) continue;
                         float projection = Vector2.Dot((Vector2)screen - start, line) / line.sqrMagnitude;
@@ -145,6 +198,7 @@ namespace Marea.Cooking
             }
             _isCompleted = true;
             _isDragging = false;
+            RestoreArrowPose();
             if (guideLineVisual != null) guideLineVisual.SetActive(false);
             if (cutMarkVisual != null) cutMarkVisual.SetActive(true);
             if (cutDecalReveal != null) cutDecalReveal.SetProgress(1f);

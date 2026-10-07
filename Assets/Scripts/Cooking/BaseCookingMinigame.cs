@@ -277,11 +277,36 @@ namespace Marea.Cooking
         protected virtual void OnAborted() { }
 
         // --- 미니게임 완결 ---
+        protected virtual bool KeepFinalPanelUntilCameraReturns => false;
+
         protected virtual void FinishMinigame()
         {
             CurrentStepIndex = MinigameStepIndex.Completed;
             SetPhysicsRaycasterState(false);
             ReturnCameraToOriginalPosition();
+
+            if (KeepFinalPanelUntilCameraReturns)
+            {
+                _stepTransitionRoutine = StartCoroutine(FinishAfterCameraReturn());
+                return;
+            }
+
+            FinalizeMinigame();
+        }
+
+        private IEnumerator FinishAfterCameraReturn()
+        {
+            // 마지막 요리와 도구는 카메라 복귀가 끝날 때까지 보여 준다.
+            yield return null;
+            while (cameraController != null && cameraController.HasMinigameView)
+                yield return null;
+
+            _stepTransitionRoutine = null;
+            FinalizeMinigame();
+        }
+
+        private void FinalizeMinigame()
+        {
             SetStepPanelState(s1: false, s2: false, s3: false);
 
             SetDisableDuringMinigameState(true);
