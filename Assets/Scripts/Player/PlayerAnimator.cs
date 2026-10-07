@@ -14,6 +14,10 @@ namespace Marea.Player
     ///
     /// dampTime을 줘서 속도가 뚝 끊기지 않게 한다. 멈출 때 Idle로, 뛰기 시작할 때 Run으로
     /// 부드럽게 넘어가는 게 여기서 나온다. 그래서 매 프레임 불러야 한다(값이 같아도 수렴 중).
+    ///
+    /// (+10/7) 발 미끄러짐 — 걷기 클립은 이 캐릭터 크기에서 초당 walkReferenceSpeed(1.19m)만 움직이는데
+    /// 실제 이동은 3.5~4m/s라 다리가 4배쯤 느렸다. MoveScale(Locomotion 상태의 배속 파라미터)에
+    /// 지금 속도 ÷ walkReferenceSpeed를 넘겨 걸음이 이동 거리와 맞게 한다. 걸음 길이는 그대로(약 0.75m), 빈도만 빨라진다.
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
     public class PlayerAnimator : MonoBehaviour
@@ -26,13 +30,21 @@ namespace Marea.Player
         [Tooltip("속도 파라미터가 목표값을 따라가는 데 걸리는 시간(초). 크면 반응이 느긋해진다.")]
         [SerializeField, Min(0f)] private float dampTime = 0.1f;
 
+        [Tooltip("(+10/7) 걷기 클립을 1배속으로 틀 때 캐릭터가 실제로 나아가는 속도(m/s). AN_Sujung_Standard Walk 실측 1.19. "
+               + "클립이나 모델 크기를 바꾸면 다시 잰다.")]
+        [SerializeField, Min(0.1f)] private float walkReferenceSpeed = 1.19f;
+
+        private const string MoveScaleParam = "MoveScale";
+
         private PlayerController _player;
         private int _speedHash;
+        private int _moveScaleHash;
 
         private void Awake()
         {
             _player = GetComponent<PlayerController>();
             _speedHash = Animator.StringToHash(SpeedParam);
+            _moveScaleHash = Animator.StringToHash(MoveScaleParam);
 
             if (animator == null) animator = GetComponentInChildren<Animator>();
         }
@@ -64,6 +76,10 @@ namespace Marea.Player
             // SetFloat의 dampTime 오버로드가 목표값을 향해 프레임독립적으로 따라간다.
             // 매 프레임 현재 속도를 목표로 주면 알아서 부드럽게 수렴한다.
             animator.SetFloat(_speedHash, _player.Speed, dampTime, Time.deltaTime);
+
+            // (+10/7) 블렌드와 같은 (감쇠된) 값으로 배속을 정한다. 걷기보다 느릴 땐 1배 — 출발 · 멈춤은 Idle과 섞여 넘어간다.
+            float speed = animator.GetFloat(_speedHash);
+            animator.SetFloat(_moveScaleHash, Mathf.Max(1f, speed / walkReferenceSpeed));
         }
     }
 }

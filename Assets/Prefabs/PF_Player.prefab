@@ -177,6 +177,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Player.PlayerAnimator
   animator: {fileID: 3288199160165779556}
   dampTime: 0.1
+  walkReferenceSpeed: 1.19
 --- !u!114 &7811177258580110710
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -197,8 +198,8 @@ MonoBehaviour:
   volume: 0.5
   pitchJitter: 0.08
   spatial: 0
-  walkStride: 0.7
-  runStride: 1.1
+  walkStride: 0.76
+  runStride: 0.76
   runSpeed: 4
   minSpeed: 0.3
 --- !u!1 &8430114262895805584
