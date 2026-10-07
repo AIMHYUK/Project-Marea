@@ -105,6 +105,39 @@ namespace Marea.Restaurant
             Debug.Log($"[CookingCounter] 플레이어가 조리대에서 음식을 수령했습니다: {food.menuData?.DisplayName}");
         }
 
+        /// <summary>
+        /// (+10/7, A) 서빙 직원이 음식을 집어 간다. 메뉴 아이콘이 같은 음식을 앞에서부터 찾아 빼고,
+        /// 그 비주얼은 지우지 않고 넘긴다(직원 손으로 옮겨 간다). 아이콘이 없거나 맞는 게 없으면 맨 앞 것.
+        /// 조리대가 비었으면 false — 직원은 빈손으로라도 배달한다.
+        /// </summary>
+        public bool TryTakeFood(Sprite icon, out CookingResult food, out GameObject visual)
+        {
+            food = default;
+            visual = null;
+            if (!HasFood) return false;
+
+            List<CookingResult> items = new(_foodQueue);
+            int index = 0;
+            if (icon != null)
+            {
+                int match = items.FindIndex(r => r.menuData != null && r.menuData.Icon == icon);
+                if (match >= 0) index = match;
+            }
+
+            food = items[index];
+            items.RemoveAt(index);
+            _foodQueue.Clear();
+            foreach (CookingResult r in items) _foodQueue.Enqueue(r);
+
+            if (index < _spawnedVisuals.Count)
+            {
+                visual = _spawnedVisuals[index];
+                _spawnedVisuals.RemoveAt(index);
+            }
+            RearrangeVisuals();
+            return true;
+        }
+
         private void RearrangeVisuals()
         {
             for (int i = 0; i < _spawnedVisuals.Count; i++)

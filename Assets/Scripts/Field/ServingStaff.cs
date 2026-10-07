@@ -40,6 +40,13 @@ namespace Marea.Field
         [Tooltip("들고 있는 음식 그림. 비워둬도 동작한다.")]
         [SerializeField] private SpriteRenderer carriedIcon;
 
+        [Tooltip("(+10/7) 조리대에서 집은 음식 모델을 붙일 손 위치. 비우면 모델 없이 아이콘만.")]
+        [SerializeField] private Transform holdPoint;
+        [Tooltip("(+10/7) 음식을 집어 올 조리대. 비우면 씬에서 찾는다.")]
+        [SerializeField] private Marea.Restaurant.CookingCounter counter;
+
+        private GameObject _carried;   // (+10/7) 조리대에서 옮겨 온 음식 모델
+
         [Header("배달 판정 (+9/3)")]
         [Tooltip("대상과 이만큼 가까워지면 건넨 것으로 본다.")]
         [SerializeField, Min(0.1f)] private float handoffRadius = 1.8f;
@@ -113,6 +120,7 @@ namespace Marea.Field
             _mover = GetComponent<AgentMover>();
             _agent = GetComponent<NavMeshAgent>();
             _labels = FindAnyObjectByType<WorldLabelUI>(FindObjectsInactive.Include);
+            if (counter == null) counter = FindAnyObjectByType<Marea.Restaurant.CookingCounter>(FindObjectsInactive.Include);
             ShowIcon(null);
         }
 
@@ -251,6 +259,7 @@ namespace Marea.Field
                 onArrived: () =>
                 {
                     ShowIcon(_task.FoodIcon);
+                    TakeFoodFromCounter();   // (+10/7) 조리대 위 음식을 손으로
                     SoundManager.PlayAt(pickupClip, transform.position, pickupVolume);   // (+10/6)
                     _state = State.ToTarget;
 
@@ -481,12 +490,37 @@ namespace Marea.Field
             DropTask();
         }
 
+        // (+10/7) 아이콘을 끄는 곳(배달 완료 · 넘어짐 · 포기 · 경로 실패)은 곧 손이 비는 곳이라 들고 있던 모델도 같이 치운다.
         private void ShowIcon(Sprite sprite)
         {
+            if (sprite == null) ReleaseCarried();
             if (carriedIcon == null) return;
 
             carriedIcon.sprite = sprite;
             carriedIcon.enabled = sprite != null;
+        }
+
+        /// <summary>
+        /// (+10/7) 조리대에 놓인 이 작업의 음식(같은 메뉴 아이콘)을 집어 손에 든다 — 조리대에선 없어진다.
+        /// 플레이어가 먼저 가져갔으면 조리대가 비어 있다 — 그땐 빈손(아이콘만)으로 간다.
+        /// </summary>
+        private void TakeFoodFromCounter()
+        {
+            ReleaseCarried();
+            if (counter == null || holdPoint == null) return;
+            if (!counter.TryTakeFood(_task.FoodIcon, out _, out GameObject visual) || visual == null) return;
+
+            _carried = visual;
+            _carried.transform.SetParent(holdPoint, false);
+            _carried.transform.localPosition = Vector3.zero;
+            _carried.transform.localRotation = Quaternion.identity;
+        }
+
+        private void ReleaseCarried()
+        {
+            if (_carried == null) return;
+            Destroy(_carried);
+            _carried = null;
         }
     }
 }
