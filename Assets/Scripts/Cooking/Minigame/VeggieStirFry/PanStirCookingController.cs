@@ -59,6 +59,13 @@ namespace Marea.Cooking
         [InspectorName("시간 초과 감점 (점/초)")]
         [SerializeField, Range(0.1f, 100f)] private float ingredientOvertimePenaltyPerSecond = 10f;
 
+        [Header("남은 시간 게이지")]
+        [Tooltip("첫 재료를 넣은 뒤 이 시간이 지나면 볶기를 종료하고 다음 단계로 넘어갑니다.")]
+        [InspectorName("2단계 진행 시간 (초)")]
+        [SerializeField, Min(0.1f)] private float stageDurationSeconds = 8f;
+        [SerializeField] private UnityEngine.UI.Image remainingTimeFill;
+        private float _stageElapsedSeconds;
+
         [Header("시각 연출 (Material & Particle)")]
         [SerializeField] private Renderer veggieRenderer;           // 익힘/탄 재질을 적용할 렌더러
         [SerializeField] private Color rawColor = Color.white;      // 날것 색상
@@ -155,6 +162,7 @@ namespace Marea.Cooking
                         veggie.transform.localRotation;
                 }
             }
+            UpdateRemainingTimeGauge();
         }
 
         public void ResetStep()
@@ -166,11 +174,13 @@ namespace Marea.Cooking
             CookProgress = 0f;
             BurnProgress = 0f;
             CookingScore = 0f;
+            _stageElapsedSeconds = 0f;
 
             _isDraggingSpatulaDirectly = false;
             _isStirringThisFrame = false;
             _panIngredientOffsets.Clear();
             _ingredientMotions.Clear();
+            UpdateRemainingTimeGauge();
             _panGroupOffset = Vector3.zero;
 
             if (clickableVeggieObjects != null)
@@ -280,7 +290,11 @@ namespace Marea.Cooking
                 }
             }
 
-            UpdateIngredientCooking(Time.deltaTime, _isStirringThisFrame);
+            float cookingDelta = Mathf.Min(Time.deltaTime,
+                Mathf.Max(0f, stageDurationSeconds - _stageElapsedSeconds));
+            _stageElapsedSeconds += cookingDelta;
+            UpdateIngredientCooking(cookingDelta, _isStirringThisFrame);
+            UpdateRemainingTimeGauge();
             _isStirringThisFrame = false;
 
             // 익힘 상태 시각 반영
@@ -310,7 +324,6 @@ namespace Marea.Cooking
             float totalPenalty = 0f;
             float totalScore = 0f;
             int ingredientCount = 0;
-            int resolvedCount = 0;
             int burnedCount = 0;
 
             // Iterate all recipe ingredients, including ones not yet inserted, so they cannot be skipped.
@@ -333,16 +346,26 @@ namespace Marea.Cooking
                 totalPenalty += motion.Penalty;
                 totalScore += cookRatio * (1f - motion.Penalty);
                 if (motion.Penalty >= 1f) burnedCount++;
-                // Fully burned ingredients resolve at zero score so the stage cannot get stuck.
-                if (motion.StirSeconds >= requiredSeconds || motion.Penalty >= 1f) resolvedCount++;
             }
 
             if (ingredientCount == 0) return;
             CookProgress = totalCookRatio / ingredientCount * 100f;
             BurnProgress = totalPenalty / ingredientCount * 100f;
             CookingScore = Mathf.Clamp01(totalScore / ingredientCount);
-            IsCookCompleted = resolvedCount == ingredientCount;
+            IsCookCompleted = _stageElapsedSeconds >= stageDurationSeconds;
             IsBurned = IsCookCompleted && burnedCount == ingredientCount;
+        }
+
+        private void UpdateRemainingTimeGauge()
+        {
+            float duration = Mathf.Max(0.1f, stageDurationSeconds);
+            float ratio = Mathf.Clamp01(1f - _stageElapsedSeconds / duration);
+            if (remainingTimeFill != null)
+            {
+                remainingTimeFill.rectTransform.anchorMax = new Vector2(ratio, 1f);
+                remainingTimeFill.color = ratio > 0.5f ? new Color(0.18f, 0.55f, 0.35f)
+                    : ratio > 0.25f ? new Color(1f, 0.78f, 0.22f) : new Color(0.9f, 0.3f, 0.2f);
+            }
         }
 
         // 3D 공간 상에서의 직접 마우스 드래그 처리
@@ -661,6 +684,7 @@ namespace Marea.Cooking
 
             // Any inserted ingredient can be stirred while the remaining ingredients are still waiting.
             IsVeggieInPan = _panIngredientOffsets.Count > 0;
+            UpdateRemainingTimeGauge();
 
             Debug.Log(
                 "[PanStirCooking] 야채가 프라이팬 내부로 투입되었습니다."
