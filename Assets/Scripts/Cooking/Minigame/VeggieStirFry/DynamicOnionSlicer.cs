@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using EzySlice;
 using UnityEngine;
@@ -12,30 +13,72 @@ namespace Marea.Cooking
         [SerializeField] private List<Transform> sliceGuidePoints; // 썰어야 할 위치 가이드 지점들
         [SerializeField] private Material crossSectionMaterial; // 잘린 단면 재질
         [SerializeField] private GameObject knifeVisual; // 칼 비주얼
+        [SerializeField] private bool uniformSliceSpacing = true;
 
         [Header("슬라이스 연출 설정")]
         [SerializeField] private float cutImpulseForce = 0.6f; // 잘린 조각이 튕겨 나가는 힘 (살짝 감소)
         [SerializeField] private ParticleSystem sliceEffect; // 썰 때 터지는 이펙트
         [SerializeField] private AudioSource sliceAudioSource; // 싹둑 소리 사운드
 
+        [Header("칼 이동 애니메이션 (해물꼬치와 동일)")]
+        [SerializeField] private float knifeApproachDuration = 0.1f;
+        [SerializeField] private float knifeCutDuration = 0.2f;
+        [SerializeField] private Vector3 knifeReadyOffset = new Vector3(0f, 0.35f, -0.4f);
+        [SerializeField] private Vector3 knifeEndOffset = new Vector3(0f, -0.15f, -0.1f);
+
         [Header("클릭 판정 설정")]
-        [SerializeField] private float hitMaxDistance = 2.0f;
-        [SerializeField] private LayerMask raycastLayerMask = ~0;
+        [SerializeField, Min(0f)] private float ingredientClickPadding = 28f;
+        [SerializeField, Min(0f)] private float guideClickRadius = 48f;
 
         private int _currentGuideIndex;
         private Camera _mainCamera;
         private bool _isSlicingCompleted;
+        private bool _isKnifeAnimating;
+
+        private GameObject _originalOnionTemplate;
+        private Transform _originalOnionParent;
+        private Vector3 _originalOnionLocalPosition;
+        private Quaternion _originalOnionLocalRotation;
+        private Vector3 _originalOnionLocalScale;
+
+        private readonly List<GameObject> _runtimeSlicePieces = new List<GameObject>();
+
+        private Vector3 _knifeInitialLocalPosition;
+        private Quaternion _knifeInitialLocalRotation;
+        private bool _hasKnifeInitialTransform;
 
         public bool IsCompleted => _isSlicingCompleted;
 
         public void ResetSlicer()
         {
+            StopAllCoroutines();
+            _isKnifeAnimating = false;
+            CaptureKnifePose();
             _currentGuideIndex = 0;
             _isSlicingCompleted = false;
+
+            RestoreOriginalOnion();
+            PositionEvenSliceGuides();
 
             if (targetOnionObject != null && targetOnionObject.TryGetComponent<Rigidbody>(out var rb))
             {
                 rb.isKinematic = true;
+            }
+
+            if (_hasKnifeInitialTransform && knifeVisual != null)
+            {
+                knifeVisual.transform.localPosition = _knifeInitialLocalPosition;
+                knifeVisual.transform.localRotation = _knifeInitialLocalRotation;
+            }
+
+            if (sliceEffect != null)
+            {
+                sliceEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+
+            if (sliceAudioSource != null)
+            {
+                sliceAudioSource.Stop();
             }
 
             UpdateGuideVisuals();
@@ -44,6 +87,60 @@ namespace Marea.Cooking
         private void Awake()
         {
             _mainCamera = Camera.main;
+
+            if (targetOnionObject != null)
+            {
+                _originalOnionTemplate = targetOnionObject;
+                _originalOnionParent = targetOnionObject.transform.parent;
+                _originalOnionLocalPosition = targetOnionObject.transform.localPosition;
+                _originalOnionLocalRotation = targetOnionObject.transform.localRotation;
+                _originalOnionLocalScale = targetOnionObject.transform.localScale;
+
+                // 원본은 복구용 템플릿으로 보관
+                _originalOnionTemplate.SetActive(false);
+            }
+
+            CaptureKnifePose();
+        }
+
+        private void CaptureKnifePose()
+        {
+            if (!_hasKnifeInitialTransform && knifeVisual != null)
+            {
+                _knifeInitialLocalPosition = knifeVisual.transform.localPosition;
+                _knifeInitialLocalRotation = knifeVisual.transform.localRotation;
+                _hasKnifeInitialTransform = true;
+            }
+        }
+
+        private void PositionEvenSliceGuides()
+        {
+            if (!uniformSliceSpacing || targetOnionObject == null || sliceGuidePoints == null ||
+                sliceGuidePoints.Count == 0 || sliceGuidePoints[0] == null) return;
+            MeshFilter mesh = targetOnionObject.GetComponent<MeshFilter>();
+            if (mesh == null || mesh.sharedMesh == null) return;
+
+            Vector3 normal = sliceGuidePoints[0].right.normalized;
+            Vector3 guideOrigin = sliceGuidePoints[0].position;
+            float min = float.PositiveInfinity;
+            float max = float.NegativeInfinity;
+            foreach (Vector3 vertex in mesh.sharedMesh.vertices)
+            {
+                float distance = Vector3.Dot(mesh.transform.TransformPoint(vertex), normal);
+                min = Mathf.Min(min, distance);
+                max = Mathf.Max(max, distance);
+            }
+            if (max - min <= 0.001f) return;
+
+            float spacing = (max - min) / (sliceGuidePoints.Count + 1);
+            for (int i = 0; i < sliceGuidePoints.Count; i++)
+            {
+                Transform guide = sliceGuidePoints[i];
+                if (guide == null) continue;
+                guide.position = guideOrigin + normal *
+                    (min + spacing * (i + 1) - Vector3.Dot(guideOrigin, normal));
+                guide.rotation = sliceGuidePoints[0].rotation;
+            }
         }
 
         private void Start()
@@ -51,9 +148,20 @@ namespace Marea.Cooking
             ResetSlicer();
         }
 
+        private void OnDisable()
+        {
+            StopAllCoroutines();
+            _isKnifeAnimating = false;
+            if (_hasKnifeInitialTransform && knifeVisual != null)
+            {
+                knifeVisual.transform.localPosition = _knifeInitialLocalPosition;
+                knifeVisual.transform.localRotation = _knifeInitialLocalRotation;
+            }
+        }
+
         private void Update()
         {
-            if (_isSlicingCompleted || sliceGuidePoints == null || sliceGuidePoints.Count == 0) return;
+            if (_isSlicingCompleted || _isKnifeAnimating || sliceGuidePoints == null || sliceGuidePoints.Count == 0) return;
 
             if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
@@ -67,111 +175,239 @@ namespace Marea.Cooking
             if (_mainCamera == null) return;
 
             Vector2 mousePosition = Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
-            Ray ray = _mainCamera.ScreenPointToRay(mousePosition);
+            Transform currentGuide = sliceGuidePoints[_currentGuideIndex];
+            if (currentGuide == null) return;
 
-            if (Physics.Raycast(ray, out RaycastHit hit, 100f, raycastLayerMask))
-            {
-                Transform currentGuide = sliceGuidePoints[_currentGuideIndex];
-                if (currentGuide == null) return;
-
-                float distance = Vector3.Distance(hit.point, currentGuide.position);
-
-                if (hit.transform == currentGuide || hit.transform.IsChildOf(currentGuide) || distance <= hitMaxDistance || hit.transform.gameObject == targetOnionObject)
-                {
-                    Vector3 cutPoint = currentGuide.position;
-                    // 세로 절단을 위한 가이드의 right 방향 사용
-                    Vector3 cutNormal = currentGuide.right;
-
-                    ExecuteEzySlice(targetOnionObject, cutPoint, cutNormal);
-                    _currentGuideIndex++;
-
-                    if (_currentGuideIndex >= sliceGuidePoints.Count)
-                    {
-                        _isSlicingCompleted = true;
-                        Debug.Log("[DynamicOnionSlicer] 모든 위치 양파 슬라이스 완료!");
-                    }
-                    else
-                    {
-                        UpdateGuideVisuals();
-                    }
-                }
-            }
+            Vector3 guideScreen = _mainCamera.WorldToScreenPoint(currentGuide.position);
+            float radius = guideClickRadius * _mainCamera.pixelHeight / 1080f;
+            bool clickedGuide = guideScreen.z > _mainCamera.nearClipPlane &&
+                Vector2.Distance(mousePosition, guideScreen) <= radius;
+            if (clickedGuide || CookingClickArea.Contains(_mainCamera, targetOnionObject,
+                    mousePosition, ingredientClickPadding, out _))
+                StartCoroutine(PerformSliceAnimation(currentGuide));
         }
 
-        private void ExecuteEzySlice(GameObject objectToCut, Vector3 cutPoint, Vector3 cutNormal)
+        private IEnumerator PerformSliceAnimation(Transform currentGuide)
         {
+            _isKnifeAnimating = true;
+            Vector3 cutPoint = currentGuide.position;
+            Vector3 cutNormal = currentGuide.right;
+            Vector3 readyPosition = cutPoint + currentGuide.TransformDirection(knifeReadyOffset);
+            Vector3 endPosition = cutPoint + currentGuide.TransformDirection(knifeEndOffset);
             if (knifeVisual != null)
             {
-                knifeVisual.transform.position = cutPoint;
+                yield return MoveKnife(knifeVisual.transform.position, readyPosition, knifeApproachDuration);
+                yield return MoveKnife(readyPosition, cutPoint, knifeCutDuration * 0.45f);
             }
 
-            if (objectToCut == null) return;
+            // 기존 절단 성공 판정을 칼이 재료에 닿는 시점에 실행한다.
+            bool sliceSuccess = ExecuteEzySlice(targetOnionObject, cutPoint, cutNormal);
+            if (knifeVisual != null)
+                yield return MoveKnife(cutPoint, endPosition, knifeCutDuration * 0.55f);
 
-            if (sliceEffect != null)
+            if (sliceSuccess)
             {
-                sliceEffect.transform.position = cutPoint;
-                sliceEffect.Play();
+                _currentGuideIndex++;
+                if (_currentGuideIndex >= sliceGuidePoints.Count)
+                {
+                    _isSlicingCompleted = true;
+                    Debug.Log("[DynamicOnionSlicer] 모든 위치 양파 슬라이스 완료!");
+                }
+                else UpdateGuideVisuals();
             }
-            if (sliceAudioSource != null)
+            _isKnifeAnimating = false;
+        }
+
+        private IEnumerator MoveKnife(Vector3 startPosition, Vector3 endPosition, float duration)
+        {
+            if (knifeVisual == null) yield break;
+            float elapsed = 0f;
+            while (elapsed < duration)
             {
-                sliceAudioSource.Play();
+                elapsed += Time.deltaTime;
+                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+                knifeVisual.transform.position = Vector3.Lerp(startPosition, endPosition, t);
+                yield return null;
             }
+            knifeVisual.transform.position = endPosition;
+        }
+
+        private bool ExecuteEzySlice(GameObject objectToCut, Vector3 cutPoint, Vector3 cutNormal)
+        {
+            if (objectToCut == null) return false;
 
             Vector3 originalWorldPos = objectToCut.transform.position;
             Quaternion originalWorldRot = objectToCut.transform.rotation;
             Vector3 originalLocalScale = objectToCut.transform.localScale;
             Transform originalParent = objectToCut.transform.parent;
 
-            SlicedHull hull = objectToCut.Slice(cutPoint, cutNormal, crossSectionMaterial);
+            SlicedHull hull = objectToCut.Slice(
+                cutPoint,
+                cutNormal,
+                crossSectionMaterial
+            );
 
-            if (hull != null)
+            if (hull == null)
             {
-                GameObject upperHull = hull.CreateUpperHull(objectToCut, crossSectionMaterial);
-                GameObject lowerHull = hull.CreateLowerHull(objectToCut, crossSectionMaterial);
+                Debug.LogWarning(
+                    "[DynamicOnionSlicer] Slice 실패! 절단 가이드가 Mesh를 통과하는지 확인해주세요."
+                );
 
-                if (upperHull != null && lowerHull != null)
+                return false;
+            }
+
+            GameObject upperHull =
+                hull.CreateUpperHull(objectToCut, crossSectionMaterial);
+
+            GameObject lowerHull =
+                hull.CreateLowerHull(objectToCut, crossSectionMaterial);
+
+            if (upperHull == null || lowerHull == null)
+            {
+                if (upperHull != null)
                 {
-                    MatchTransform(upperHull, originalParent, originalWorldPos, originalWorldRot, originalLocalScale);
-                    MatchTransform(lowerHull, originalParent, originalWorldPos, originalWorldRot, originalLocalScale);
-
-                    // 각 조각의 메쉬 중심점(Bounds Center)을 절단 평면 기준으로 판별
-                    MeshFilter upperMF = upperHull.GetComponent<MeshFilter>();
-                    MeshFilter lowerMF = lowerHull.GetComponent<MeshFilter>();
-
-                    Vector3 upperCenter = upperMF != null ? upperHull.transform.TransformPoint(upperMF.sharedMesh.bounds.center) : upperHull.transform.position;
-                    Vector3 lowerCenter = lowerMF != null ? lowerHull.transform.TransformPoint(lowerMF.sharedMesh.bounds.center) : lowerHull.transform.position;
-
-                    // 절단 위치에서 중심점으로 향하는 벡터와 절단 법선 벡터를 내적하여 좌/우 판별
-                    float upperDot = Vector3.Dot((upperCenter - cutPoint), cutNormal);
-                    float lowerDot = Vector3.Dot((lowerCenter - cutPoint), cutNormal);
-
-                    GameObject remainingPiece;
-                    GameObject separatedPiece;
-
-                    // 내적 값이 음수인 쪽(왼쪽/법선 반대 방향)을 튕겨 나갈 조각으로 선택
-                    if (upperDot < lowerDot)
-                    {
-                        separatedPiece = upperHull;
-                        remainingPiece = lowerHull;
-                    }
-                    else
-                    {
-                        separatedPiece = lowerHull;
-                        remainingPiece = upperHull;
-                    }
-
-                    // 도마에 남을 오른쪽/본체 조각: 고정
-                    SetupSlicedPiece(remainingPiece, isSeparatedPiece: false);
-                    // 왼쪽으로 튕겨 나갈 조각: 물리 및 왼쪽 임펄스 부여
-                    SetupSlicedPiece(separatedPiece, isSeparatedPiece: true);
-
-                    Destroy(objectToCut);
-                    targetOnionObject = remainingPiece;
+                    Destroy(upperHull);
                 }
+
+                if (lowerHull != null)
+                {
+                    Destroy(lowerHull);
+                }
+
+                return false;
+            }
+
+            CookingSliceVfx.Play(sliceEffect, cutPoint, cutNormal);
+
+            if (sliceAudioSource != null)
+            {
+                sliceAudioSource.Play();
+            }
+
+            _runtimeSlicePieces.Add(upperHull);
+            _runtimeSlicePieces.Add(lowerHull);
+
+            MatchTransform(
+                upperHull,
+                originalParent,
+                originalWorldPos,
+                originalWorldRot,
+                originalLocalScale
+            );
+
+            MatchTransform(
+                lowerHull,
+                originalParent,
+                originalWorldPos,
+                originalWorldRot,
+                originalLocalScale
+            );
+
+            // 각 조각의 메쉬 중심점(Bounds Center)을 절단 평면 기준으로 판별
+            MeshFilter upperMF = upperHull.GetComponent<MeshFilter>();
+            MeshFilter lowerMF = lowerHull.GetComponent<MeshFilter>();
+
+            Vector3 upperCenter =
+                upperMF != null && upperMF.sharedMesh != null
+                    ? upperHull.transform.TransformPoint(upperMF.sharedMesh.bounds.center)
+                    : upperHull.transform.position;
+
+            Vector3 lowerCenter =
+                lowerMF != null && lowerMF.sharedMesh != null
+                    ? lowerHull.transform.TransformPoint(lowerMF.sharedMesh.bounds.center)
+                    : lowerHull.transform.position;
+
+            // 절단 위치에서 중심점으로 향하는 벡터와 절단 법선 벡터를 내적하여 좌/우 판별
+            float upperDot =
+                Vector3.Dot((upperCenter - cutPoint), cutNormal);
+
+            float lowerDot =
+                Vector3.Dot((lowerCenter - cutPoint), cutNormal);
+
+            GameObject remainingPiece;
+            GameObject separatedPiece;
+
+            // 내적 값이 음수인 쪽(왼쪽/법선 반대 방향)을 튕겨 나갈 조각으로 선택
+            if (upperDot < lowerDot)
+            {
+                separatedPiece = upperHull;
+                remainingPiece = lowerHull;
+            }
+            else
+            {
+                separatedPiece = lowerHull;
+                remainingPiece = upperHull;
+            }
+
+            // 도마에 남을 오른쪽/본체 조각: 고정
+            SetupSlicedPiece(
+                remainingPiece,
+                isSeparatedPiece: false
+            );
+
+            // 왼쪽으로 튕겨 나갈 조각: 물리 및 왼쪽 임펄스 부여
+            SetupSlicedPiece(
+                separatedPiece,
+                isSeparatedPiece: true
+            );
+
+            Destroy(objectToCut);
+            targetOnionObject = remainingPiece;
+
+            return true;
+        }
+
+        private void RestoreOriginalOnion()
+        {
+            GameObject currentTarget = targetOnionObject;
+
+            if (currentTarget != null &&
+                currentTarget != _originalOnionTemplate)
+            {
+                Destroy(currentTarget);
+            }
+
+            for (int i = 0; i < _runtimeSlicePieces.Count; i++)
+            {
+                GameObject piece = _runtimeSlicePieces[i];
+
+                if (piece != null && piece != currentTarget)
+                {
+                    Destroy(piece);
+                }
+            }
+
+            _runtimeSlicePieces.Clear();
+
+            if (_originalOnionTemplate != null)
+            {
+                targetOnionObject = Instantiate(
+                    _originalOnionTemplate,
+                    _originalOnionParent
+                );
+
+                targetOnionObject.name =
+                    _originalOnionTemplate.name;
+
+                targetOnionObject.transform.localPosition =
+                    _originalOnionLocalPosition;
+
+                targetOnionObject.transform.localRotation =
+                    _originalOnionLocalRotation;
+
+                targetOnionObject.transform.localScale =
+                    _originalOnionLocalScale;
+
+                targetOnionObject.SetActive(true);
             }
         }
 
-        private void MatchTransform(GameObject piece, Transform parent, Vector3 worldPos, Quaternion worldRot, Vector3 localScale)
+        private void MatchTransform(
+            GameObject piece,
+            Transform parent,
+            Vector3 worldPos,
+            Quaternion worldRot,
+            Vector3 localScale)
         {
             piece.transform.SetParent(parent, false);
             piece.transform.position = worldPos;
@@ -179,38 +415,74 @@ namespace Marea.Cooking
             piece.transform.localScale = localScale;
         }
 
-        private void SetupSlicedPiece(GameObject piece, bool isSeparatedPiece)
+        private void SetupSlicedPiece(
+            GameObject piece,
+            bool isSeparatedPiece)
         {
             if (piece == null) return;
 
-            MeshCollider collider = piece.AddComponent<MeshCollider>();
-            collider.convex = true;
+            MeshFilter meshFilter =
+                piece.GetComponent<MeshFilter>();
 
-            Rigidbody rb = piece.AddComponent<Rigidbody>();
+            if (meshFilter != null &&
+                meshFilter.sharedMesh != null)
+            {
+                MeshCollider collider =
+                    piece.AddComponent<MeshCollider>();
+
+                collider.sharedMesh =
+                    meshFilter.sharedMesh;
+
+                collider.convex = true;
+            }
+
+            Rigidbody rb =
+                piece.AddComponent<Rigidbody>();
 
             if (isSeparatedPiece)
             {
                 rb.isKinematic = false;
                 rb.useGravity = true;
 
+                rb.collisionDetectionMode =
+                    CollisionDetectionMode.Continuous;
+
+                rb.interpolation =
+                    RigidbodyInterpolation.Interpolate;
+
                 // 월드 좌표 기준 왼쪽(Vector3.left) + 미세한 위쪽(Vector3.up * 0.2f)으로 부드럽게 튕김
-                Vector3 leftDir = (Vector3.left + Vector3.up * 0.2f).normalized;
-                rb.AddForce(leftDir * cutImpulseForce, ForceMode.Impulse);
-                rb.AddTorque(Random.insideUnitSphere * (cutImpulseForce * 0.5f), ForceMode.Impulse);
+                Vector3 leftDir =
+                    (Vector3.left + Vector3.up * 0.2f).normalized;
+
+                rb.AddForce(
+                    leftDir * cutImpulseForce,
+                    ForceMode.Impulse
+                );
+
+                rb.AddTorque(
+                    Random.insideUnitSphere *
+                    (cutImpulseForce * 0.5f),
+                    ForceMode.Impulse
+                );
             }
             else
             {
                 rb.isKinematic = true;
+                rb.useGravity = false;
             }
         }
 
         private void UpdateGuideVisuals()
         {
+            if (sliceGuidePoints == null) return;
+
             for (int i = 0; i < sliceGuidePoints.Count; i++)
             {
                 if (sliceGuidePoints[i] != null)
                 {
-                    sliceGuidePoints[i].gameObject.SetActive(i == _currentGuideIndex);
+                    sliceGuidePoints[i].gameObject.SetActive(
+                        i == _currentGuideIndex
+                    );
                 }
             }
         }

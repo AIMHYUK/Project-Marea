@@ -19,6 +19,8 @@ namespace Marea.Cooking
         private Camera _cam;
         private DepthOfField _dof;
         private float _defaultAperture;
+        private DepthOfFieldMode _defaultDofMode;
+        private float _defaultFocalLength;
         private UniversalAdditionalCameraData _camData;
         private bool _postFxDefault; // 평소엔 포스트프로세싱을 안 켠다 — 흐림을 쓰는 동안만 켜고 돌려놓는다
         private CameraFollow _cameraFollow;
@@ -55,7 +57,11 @@ namespace Marea.Cooking
                 if (!focusVolume.profile.TryGet(out _dof))
                     Debug.LogError($"{name}: focusVolume 프로필에 Depth Of Field가 없다. 초점 흐림이 안 된다.", focusVolume);
                 else
+                {
                     _defaultAperture = _dof.aperture.value;
+                    _defaultDofMode = _dof.mode.value;
+                    _defaultFocalLength = _dof.focalLength.value;
+                }
                 focusVolume.weight = 0f;
             }
         }
@@ -68,15 +74,30 @@ namespace Marea.Cooking
             // (+10/2) 초점 대상을 정한 시점에서만 흐린다. 주방 가구엔 콜라이더가 없어 정면 레이가 요리를 지나
             // 뒷벽 · 바닥에 닿았고, 그러면 정작 요리가 흐려졌다. 모르는 시점은 흐림을 끄는 게 안전하다.
             ViewPointFocus focus = viewPoint.GetComponent<ViewPointFocus>();
-            if (focus == null || focus.Target == null)
+            if (focus == null || focus.Target == null || focus.BlurMode == MinigameBlurMode.Off)
             {
                 ClearFocus();
                 return;
             }
             float distance = Mathf.Max(0.1f, Vector3.Dot(focus.Target.position - viewPoint.position, viewPoint.forward));
 
-            _dof.focusDistance.Override(distance);
-            _dof.aperture.Override(focus != null && focus.Aperture > 0f ? focus.Aperture : _defaultAperture);
+            if (focus.BlurMode == MinigameBlurMode.Gaussian)
+            {
+                // Far-field blur keeps moving knives and ingredients in front of the target sharp.
+                _dof.mode.Override(DepthOfFieldMode.Gaussian);
+                float start = distance + focus.BackgroundStartOffset;
+                _dof.gaussianStart.Override(start);
+                _dof.gaussianEnd.Override(start + focus.BackgroundFadeDistance);
+                _dof.gaussianMaxRadius.Override(focus.BlurRadius);
+                _dof.highQualitySampling.Override(focus.HighQualitySampling);
+            }
+            else
+            {
+                _dof.mode.Override(focus.BlurMode == MinigameBlurMode.Bokeh ? DepthOfFieldMode.Bokeh : _defaultDofMode);
+                _dof.focusDistance.Override(distance);
+                _dof.aperture.Override(focus.Aperture > 0f ? focus.Aperture : _defaultAperture);
+                _dof.focalLength.Override(focus.BlurMode == MinigameBlurMode.Bokeh ? focus.FocalLength : _defaultFocalLength);
+            }
             focusVolume.weight = 1f;
             if (_camData != null) _camData.renderPostProcessing = true;
         }

@@ -17,11 +17,22 @@ namespace Marea.Cooking
         [SerializeField] private List<Transform> sliceGuidePoints;    // 썰어야 할 위치 가이드 지점들
         [SerializeField] private Material crossSectionMaterial;    // 잘린 단면 재질
         [SerializeField] private GameObject knifeVisual;           // 칼 비주얼
+        [SerializeField] private bool uniformSliceSpacing = true;
 
         [Header("슬라이스 연출 설정")]
         [SerializeField] private float cutImpulseForce = 0.6f;
         [SerializeField] private ParticleSystem sliceEffect;
         [SerializeField] private AudioSource sliceAudioSource;
+
+        [Header("칼 이동 애니메이션 설정")]
+        [SerializeField] private float knifeApproachDuration = 0.15f;
+        [SerializeField] private float knifeCutDuration = 0.25f;
+
+        [Tooltip("SliceGuide 기준 칼이 썰기 전에 대기할 위치")]
+        [SerializeField] private Vector3 knifeReadyOffset = new Vector3(0f, 0.35f, -0.15f);
+
+        [Tooltip("SliceGuide 기준 칼이 재료를 통과한 뒤 도착할 위치")]
+        [SerializeField] private Vector3 knifeEndOffset = new Vector3(0f, -0.15f, 0.15f);
 
         [Header("클릭 판정 설정")]
         [SerializeField] private float hitMaxDistance = 2.0f;
@@ -30,6 +41,7 @@ namespace Marea.Cooking
         private int _currentGuideIndex;
         private Camera _mainCamera;
         private bool _isSlicingCompleted;
+        private bool _isKnifeAnimating;
 
         private GameObject _originalIngredientTemplate;
         private Transform _originalIngredientParent;
@@ -52,11 +64,15 @@ namespace Marea.Cooking
 
         public void ResetSlicer()
         {
+            StopAllCoroutines();
+            _isKnifeAnimating = false;
+
             _currentGuideIndex = 0;
             _isSlicingCompleted = false;
             SliceScoreSum = 0f;
 
             RestoreOriginalIngredient();
+            PositionEvenSliceGuides();
 
             if (targetIngredientObject != null && targetIngredientObject.TryGetComponent<Rigidbody>(out var rb))
             {
@@ -73,11 +89,15 @@ namespace Marea.Cooking
 
         public void ResetSlicerState()
         {
+            StopAllCoroutines();
+            _isKnifeAnimating = false;
+
             _currentGuideIndex = 0;
             _isSlicingCompleted = false;
             SliceScoreSum = 0f;
 
             RestoreOriginalIngredient();
+            PositionEvenSliceGuides();
 
             if (targetIngredientObject != null && targetIngredientObject.TryGetComponent<Rigidbody>(out var rb))
             {
@@ -120,9 +140,36 @@ namespace Marea.Cooking
             ResetSlicer();
         }
 
+        private void PositionEvenSliceGuides()
+        {
+            if (!uniformSliceSpacing || targetIngredientObject == null || sliceGuidePoints == null ||
+                sliceGuidePoints.Count == 0 || sliceGuidePoints[0] == null) return;
+            MeshFilter mesh = targetIngredientObject.GetComponent<MeshFilter>();
+            if (mesh == null || mesh.sharedMesh == null) return;
+            Vector3 normal = sliceGuidePoints[0].right.normalized;
+            Vector3 origin = sliceGuidePoints[0].position;
+            float min = float.PositiveInfinity;
+            float max = float.NegativeInfinity;
+            foreach (Vector3 vertex in mesh.sharedMesh.vertices)
+            {
+                float distance = Vector3.Dot(mesh.transform.TransformPoint(vertex), normal);
+                min = Mathf.Min(min, distance);
+                max = Mathf.Max(max, distance);
+            }
+            if (max - min <= 0.001f) return;
+            float spacing = (max - min) / (sliceGuidePoints.Count + 1);
+            for (int i = 0; i < sliceGuidePoints.Count; i++)
+            {
+                var guide = sliceGuidePoints[i];
+                if (guide == null) continue;
+                guide.position = origin + normal * (min + spacing * (i + 1) - Vector3.Dot(origin, normal));
+                guide.rotation = sliceGuidePoints[0].rotation;
+            }
+        }
+
         private void Update()
         {
-            if (_isSlicingCompleted || sliceGuidePoints == null || sliceGuidePoints.Count == 0) return;
+            if (_isSlicingCompleted || _isKnifeAnimating || sliceGuidePoints == null || sliceGuidePoints.Count == 0) return;
 
             if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
@@ -173,12 +220,60 @@ namespace Marea.Cooking
                 _ => 0.3f
             };
 
-            SliceScoreSum += score;
+            StartCoroutine(PerformSliceAnimation(currentGuide, grade, score));
+        }
+
+        private IEnumerator PerformSliceAnimation(Transform currentGuide, HitGrade grade, float score)
+        {
+            _isKnifeAnimating = true;
 
             Vector3 cutPoint = currentGuide.position;
             Vector3 cutNormal = currentGuide.right;
 
-            ExecuteEzySlice(targetIngredientObject, cutPoint, cutNormal);
+            Vector3 readyPosition =
+                cutPoint + currentGuide.TransformDirection(knifeReadyOffset);
+
+            Vector3 endPosition =
+                cutPoint + currentGuide.TransformDirection(knifeEndOffset);
+
+            if (knifeVisual != null)
+            {
+                Vector3 startPosition = knifeVisual.transform.position;
+
+                // 현재 위치 → 썰기 준비 위치
+                yield return MoveKnife(
+                    startPosition,
+                    readyPosition,
+                    knifeApproachDuration
+                );
+
+                // 준비 위치 → 실제 절단 위치
+                yield return MoveKnife(
+                    readyPosition,
+                    cutPoint,
+                    knifeCutDuration * 0.45f
+                );
+            }
+
+            // 칼이 실제 재료 위치에 도달했을 때 Slice 처리
+            bool sliceSuccess = ExecuteEzySlice(targetIngredientObject, cutPoint, cutNormal);
+
+            if (knifeVisual != null)
+            {
+                // 절단 위치 → 재료를 완전히 통과
+                yield return MoveKnife(
+                    cutPoint,
+                    endPosition,
+                    knifeCutDuration * 0.55f
+                );
+            }
+
+            if (!sliceSuccess)
+            {
+                _isKnifeAnimating = false;
+                yield break;
+            }
+            SliceScoreSum += score;
 
             _currentGuideIndex++;
             Debug.Log($"[SeafoodSkewersSlicer] 썰기 성공! 판정: {grade} ({_currentGuideIndex}/{sliceGuidePoints.Count})");
@@ -196,22 +291,44 @@ namespace Marea.Cooking
             {
                 UpdateGuideVisuals();
             }
+
+            _isKnifeAnimating = false;
         }
 
-        private void ExecuteEzySlice(GameObject objectToCut, Vector3 cutPoint, Vector3 cutNormal)
+        private IEnumerator MoveKnife(Vector3 startPosition, Vector3 endPosition, float duration)
         {
-            if (knifeVisual != null)
+            if (knifeVisual == null)
             {
-                knifeVisual.transform.position = cutPoint;
+                yield break;
             }
 
-            if (objectToCut == null) return;
-
-            if (sliceEffect != null)
+            if (duration <= 0f)
             {
-                sliceEffect.transform.position = cutPoint;
-                sliceEffect.Play();
+                knifeVisual.transform.position = endPosition;
+                yield break;
             }
+
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+
+                float t = Mathf.Clamp01(elapsed / duration);
+                t = Mathf.SmoothStep(0f, 1f, t);
+
+                knifeVisual.transform.position =
+                    Vector3.Lerp(startPosition, endPosition, t);
+
+                yield return null;
+            }
+
+            knifeVisual.transform.position = endPosition;
+        }
+
+        private bool ExecuteEzySlice(GameObject objectToCut, Vector3 cutPoint, Vector3 cutNormal)
+        {
+            if (objectToCut == null) return false;
 
             if (sliceAudioSource != null)
             {
@@ -232,6 +349,7 @@ namespace Marea.Cooking
 
                 if (upperHull != null && lowerHull != null)
                 {
+                    CookingSliceVfx.Play(sliceEffect, cutPoint, cutNormal);
                     _runtimeSlicePieces.Add(upperHull);
                     _runtimeSlicePieces.Add(lowerHull);
 
@@ -266,8 +384,12 @@ namespace Marea.Cooking
 
                     Destroy(objectToCut);
                     targetIngredientObject = remainingPiece;
+                    return true;
                 }
+                if (upperHull != null) Destroy(upperHull);
+                if (lowerHull != null) Destroy(lowerHull);
             }
+            return false;
         }
 
         private void RestoreOriginalIngredient()

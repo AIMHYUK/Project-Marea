@@ -35,6 +35,13 @@ namespace Marea.Cooking
         [Header("단계 전환 연출 설정")]
         [SerializeField] protected float stepTransitionDelay = 1.5f; // 단계 넘어갈 때 딜레이 시간 (초)
 
+        [Header("미니게임 진행 중 비활성화할 오브젝트")]
+        [SerializeField] private List<GameObject> disableDuringMinigame;
+        [Tooltip("씬의 CookingDeco를 찾아 미니게임 동안 숨긴다. 프리팹 외부 오브젝트도 연결할 수 있다.")]
+        [SerializeField] private bool hideCookingDeco;
+        private GameObject _cookingDeco;
+        private bool _cookingDecoHidden;
+
         public MinigameStepIndex CurrentStepIndex { get; protected set; } = MinigameStepIndex.NotStarted;
 
         protected float Step1Score = 1.0f;
@@ -56,6 +63,7 @@ namespace Marea.Cooking
 
         protected virtual void OnDisable()
         {
+            if (_cookingDecoHidden) SetDisableDuringMinigameState(true);
             SetPhysicsRaycasterState(false);
             if (_stepTransitionRoutine != null)
             {
@@ -80,6 +88,8 @@ namespace Marea.Cooking
 
             SetPhysicsRaycasterState(false);
             SetStepPanelState(s1: false, s2: false, s3: false);
+
+            SetDisableDuringMinigameState(true);
         }
 
         protected virtual void EnsureDependencies()
@@ -170,6 +180,8 @@ namespace Marea.Cooking
         // --- 1단계 실행 ---
         public virtual void StartStep1()
         {
+            SetDisableDuringMinigameState(false);
+
             SetPhysicsRaycasterState(true);
             MoveCameraToViewPoint(GetStepViewPoint(MinigameStepIndex.Step1));
 
@@ -253,6 +265,8 @@ namespace Marea.Cooking
             ReturnCameraToOriginalPosition();
             SetStepPanelState(s1: false, s2: false, s3: false);
 
+            SetDisableDuringMinigameState(true);
+
             float averageScore = (Step1Score + Step2Score + Step3Score) / 3.0f;
             OnMinigameCompleted(averageScore);
         }
@@ -264,6 +278,41 @@ namespace Marea.Cooking
             if (step1Panel != null) step1Panel.SetActive(s1);
             if (step2Panel != null) step2Panel.SetActive(s2);
             if (step3Panel != null) step3Panel.SetActive(s3);
+        }
+
+        private void SetDisableDuringMinigameState(bool active)
+        {
+            if (hideCookingDeco)
+            {
+                if (_cookingDeco == null)
+                {
+                    // Scene objects cannot be serialized into a prefab asset.
+                    // Resolve the closest decoration group, including inactive objects.
+                    float nearestDistance = float.PositiveInfinity;
+                    foreach (Transform candidate in FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                    {
+                        if (candidate.name != "CookingDeco" || candidate.IsChildOf(transform)) continue;
+                        float distance = (candidate.position - transform.position).sqrMagnitude;
+                        if (distance >= nearestDistance) continue;
+                        nearestDistance = distance;
+                        _cookingDeco = candidate.gameObject;
+                    }
+                }
+                if (_cookingDeco != null && (!active || _cookingDecoHidden))
+                {
+                    _cookingDeco.SetActive(active);
+                    _cookingDecoHidden = !active;
+                }
+            }
+            if (disableDuringMinigame == null) return;
+
+            for (int i = 0; i < disableDuringMinigame.Count; i++)
+            {
+                if (disableDuringMinigame[i] != null)
+                {
+                    disableDuringMinigame[i].SetActive(active);
+                }
+            }
         }
     }
 }
