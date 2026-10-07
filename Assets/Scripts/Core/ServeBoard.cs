@@ -41,6 +41,15 @@ namespace Marea.Core
 
         public int PendingCount => _pending.Count;
 
+        /// <summary>
+        /// (+10/7) 아직 아무도 안 집은 작업들의 음식 아이콘. 조리대가 "이건 직원 몫"을 가려 플레이어에게 안 주는 데 쓴다.
+        /// 읽기만 — 큐는 그대로다.
+        /// </summary>
+        public System.Collections.Generic.IEnumerable<Sprite> PendingIcons
+        {
+            get { foreach (ServeTask t in _pending) yield return t.FoodIcon; }
+        }
+
         /// <summary>직원이 음식을 받아가는 자리. (+9/3)</summary>
         public Vector3 PickupPosition => pickupPoint != null ? pickupPoint.position : transform.position;
 

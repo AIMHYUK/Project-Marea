@@ -104,6 +104,9 @@ namespace Marea.Field
         /// <summary>음식을 들고 배달 중인가.</summary>
         public bool IsCarryingFood => _state == State.ToTarget;
 
+        /// <summary>(+10/7) 조리대로 가지러 가는 중인 음식의 아이콘 — 그 음식은 직원 몫이라 플레이어가 집으면 안 된다. 아니면 null.</summary>
+        public Sprite ReservedIcon => _state == State.ToPickup ? _task.FoodIcon : null;
+
         /// <summary>
         /// 지금 맡고 있는 배달 대상. 아무것도 안 들고 있으면 null.
         ///

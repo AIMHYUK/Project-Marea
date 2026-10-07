@@ -87,16 +87,18 @@ namespace Marea.Restaurant
                 return;
             }
 
-            CookingResult food = _foodQueue.Dequeue();
-
-            if (_spawnedVisuals.Count > 0)
+            // (+10/7, A) 서빙 직원이 가져가기로 한 음식은 건너뛴다 — 플레이어가 집으면 손님이 두 번 받는다.
+            int index = FindPlayerPickIndex();
+            if (index < 0)
             {
-                GameObject removedVisual = _spawnedVisuals[0];
-                _spawnedVisuals.RemoveAt(0);
-                if (removedVisual != null)
-                {
-                    Destroy(removedVisual);
-                }
+                Debug.Log("[CookingCounter] 조리대의 음식은 모두 서빙 직원이 가져갈 몫이다.");
+                return;
+            }
+
+            CookingResult food = RemoveAt(index, out GameObject removedVisual);
+            if (removedVisual != null)
+            {
+                Destroy(removedVisual);
             }
 
             RearrangeVisuals();
@@ -124,18 +126,58 @@ namespace Marea.Restaurant
                 if (match >= 0) index = match;
             }
 
-            food = items[index];
+            food = RemoveAt(index, out visual);
+            RearrangeVisuals();
+            return true;
+        }
+
+        /// <summary>(+10/7, A) index번째 음식을 큐 · 비주얼 목록에서 뺀다. 비주얼은 지우지 않고 돌려준다.</summary>
+        private CookingResult RemoveAt(int index, out GameObject visual)
+        {
+            List<CookingResult> items = new(_foodQueue);
+            CookingResult food = items[index];
             items.RemoveAt(index);
             _foodQueue.Clear();
             foreach (CookingResult r in items) _foodQueue.Enqueue(r);
 
+            visual = null;
             if (index < _spawnedVisuals.Count)
             {
                 visual = _spawnedVisuals[index];
                 _spawnedVisuals.RemoveAt(index);
             }
-            RearrangeVisuals();
-            return true;
+            return food;
+        }
+
+        /// <summary>
+        /// (+10/7, A) 플레이어가 집을 음식 — 앞에서부터, 직원 몫(게시판에 대기 중 · 직원이 가지러 가는 중인 아이콘)은
+        /// 그 수만큼 건너뛴다. 다 직원 몫이면 -1. 직원이 없으면 직원 몫도 없어서 예전처럼 맨 앞.
+        /// </summary>
+        private int FindPlayerPickIndex()
+        {
+            Dictionary<Sprite, int> reserved = new();
+
+            Marea.Core.ServeBoard board = FindAnyObjectByType<Marea.Core.ServeBoard>();
+            if (board != null)
+                foreach (Sprite s in board.PendingIcons) Reserve(reserved, s);
+            foreach (Marea.Field.ServingStaff staff in FindObjectsByType<Marea.Field.ServingStaff>(FindObjectsSortMode.None))
+                Reserve(reserved, staff.ReservedIcon);
+
+            int i = 0;
+            foreach (CookingResult r in _foodQueue)
+            {
+                Sprite icon = r.menuData != null ? r.menuData.Icon : null;
+                if (icon != null && reserved.TryGetValue(icon, out int n) && n > 0) reserved[icon] = n - 1;
+                else return i;
+                i++;
+            }
+            return -1;
+        }
+
+        private static void Reserve(Dictionary<Sprite, int> reserved, Sprite icon)
+        {
+            if (icon == null) return;
+            reserved[icon] = reserved.TryGetValue(icon, out int n) ? n + 1 : 1;
         }
 
         private void RearrangeVisuals()
