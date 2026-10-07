@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Marea.Core;
+using Marea.Cooking;
 using Marea.Economy;
 using UnityEngine;
 using UnityEngine.AI;
@@ -46,6 +47,7 @@ namespace Marea.Field
         [SerializeField] private Marea.Restaurant.CookingCounter counter;
 
         private GameObject _carried;   // (+10/7) 조리대에서 옮겨 온 음식 모델
+        private int _carriedPrice;     // (+10/7) 그 음식값 — 넘어지면 물어낸다
 
         [Header("배달 판정 (+9/3)")]
         [Tooltip("대상과 이만큼 가까워지면 건넨 것으로 본다.")]
@@ -57,7 +59,8 @@ namespace Marea.Field
         // (+9/30) 넘어질 확률은 파손된 장판(TripHazard)이 든다. 예전의 "배달마다 15%"는 기획이
         // "바닥 돌출부에 걸리면 25%"로 바뀌어 지웠다.
         [Header("넘어짐 (+9/28, 이슈 76)")]
-        [Tooltip("넘어지면 지갑에서 빠지는 골드. 잔액이 모자라면 있는 만큼만 빠진다.")]
+        // (+10/7) 넘어지면 들고 있던 음식값을 물어낸다. 고정 50G는 음식을 못 집고 빈손으로 가던 경우에만.
+        [Tooltip("빈손(조리대에서 음식을 못 집음)으로 넘어졌을 때 빠지는 골드. 음식을 들었으면 그 음식값이 빠진다.")]
         [SerializeField, Min(0)] private int tripPenalty = 50;
 
         [Tooltip("넘어져서 다시 움직일 때까지 초. AC_ServingStaff 의 Tripping(2.8초) + "
@@ -329,7 +332,7 @@ namespace Marea.Field
                 return;
             }
 
-            int paid = Mathf.Min(wallet.Gold, tripPenalty);
+            int paid = Mathf.Min(wallet.Gold, _carriedPrice > 0 ? _carriedPrice : tripPenalty);   // (+10/7) 음식값
             if (paid > 0 && wallet.TrySpend(paid))
             {
                 _penaltyText = $"-{paid}G";
@@ -510,8 +513,11 @@ namespace Marea.Field
         private void TakeFoodFromCounter()
         {
             ReleaseCarried();
+            _carriedPrice = 0;
             if (counter == null || holdPoint == null) return;
-            if (!counter.TryTakeFood(_task.FoodIcon, out _, out GameObject visual) || visual == null) return;
+            if (!counter.TryTakeFood(_task.FoodIcon, out CookingResult food, out GameObject visual)) return;
+            _carriedPrice = food.finalPrice;   // (+10/7) 넘어지면 이 값을 물어낸다
+            if (visual == null) return;
 
             _carried = visual;
             _carried.transform.SetParent(holdPoint, false);

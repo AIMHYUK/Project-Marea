@@ -35,6 +35,13 @@ namespace Marea.Player
         // IInteractor
         public Transform Transform => transform;
 
+        /// <summary>(+10/7) 하던 이동 · 상호작용 이동을 그 자리에서 끊는다. 넘어질 때(PlayerTrip) 쓴다.</summary>
+        public void Interrupt()
+        {
+            _mover.Stop();
+            _state = State.Idle;
+        }
+
         public void BeginBusy() => _busyHeld = true;
         public void EndBusy() => _busyHeld = false;
 

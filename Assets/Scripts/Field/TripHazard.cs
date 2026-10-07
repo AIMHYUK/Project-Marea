@@ -6,6 +6,7 @@ namespace Marea.Field
 {
     /// <summary>
     /// 파손된 장판. 음식을 든 서빙 직원이 밟으면 확률로 넘어진다. 클릭하면 골드를 내고 수리한다. (+9/30)
+    /// (+10/7) 음식을 든 플레이어도 넘어진다 — PlayerTrip.
     ///
     /// 넘어지는 처리(음식 손실 · 골드 차감 · 애니메이션)는 ServingStaff.Trip 그대로다. 여기는
     /// "어디서 · 몇 % 로"만 든다.
@@ -71,6 +72,9 @@ namespace Marea.Field
             if (_repaired) return;
             var staff = other.GetComponentInParent<ServingStaff>();
             if (staff != null) staff.OnSteppedHazard(this);
+            // (+10/7) 플레이어도 음식을 든 채 밟으면 넘어진다.
+            var player = other.GetComponentInParent<Marea.Player.PlayerTrip>();
+            if (player != null) player.OnSteppedHazard(this);
         }
 
         private void Update()
