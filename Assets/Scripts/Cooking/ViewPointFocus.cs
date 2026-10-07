@@ -39,6 +39,14 @@ namespace Marea.Cooking
         [Tooltip("가장자리를 이만큼 어둡게(비네트).")]
         [SerializeField, Range(0f, 1f)] private float edgeDarken = 0.25f;
 
+        // (+10/7, A) 플레이 중 인스펙터에서 바꾸면 바로 보이게 — 지금 이 시점을 보고 있으면 카메라가 다시 건다.
+        private void OnValidate()
+        {
+            if (!Application.isPlaying) return;
+            MinigameCameraController cam = FindAnyObjectByType<MinigameCameraController>();
+            if (cam != null) cam.RefreshFocus(this);
+        }
+
         public float EdgeBlur => edgeBlur;
         public float EdgeInner => edgeInner;
         public float EdgeOuter => edgeOuter;

@@ -67,6 +67,17 @@ namespace Marea.Cooking
         }
 
         /// <summary>시점 정면에 닿는 곳(냄비 · 도마 등)에 초점을 맞추고 흐림을 켠다.</summary>
+        private Transform _focusViewPoint;   // (+10/7, A) 지금 초점을 건 시점. 원위치로 돌아가면 비운다.
+
+        /// <summary>
+        /// (+10/7, A) 플레이 중 인스펙터에서 ViewPointFocus 값을 바꾸면 그 시점을 보고 있을 때 바로 다시 건다.
+        /// ViewPointFocus.OnValidate가 부른다. 플레이 중에 바꾼 값은 플레이를 끄면 되돌아간다.
+        /// </summary>
+        public void RefreshFocus(ViewPointFocus changed)
+        {
+            if (_focusViewPoint != null && changed != null && changed.transform == _focusViewPoint) FocusOn(_focusViewPoint);
+        }
+
         private void FocusOn(Transform viewPoint)
         {
             ViewPointFocus focus = viewPoint.GetComponent<ViewPointFocus>();
@@ -157,6 +168,7 @@ namespace Marea.Cooking
 
             //Debug.Log($"[MinigameCameraController] 목표 위치로 이동 시작: {targetViewPoint.position}");
             _moveRoutine = StartCoroutine(TransitionRoutine(targetViewPoint.position, targetViewPoint.rotation));
+            _focusViewPoint = targetViewPoint;   // (+10/7, A) 인스펙터에서 값을 바꾸면 다시 적용하려고 기억
             FocusOn(targetViewPoint);
         }
 
@@ -171,6 +183,7 @@ namespace Marea.Cooking
             }
 
             //Debug.Log("[MinigameCameraController] 원래 카메라 위치로 복귀 시작");
+            _focusViewPoint = null;   // (+10/7, A)
             ClearFocus();
             Marea.Core.EdgeBlurRendererFeature.Clear();   // (+10/7, A) 미니게임이 끝나면 가장자리 블러도 끈다
             _moveRoutine = StartCoroutine(ReturnRoutine(_originalPosition, _originalRotation));
