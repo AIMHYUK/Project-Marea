@@ -423,6 +423,7 @@ namespace Marea.Cooking
             {
                 go = Instantiate(prefab, sl.Anchor.position, sl.Anchor.rotation, transform);
                 go.transform.localScale *= slotScale;   // (+10/6)
+                go.transform.localScale = Vector3.Scale(go.transform.localScale, sl.Anchor.localScale);   // (+10/8) 자리별 크기 — 자리 Transform의 Scale
             }
             else
             {
