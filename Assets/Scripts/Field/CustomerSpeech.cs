@@ -1,3 +1,4 @@
+using Marea.Core;
 using Marea.Data;
 using Marea.Restaurant;
 using TMPro;
@@ -36,6 +37,13 @@ namespace Marea.Field
         [SerializeField] private string[] impatientLines = { "{0} 아직인가요…?", "배고파… {0}…" };
         [SerializeField] private string[] happyLines = { "와, 맛있겠다!", "잘 먹겠습니다!" };
         [SerializeField] private string[] leaveAngryLines = { "이건 내가 시킨 게 아닌데!" };
+
+        [Header("소리 (+10/8) — 기획 GST-02 착석 · GST-03 주문 말풍선")]
+        [SerializeField] private AudioClip sitClip;
+        [SerializeField] private AudioClip orderClip;
+        [Tooltip("앉는 소리 뒤 주문 소리까지(초).")]
+        [SerializeField, Min(0f)] private float orderDelay = 0.35f;
+        [SerializeField, Range(0f, 1f)] private float volume = 0.7f;
 
         private const float TailScale = 0.45f;   // 원본 그림(8배 해상도) → 캔버스 픽셀
 
@@ -80,7 +88,14 @@ namespace Marea.Field
 
         private void OnStateChanged(CustomerState from, CustomerState to)
         {
-            if (to == CustomerState.WaitingOrder) { _nagged = false; Say(orderLines); }
+            if (to == CustomerState.WaitingOrder)
+            {
+                _nagged = false;
+                Say(orderLines);
+                // 앉자마자 주문한다(상태가 하나) — 앉는 소리, 조금 뒤 말풍선 소리.
+                SoundManager.PlayAt(sitClip, transform.position, volume, 0.05f);
+                if (orderClip != null) StartCoroutine(PlayLater(orderClip, orderDelay));
+            }
             else if (to == CustomerState.Eating) Say(happyLines);
             else if (to == CustomerState.Leaving && from == CustomerState.WaitingOrder) Say(leaveAngryLines);
         }
@@ -94,6 +109,12 @@ namespace Marea.Field
             _text.text = string.Format(lines[Random.Range(0, lines.Length)], shown, Josa(name));
             _bubble.SetActive(true);
             _hideAt = Time.time + showSeconds;
+        }
+
+        private System.Collections.IEnumerator PlayLater(AudioClip clip, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            SoundManager.PlayAt(clip, transform.position, volume, 0.05f);
         }
 
         /// <summary>받침이 있으면 "이", 없으면 "가".</summary>

@@ -2735,7 +2735,7 @@ MonoBehaviour:
   panel: {fileID: 2944870293619014221}
   closeButton: {fileID: 6977146220171456764}
   openOnStart: 0
-  openClip: {fileID: 0}
+  openClip: {fileID: 8300000, guid: 105318fd83a772d489fc7ae68efaa816, type: 3}
   closeClip: {fileID: 0}
   openCloseVolume: 0.8
   goldLabel: {fileID: 8601586680153146112}
@@ -15519,7 +15519,7 @@ MonoBehaviour:
   panel: {fileID: 2739511651188059701}
   closeButton: {fileID: 8180002235614281763}
   openOnStart: 0
-  openClip: {fileID: 0}
+  openClip: {fileID: 8300000, guid: 105318fd83a772d489fc7ae68efaa816, type: 3}
   closeClip: {fileID: 0}
   openCloseVolume: 0.8
   cardParent: {fileID: 9185296305950133753}
@@ -15531,7 +15531,7 @@ MonoBehaviour:
   newMenuVfx: 2
   selectClip: {fileID: 0}
   deselectClip: {fileID: 0}
-  errorClip: {fileID: 0}
+  errorClip: {fileID: 8300000, guid: 14048772fd34842479eae93def6e6277, type: 3}
   openBusinessClip: {fileID: 8300000, guid: eb17cd0f614df7f47ab6fc20fdef6f81, type: 3}
   clipVolume: 0.8
 --- !u!1 &5205491508703315560
@@ -15586,7 +15586,7 @@ MonoBehaviour:
   panel: {fileID: 7809137386086570870}
   closeButton: {fileID: 353507942607833954}
   openOnStart: 0
-  openClip: {fileID: 0}
+  openClip: {fileID: 8300000, guid: 11016096e2a9ae5469b997a36681763a, type: 3}
   closeClip: {fileID: 0}
   openCloseVolume: 0.8
   servedLabel: {fileID: 2078088106196638190}
@@ -15599,8 +15599,11 @@ MonoBehaviour:
   finalLabel: {fileID: 5117571721017182374}
   confirmButton: {fileID: 2440272709489662843}
   countUpSeconds: 1.2
-  coinClip: {fileID: 0}
+  coinClip: {fileID: 8300000, guid: 316e72e3c46b7594c86e4c7d67deb6ec, type: 3}
   coinVolume: 0.8
+  tickClip: {fileID: 8300000, guid: 07d626a80188f46449f93060bc03f981, type: 3}
+  tickVolume: 0.5
+  tickInterval: 0.08
 --- !u!1 &5206062269706120863
 GameObject:
   m_ObjectHideFlags: 0
@@ -16461,7 +16464,7 @@ MonoBehaviour:
   highGradeVfx: 0
   steamVfx: 0
   vfxScale: 1
-  doneClip: {fileID: 0}
+  doneClip: {fileID: 8300000, guid: fb47a8017d6b7db42afadb4865dbbc01, type: 3}
   doneVolume: 0.8
 --- !u!1 &5425465298278257043
 GameObject:
@@ -19480,7 +19483,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Hud.UiClickSound
   clickClip: {fileID: 8300000, guid: a5783bb260a22f046b4360a7a0bc8ae0, type: 3}
-  rejectClip: {fileID: 8300000, guid: 7b5e3e1078e2f764897a2a91805a21ff, type: 3}
+  rejectClip: {fileID: 8300000, guid: 14048772fd34842479eae93def6e6277, type: 3}
 --- !u!1 &6353016645543064964
 GameObject:
   m_ObjectHideFlags: 0
@@ -19533,7 +19536,7 @@ MonoBehaviour:
   panel: {fileID: 8739695684237386487}
   closeButton: {fileID: 3866301127101688599}
   openOnStart: 0
-  openClip: {fileID: 0}
+  openClip: {fileID: 8300000, guid: 105318fd83a772d489fc7ae68efaa816, type: 3}
   closeClip: {fileID: 0}
   openCloseVolume: 0.8
   cellParent: {fileID: 2817874244248237674}
@@ -19545,7 +19548,7 @@ MonoBehaviour:
   tabExpedition: {fileID: 5307693395000408649}
   tabOnSprite: {fileID: 21300000, guid: 11b2755922ae43a4c85fc01a04c6a6c8, type: 3}
   tabOffSprite: {fileID: 21300000, guid: e42bc6869f826ee4e9b8d8b5d8fb176f, type: 3}
-  countTickClip: {fileID: 0}
+  countTickClip: {fileID: 8300000, guid: 07d626a80188f46449f93060bc03f981, type: 3}
   countTickVolume: 0.5
 --- !u!1 &6359573147120810821
 GameObject:

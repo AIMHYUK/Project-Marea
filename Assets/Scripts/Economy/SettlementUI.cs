@@ -38,6 +38,10 @@ namespace Marea.Economy
         [SerializeField, Min(0f)] private float countUpSeconds = 1.2f;
         [SerializeField] private AudioClip coinClip;
         [SerializeField, Range(0f, 1f)] private float coinVolume = 0.8f;
+        [Tooltip("(+10/8) 숫자가 올라가는 동안 반복하는 틱(기획 PAY-03). 비우면 조용히 올라간다.")]
+        [SerializeField] private AudioClip tickClip;
+        [SerializeField, Range(0f, 1f)] private float tickVolume = 0.5f;
+        [SerializeField, Min(0.02f)] private float tickInterval = 0.08f;
 
         private int _final;
         private Coroutine _count;
@@ -97,9 +101,11 @@ namespace Marea.Economy
 
         private IEnumerator CountUp()
         {
+            float nextTick = 0f;
             for (float t = 0f; t < countUpSeconds; t += Time.unscaledDeltaTime)
             {
                 Set(finalLabel, $"{Mathf.RoundToInt(_final * Mathf.SmoothStep(0f, 1f, t / countUpSeconds)):N0} G");
+                if (t >= nextTick) { SoundManager.Play(tickClip, tickVolume); nextTick = t + tickInterval; }
                 yield return null;
             }
             Set(finalLabel, $"{_final:N0} G");

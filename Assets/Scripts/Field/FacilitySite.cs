@@ -57,9 +57,12 @@ namespace Marea.Field
         [SerializeField] private VfxId doneVfx = VfxId.Sparkle;
         [Tooltip("효과 크기 배율. 시설 크기에 맞춰 자동으로 키운 값에 곱한다.")]
         [SerializeField, Min(0.1f)] private float vfxScale = 1f;
-        [Tooltip("(+10/6) 모습이 바뀌는 순간 \"뚝딱/쿵\" 설치음. 기획 UPG-02 sfx_upgrade_apply. 비우면 조용하다.")]
+        [Tooltip("(+10/6) \"뚝딱/쿵\" 설치음 — (+10/8) 카메라 연출이면 카메라가 출발할 때, 아니면 모습이 바뀌는 순간. 기획 UPG-02 sfx_upgrade_apply. 비우면 조용하다.")]
         [SerializeField] private AudioClip doneClip;
         [SerializeField, Range(0f, 1f)] private float doneVolume = 0.9f;
+        [Tooltip("(+10/8) 해금한 순간(확인 버튼) 한 번. 설치음(doneClip)은 그 뒤 연출에서 난다. 비우면 조용하다.")]
+        [SerializeField] private AudioClip unlockClip;
+        [SerializeField, Range(0f, 1f)] private float unlockVolume = 0.9f;
 
         // (+10/6, 이슈 117) 해금 · 새 칸이 생기는 레벨업 — 카메라가 와서 보고, 그다음 바뀐다.
         // 순서: 카메라 이동(시간 제한만 있음) → 도착 → lookHold → revealDelay → 이펙트 + 모양 변경 → afterReveal → 복귀.
@@ -164,6 +167,7 @@ namespace Marea.Field
         private void HandleUnlocked(FacilityKind changed)
         {
             if (changed != kind) return;
+            if (requiredLevel <= 0) SoundManager.Play(unlockClip, unlockVolume);   // (+10/8) 같은 시설의 확장 부지(requiredLevel)까지 겹쳐 울리지 않게
             if (!IsBuilt) { Refresh(); return; }   // (+10/6) 해금됐지만 아직 requiredLevel 전 — 폐허 그대로
             RevealBuilt();
         }
@@ -236,10 +240,11 @@ namespace Marea.Field
 
         private IEnumerator Reveal(Vector3 focusPoint)
         {
+            SoundManager.Play(doneClip, doneVolume);   // (+10/8) 뚝딱 소리는 카메라가 출발할 때부터 — 도착해 바뀌는 순간에 끝나게
             yield return FlyTo(focusPoint);
             yield return new WaitForSeconds(lookHold + revealDelay);
             Refresh();
-            PlayDone();
+            PlayDone(sound: false);
             yield return new WaitForSeconds(afterReveal);
 
             EndReveal();
@@ -255,11 +260,12 @@ namespace Marea.Field
             for (int i = 0; i <= last; i++)
             {
                 GameObject part = revealSteps[i];
+                SoundManager.Play(doneClip, doneVolume);   // (+10/8) 단계마다 카메라가 출발할 때부터
                 yield return FlyTo(part != null ? MeshBounds(part).center : transform.position);
                 yield return new WaitForSeconds(i == 0 ? lookHold + revealDelay : stepDelay);
 
                 ShowStep(i);
-                PlayDoneAt(part != null ? BoundsOf(part) : BoundsOf(builtVisual != null ? builtVisual : gameObject));
+                PlayDoneAt(part != null ? BoundsOf(part) : BoundsOf(builtVisual != null ? builtVisual : gameObject), sound: false);
                 yield return new WaitForSeconds(i < last ? stepGap : afterReveal);
             }
             EndReveal();
@@ -302,15 +308,16 @@ namespace Marea.Field
         /// (+10/6) 해금 · 업그레이드 완료 — 지금 보이는 모습 아래에서 먼지, 가운데서 빛.
         /// 「완성 시설이 잘 보이도록 제한」(기획) — 크기는 시설 폭에 맞추되 상한을 둔다.
         /// </summary>
-        private void PlayDone()
-            => PlayDoneAt(BoundsOf(builtVisual != null && builtVisual.activeInHierarchy ? builtVisual : gameObject));
+        /// <param name="sound">(+10/8) 카메라 연출은 출발할 때 이미 소리를 냈으니 false.</param>
+        private void PlayDone(bool sound = true)
+            => PlayDoneAt(BoundsOf(builtVisual != null && builtVisual.activeInHierarchy ? builtVisual : gameObject), sound);
 
-        private void PlayDoneAt(Bounds b)
+        private void PlayDoneAt(Bounds b, bool sound = true)
         {
             float size = Mathf.Clamp(Mathf.Max(b.extents.x, b.extents.z), 1f, 4f) * vfxScale;
             Vfx.Play(dustVfx, new Vector3(b.center.x, b.min.y, b.center.z), size);
             Vfx.Play(doneVfx, b.center + Vector3.up * b.extents.y * 0.5f, size);
-            SoundManager.Play(doneClip, doneVolume);   // (+10/6) 연출로 카메라가 와서 보고 있으니 화면 소리로
+            if (sound) SoundManager.Play(doneClip, doneVolume);   // (+10/6) 연출로 카메라가 와서 보고 있으니 화면 소리로
         }
 
         /// <summary>켜져 있는 렌더러를 다 감싼 상자. 꺼진 렌더러는 bounds가 비어 있어 못 쓴다.</summary>
