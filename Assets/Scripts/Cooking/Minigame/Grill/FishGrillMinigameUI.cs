@@ -28,6 +28,11 @@ namespace Marea.Cooking
             if (rootCanvas != null) rootCanvas.SetActive(false);
         }
 
+        public void SetGuide(string text)
+        {
+            if (txtGuide != null) txtGuide.text = text;
+        }
+
         public void ShowResult(HitGrade grade)
         {
             if (resultPanel != null) resultPanel.SetActive(true);

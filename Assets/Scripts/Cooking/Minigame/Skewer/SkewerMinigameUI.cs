@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace Marea.Cooking
 {
@@ -10,11 +11,12 @@ namespace Marea.Cooking
         [SerializeField] private GameObject gameRoot;
         [SerializeField] private TimingBarController timingBar;
         [SerializeField] private TextMeshProUGUI txtFeedback;
+        [SerializeField] private GameObject sauceProgressRoot;
+        [SerializeField] private Image sauceProgressFill;
+        [SerializeField] private TextMeshProUGUI sauceProgressText;
 
         private SkewerMinigameController _controller;
         private bool _isPlaying;
-        private Vector2 _lastBrushPosition;
-        private bool _wasBrushing;
 
         public void Setup(SkewerMinigameController controller)
         {
@@ -34,7 +36,6 @@ namespace Marea.Cooking
         public void Close()
         {
             _isPlaying = false;
-            _wasBrushing = false;
             if (timingBar != null) timingBar.StopGauge();
             if (gameRoot != null) gameRoot.SetActive(false);
             gameObject.SetActive(false);
@@ -51,22 +52,8 @@ namespace Marea.Cooking
 
             if (_controller != null && _controller.CurrentStepIndex == MinigameStepIndex.Step3)
             {
-                if (Mouse.current != null && Mouse.current.leftButton.isPressed)
-                {
-                    Vector2 position = Mouse.current.position.ReadValue();
-                    Vector2 start = _wasBrushing ? _lastBrushPosition : position;
-                    int samples = Mathf.Clamp(Mathf.CeilToInt(Vector2.Distance(start, position) / 6f), 1, 64);
-                    for (int i = 1; i <= samples; i++)
-                    {
-                        _controller.ProcessSauceDrag(Vector2.Lerp(start, position, (float)i / samples));
-                    }
-                    _lastBrushPosition = position;
-                    _wasBrushing = true;
-                }
-                else _wasBrushing = false;
                 return;
             }
-            _wasBrushing = false;
 
             bool isTriggered = (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
                                || (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame);
@@ -85,7 +72,13 @@ namespace Marea.Cooking
             if (_controller != null && _controller.CurrentStepIndex == MinigameStepIndex.Step2)
             {
                 grade = timingBar != null ? timingBar.EvaluateHit() : HitGrade.Miss;
-                ShowFeedback(grade);
+                if (txtFeedback != null)
+                    txtFeedback.text = grade switch
+                    {
+                        HitGrade.Perfect => "<color=yellow>PERFECT!</color>",
+                        HitGrade.Good => "<color=green>GOOD!</color>",
+                        _ => "<color=red>MISS! 다시 타이밍을 맞추세요.</color>"
+                    };
             }
 
             if (_controller != null)
@@ -97,6 +90,8 @@ namespace Marea.Cooking
         private void UpdateUIState()
         {
             if (_controller == null) return;
+            if (sauceProgressRoot != null)
+                sauceProgressRoot.SetActive(_controller.CurrentStepIndex == MinigameStepIndex.Step3);
 
             switch (_controller.CurrentStepIndex)
             {
@@ -122,7 +117,7 @@ namespace Marea.Cooking
                     }
                     if (txtFeedback != null)
                     {
-                        txtFeedback.text = "타이밍 영역에 맞춰 스페이스바 또는 클릭으로 꼬치를 꽂으세요!";
+                        txtFeedback.text = "타이밍에 맞춰 재료를 꼬치에 끼우세요.";
                     }
                     break;
 
@@ -135,8 +130,9 @@ namespace Marea.Cooking
                     }
                     if (txtFeedback != null)
                     {
-                        txtFeedback.text = "마우스를 누른 채 꼬치의 재료 위를 드래그해 소스를 바르세요!";
+                        txtFeedback.text = "브러시를 집어 재료 위에서 여러 번 왕복해 소스를 바르세요.";
                     }
+                    UpdateSauceProgress(0f, 0, _controller.TotalIngredients);
                     break;
             }
         }
@@ -146,22 +142,16 @@ namespace Marea.Cooking
             UpdateUIState();
         }
 
-        public void UpdateSauceProgress(int painted, int total)
+        public void UpdateSauceProgress(float progress, int painted, int total)
         {
-            if (txtFeedback == null || total <= 0) return;
-            txtFeedback.text = $"소스 바르기 {painted}/{total} — 꼬치의 재료를 모두 드래그하세요!";
-        }
-
-        private void ShowFeedback(HitGrade grade)
-        {
-            if (txtFeedback == null) return;
-
-            txtFeedback.text = grade switch
+            if (sauceProgressFill != null)
             {
-                HitGrade.Perfect => "<color=yellow>PERFECT!</color>",
-                HitGrade.Good => "<color=green>GOOD!</color>",
-                _ => "<color=red>MISS!</color>"
-            };
+                sauceProgressFill.fillAmount = Mathf.Clamp01(progress);
+                sauceProgressFill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(progress), 1f);
+            }
+            if (sauceProgressText != null)
+                sauceProgressText.text = $"소스 바르기 {Mathf.RoundToInt(progress * 100f)}%  ({painted}/{total})";
         }
+
     }
 }

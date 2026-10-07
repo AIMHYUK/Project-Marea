@@ -18,6 +18,8 @@ namespace Marea.Cooking
         [Header("3D 및 연출")]
         [SerializeField] private GameObject skewer3DModel;
         [SerializeField] private ParticleSystem smokeEffect;
+        [Header("꼬치 클릭 영역")]
+        [SerializeField, Min(0f)] private float skewerClickPadding = 48f;
 
         [Header("굽기 설정")]
         [SerializeField] private float cookSpeed = 0.25f;
@@ -29,6 +31,11 @@ namespace Marea.Cooking
         [Header("뒤집기 애니메이션 설정")]
         [SerializeField] private float flipDuration = 0.4f; // 뒤집히는 시간 (초)
         [SerializeField] private float liftHeight = 0.4f;   // 위로 들리는 높이
+
+        [Header("꼬치 뒤집기 효과음")]
+        [Tooltip("나중에 꼬치 뒤집기 효과음 파일을 연결하세요. 비워두면 재생하지 않습니다.")]
+        [SerializeField] private AudioClip flipAudioClip;
+        [SerializeField] private AudioSource flipAudioSource;
 
         // 앞면(시작) 회전 및 위치값
         private readonly Vector3 _frontPosition = new Vector3(1.7679f, 0.6888f, -2.922f);
@@ -170,20 +177,16 @@ namespace Marea.Cooking
             if (_mainCamera == null || skewer3DModel == null) return;
 
             Vector2 mousePos = Mouse.current.position.ReadValue();
-            Ray ray = _mainCamera.ScreenPointToRay(mousePos);
-
-            if (Physics.Raycast(ray, out RaycastHit hit, 100f))
-            {
-                if (hit.transform == skewer3DModel.transform || hit.transform.IsChildOf(skewer3DModel.transform))
-                {
-                    OnSkewerClicked();
-                }
-            }
+            if (CookingClickArea.Contains(_mainCamera, skewer3DModel, mousePos, skewerClickPadding, out _))
+                OnSkewerClicked();
         }
 
         private void OnSkewerClicked()
         {
             if (!_isCooking || _isCompleted || _isAnimating) return;
+
+            if (flipAudioClip != null && flipAudioSource != null)
+                flipAudioSource.PlayOneShot(flipAudioClip);
 
             if (!_isFlipped)
             {
