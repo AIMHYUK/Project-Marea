@@ -38,9 +38,7 @@ namespace Marea.Field
         [SerializeField, Min(0.5f)] private float arriveSeconds = 6f;
         [SerializeField, Min(0.5f)] private float departSeconds = 6f;
 
-        [Header("정박 중 흔들림")]
-        [SerializeField, Min(0f)] private float bobHeight = 0.08f;
-        [SerializeField, Min(0f)] private float bobSpeed = 1.2f;
+        // 출렁임 · 기울임은 배 모델 자식의 FloatBob이 맡는다 (+10/7).
 
         [Header("카메라")]
         [Tooltip("배를 볼 때 배 원점에서 올려 볼 높이.")]
@@ -100,9 +98,6 @@ namespace Marea.Field
 
         private void Update()
         {
-            if (_state == BoatState.Docked && bobHeight > 0f)
-                boat.position = dockPoint.position + Vector3.up * (Mathf.Sin(Time.time * bobSpeed) * bobHeight);
-
             if (!_inCutscene || _skip || Time.time < _skipAllowedAt) return;
             bool click = Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
             bool key = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
