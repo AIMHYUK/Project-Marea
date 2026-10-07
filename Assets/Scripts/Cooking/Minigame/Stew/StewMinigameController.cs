@@ -125,6 +125,19 @@ namespace Marea.Cooking
                 minigameUI = FindFirstObjectByType<StewMinigameUI>(FindObjectsInactive.Include);
         }
 
+        // (+10/7) 냄비는 스튜를 하는 동안만 보인다. 같은 화구를 생선구이 · 야채볶음 팬도 쓰고, 쉴 때는
+        // 식당 장식(CookingDeco)의 냄비가 같은 자리에 있다 — 둘 다 켜 두면 다른 미니게임 화면을 가린다.
+        protected override void Awake()
+        {
+            base.Awake();
+            SetPotVisible(false);
+        }
+
+        private void SetPotVisible(bool visible)
+        {
+            if (stewPot != null) stewPot.gameObject.SetActive(visible);
+        }
+
         public void StartMinigame(MenuData menu, Action<CookingResult> onComplete)
         {
             EnsureDependencies();
@@ -144,6 +157,7 @@ namespace Marea.Cooking
             _onCompleteCallback = onComplete;
             _stirGrade = HitGrade.Miss;
 
+            SetPotVisible(true);   // (+10/7)
             if (stewPot != null) stewPot.ResetPosition();
             StartAmbience();
 
@@ -399,6 +413,7 @@ namespace Marea.Cooking
 
             // 카메라 원복 · 클릭 레이 끄기는 BaseCookingMinigame.FinishMinigame이 이미 했다.
             if (stewPot != null) stewPot.ResetPosition();
+            SetPotVisible(false);   // (+10/7)
 
             if (result.isSuccess) DispatchCookedFood(result);
 
