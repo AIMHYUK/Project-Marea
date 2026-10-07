@@ -54,7 +54,17 @@ namespace Marea.Cooking
         [SerializeField, Range(0f, 1f)] private float perfectScore = 0.75f;
         [Tooltip("놓쳤을 때. 기획 「잘못된 입력·입력 놓침」은 파티클 없음(—)이라 기본은 비운다.")]
         [SerializeField] private VfxId missVfx = VfxId.None;
+        [Tooltip("(+10/7) missVfx 색 — 조개가 탈 땐 어둡게(검은 연기). 흰색이면 원래 색.")]
+        [SerializeField] private Color missTint = Color.white;
+        [SerializeField, Min(0.1f)] private float missVfxScale = 1f;
         [SerializeField, Min(0.1f)] private float vfxScale = 1f;
+        [Tooltip("(+10/7) 맞혔을 때 그 자리에서 터지는 것 — 스튜 거품이 「터지는」 국물 방울. 비우면 링 · 반짝임만.")]
+        [SerializeField] private VfxId burstVfx = VfxId.None;
+        [SerializeField] private Color burstTint = Color.white;
+        [SerializeField, Min(0.1f)] private float burstVfxScale = 1f;
+        [Tooltip("(+10/7) 고정 슬롯 모드에서 열리는 순간 한 번 — 조개가 입 벌릴 때 뿜는 김. 「지금 누르라」는 신호.")]
+        [SerializeField] private VfxId openVfx = VfxId.None;
+        [SerializeField, Min(0.1f)] private float openVfxScale = 1f;
 
         [Header("소리 (+10/6, 이슈 117) — 같은 부품을 스튜 · 조개가 같이 쓴다, 칸은 인스턴스마다")]
         [Tooltip("나타날 때. 스튜 = sfx_foam_spawn(거품), 조개 = sfx_shell_open(입 벌림).")]
@@ -216,7 +226,7 @@ namespace Marea.Cooking
 
                 if (p.Age >= p.Life)
                 {
-                    Vfx.Play(missVfx, p.T.position, vfxScale);   // (+10/6)
+                    Vfx.Play(missVfx, p.T.position, missVfxScale, missTint);   // (+10/6, +10/7 색 · 크기)
                     SoundManager.Play(missClip, judgeVolume);     // (+10/6)
                     Destroy(p.T.gameObject);   // 놓쳤다
                     _alive.RemoveAt(i);
@@ -345,13 +355,14 @@ namespace Marea.Cooking
                         opener.Open(opener.ReplaceWhenDone ? () => ReplaceWhenOpened(opening) : null);
                     }
                     else ShowSlot(sl, Pick(slotOpenPrefabs, sl.Index, popupPrefab), openColor, true);
+                    if (sl.Anchor != null) Vfx.Play(openVfx, sl.Anchor.position + Vector3.up * 0.03f, openVfxScale);   // (+10/7)
                     SoundManager.Play(appearClip, appearVolume, 0.1f);   // (+10/6)
                 }
                 else if (sl.State == SlotState.Open && _elapsed - sl.OpenedAt > reactionWindow)
                 {
                     sl.State = SlotState.Done;   // 탔다
                     sl.Score = 0f;
-                    if (sl.Anchor != null) Vfx.Play(missVfx, sl.Anchor.position, vfxScale);   // (+10/6)
+                    if (sl.Anchor != null) Vfx.Play(missVfx, sl.Anchor.position, missVfxScale, missTint);   // (+10/6, +10/7 색 · 크기)
                     SoundManager.Play(missClip, judgeVolume);                                  // (+10/6)
                     GameObject burnt = Pick(slotBurntPrefabs, sl.Index, null);
                     if (burnt != null) ShowSlot(sl, burnt, burntColor, false);
@@ -450,6 +461,7 @@ namespace Marea.Cooking
         private void PlayHit(Vector3 at, float score)
         {
             Vfx.Play(hitRingVfx, at, vfxScale);
+            Vfx.Play(burstVfx, at, burstVfxScale, burstTint);   // (+10/7)
             if (score >= perfectScore) Vfx.Play(perfectVfx, at + Vector3.up * 0.05f, vfxScale);
             SoundManager.Play(hitClip, hitVolume, 0.08f);
             SoundManager.Play(score >= perfectScore ? perfectClip : successClip, judgeVolume);

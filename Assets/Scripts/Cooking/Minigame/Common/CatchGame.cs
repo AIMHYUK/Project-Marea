@@ -81,6 +81,15 @@ namespace Marea.Cooking
         [Tooltip("(+10/6) 받은 재료가 여기(국물 면 — SM_Soup_Pot_Inside)에 닿을 때 튀고 사라진다. 비우면 예전처럼 입구에서 바로.")]
         [SerializeField] private Renderer splashSurface;
 
+        [Header("놓침 (+10/7) — 기획 VFX_13 「실패 · 떨어뜨림」")]
+        [Tooltip("놓친 재료가 바닥(입구에서 missDrop 아래)에 닿을 때 터지는 것.")]
+        [SerializeField] private VfxId missVfx = VfxId.Fail;
+        [SerializeField, Min(0.1f)] private float missVfxScale = 0.5f;
+        [Tooltip("바닥(조리대 윗면)이 입구보다 이만큼 아래(m). 조리대는 프리팹 밖이라 높이로 둔다. 0이면 입구 높이를 지나는 순간 터진다.")]
+        [SerializeField, Min(0f)] private float missDrop;
+        [SerializeField] private AudioClip missClip;
+        [SerializeField, Range(0f, 1f)] private float missVolume = 0.7f;
+
         [Header("소리 (+10/6, 이슈 117) — 기획 sfx_ingredient_catch")]
         [Tooltip("재료가 그릇에 들어갈 때.")]
         [SerializeField] private AudioClip catchClip;
@@ -208,8 +217,9 @@ namespace Marea.Cooking
                 }
                 if (f.Resolved)
                 {
-                    // 놓친 재료는 입구 아래로 조금 더 떨어진 뒤 지운다.
-                    if (f.T.position.y < rimY - 2f) Destroy(f.T.gameObject);
+                    // (+10/7) 놓친 재료는 바닥에 닿으면 터지고 사라진다. 바닥이 없으면 입구에서 이미 터졌고, 조금 더 떨어진 뒤 지운다.
+                    if (missDrop > 0f && f.T.position.y <= rimY - missDrop) Miss(f, rimY - missDrop);
+                    else if (f.T.position.y < rimY - Mathf.Max(2f, missDrop + 0.5f)) Destroy(f.T.gameObject);
                     continue;
                 }
 
@@ -226,6 +236,7 @@ namespace Marea.Cooking
                         if (splashSurface != null) f.Sinking = true;
                         else Splash(f);
                     }
+                    else if (missDrop <= 0f) PlayMiss(f.T.position);   // (+10/7) 바닥 높이가 없으면 놓친 순간에
                 }
             }
             _falling.RemoveAll(f => f.T == null);
@@ -370,6 +381,19 @@ namespace Marea.Cooking
             SoundManager.Play(catchClip, catchVolume, 0.08f);             // (+10/6)
             Destroy(f.T.gameObject);
             f.Sinking = false;
+        }
+
+        /// <summary>(+10/7) 놓친 재료가 바닥에 닿았다 — 터지고 사라진다.</summary>
+        private void Miss(Falling f, float floorY)
+        {
+            PlayMiss(new Vector3(f.T.position.x, floorY, f.T.position.z));
+            Destroy(f.T.gameObject);
+        }
+
+        private void PlayMiss(Vector3 at)
+        {
+            Vfx.Play(missVfx, at, missVfxScale);
+            SoundManager.Play(missClip, missVolume, 0.08f);
         }
 
         private void Finish()

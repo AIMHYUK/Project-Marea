@@ -200,7 +200,7 @@ namespace Marea.Cooking
         {
             if (minigameUI != null)
             {
-                minigameUI.SetGaugeVisible(false);
+                minigameUI.SetGaugeVisible(true);   // (+10/7) 화면 옆 세로 게이지 — 안이면 차고 밖이면 준다
                 minigameUI.SetGuide("국자를 초록 원 안에 두세요!", "원을 따라 저으세요");
             }
 
@@ -219,14 +219,15 @@ namespace Marea.Cooking
             if (minigameUI != null)
             {
                 minigameUI.UpdateTimer(stirZone.TimeLeft01);
-                minigameUI.SetGuide(stirZone.IsInside ? "좋아요! 계속 따라가세요" : "국자를 초록 원 안에 두세요!",
-                                    $"유지 {stirZone.Score * 100f:F0}%");
+                minigameUI.UpdateStirGauge(stirZone.Gauge01, stirZone.IsInside);   // (+10/7)
+                minigameUI.SetGuide(stirZone.IsInside ? "좋아요! 계속 따라가세요" : "원을 놓치면 게이지가 줄어요!",
+                                    $"평균 {stirZone.Score * 100f:F0}%");
             }
 
             if (stirZone.IsFinished) FinishStir(stirZone.Score);
         }
 
-        /// <summary>2단계 끝 — 체류 비율로 판정하고 배율을 Step2Score로 넘긴다.</summary>
+        /// <summary>2단계 끝 — 게이지 평균(+10/7, 예전엔 체류 비율)으로 판정하고 배율을 Step2Score로 넘긴다.</summary>
         private void FinishStir(float ratio)
         {
             ratio = Mathf.Clamp01(ratio);

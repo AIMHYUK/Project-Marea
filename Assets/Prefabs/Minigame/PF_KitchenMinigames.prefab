@@ -953,8 +953,15 @@ MonoBehaviour:
   hitRingVfx: 8
   perfectVfx: 12
   perfectScore: 0.75
-  missVfx: 0
+  missVfx: 205
+  missTint: {r: 0.22, g: 0.2, b: 0.18, a: 1}
+  missVfxScale: 0.6
   vfxScale: 1
+  burstVfx: 0
+  burstTint: {r: 1, g: 1, b: 1, a: 1}
+  burstVfxScale: 1
+  openVfx: 203
+  openVfxScale: 0.4
   appearClip: {fileID: 8300000, guid: 25c2ed3a0280ed840a08eb515221c72d, type: 3}
   appearVolume: 0.5
   hitClip: {fileID: 8300000, guid: a868b25c999da2949b464c4bf208095b, type: 3}
@@ -1232,6 +1239,9 @@ MonoBehaviour:
   insideColor: {r: 0.35, g: 1, b: 0.4, a: 0.9}
   outsideColor: {r: 1, g: 0.35, b: 0.3, a: 0.9}
   duration: 8
+  gaugeStart: 0.5
+  gaugeFill: 0.35
+  gaugeDrain: 0.45
   soupFollow: 0.35
   soupLag: 0.5
   minStirRadius: 0.05
@@ -4796,8 +4806,15 @@ MonoBehaviour:
   hitRingVfx: 0
   perfectVfx: 6
   perfectScore: 0.75
-  missVfx: 0
+  missVfx: 6
+  missTint: {r: 1, g: 1, b: 1, a: 1}
+  missVfxScale: 0.6
   vfxScale: 1
+  burstVfx: 4
+  burstTint: {r: 0.85, g: 0.7, b: 0.5, a: 1}
+  burstVfxScale: 0.7
+  openVfx: 0
+  openVfxScale: 1
   appearClip: {fileID: 8300000, guid: 211b9b1f855cea84f8e3906731fdac77, type: 3}
   appearVolume: 0.5
   hitClip: {fileID: 8300000, guid: 28fdbd3896ddc4e4b9a1cf72fc76b83c, type: 3}
@@ -6273,6 +6290,14 @@ MonoBehaviour:
   sauceSplashVfx: 4
   sauceTint: {r: 0.75, g: 0.12, b: 0.05, a: 1}
   splashInterval: 0.2
+  coatedSplashScale: 1.1
+  coatedSparkleVfx: 12
+  coatedSparkleScale: 0.7
+  popFrom: 0.7
+  popTime: 0.2
+  popOvershoot: 1.15
+  coatedClip: {fileID: 0}
+  coatedVolume: 0.7
   squeezeLoop: {fileID: 8300000, guid: 17757c8d183e60a4296dd76ecb7003d0, type: 3}
   squeezeVolume: 0.7
   timeLimit: 8
@@ -6475,6 +6500,11 @@ MonoBehaviour:
   catchTint: {r: 0.85, g: 0.7, b: 0.5, a: 1}
   catchVfxScale: 1
   splashSurface: {fileID: 7222736455636477123}
+  missVfx: 13
+  missVfxScale: 0.5
+  missDrop: 1.2
+  missClip: {fileID: 0}
+  missVolume: 0.7
   catchClip: {fileID: 8300000, guid: 17d57cd207b1b634c90bd43856d882d1, type: 3}
   catchVolume: 0.8
   timeLimit: 10

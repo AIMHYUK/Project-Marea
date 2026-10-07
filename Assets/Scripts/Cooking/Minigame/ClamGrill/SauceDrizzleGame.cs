@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Marea.Core;
 using Marea.Data;
@@ -73,6 +74,19 @@ namespace Marea.Cooking
         [SerializeField] private VfxId sauceSplashVfx = VfxId.Splash;
         [SerializeField] private Color sauceTint = new Color(0.75f, 0.12f, 0.05f, 1f);
         [SerializeField, Min(0.05f)] private float splashInterval = 0.2f;
+
+        [Header("다 묻었을 때 (+10/7) — 닦기 단계 크기 팝과 같은 모양")]
+        [Tooltip("다 묻은 순간 조개 자리에서 크게 한 번 튀는 소스.")]
+        [SerializeField, Min(0.1f)] private float coatedSplashScale = 1.1f;
+        [Tooltip("다 묻은 순간 더하는 반짝임. None이면 안 띄운다.")]
+        [SerializeField] private VfxId coatedSparkleVfx = VfxId.HitSpark;
+        [SerializeField, Min(0.1f)] private float coatedSparkleScale = 0.7f;
+        [Tooltip("새 모습이 튀어나오기 시작하는 크기(원래의 비율). 1이면 팝 없음.")]
+        [SerializeField, Range(0.1f, 1f)] private float popFrom = 0.7f;
+        [SerializeField, Min(0.01f)] private float popTime = 0.2f;
+        [SerializeField, Min(1f)] private float popOvershoot = 1.15f;
+        [SerializeField] private AudioClip coatedClip;
+        [SerializeField, Range(0f, 1f)] private float coatedVolume = 0.7f;
 
         private float _nextSplash;
 
@@ -283,6 +297,11 @@ namespace Marea.Cooking
                 {
                     foreach (Renderer r in tg.Visual.GetComponentsInChildren<Renderer>()) r.material.color = coatedColor;
                 }
+                // (+10/7) 다 묻은 순간 — 크게 튀고 반짝, 새 모습은 작게 시작해 튀어나온다.
+                Vfx.Play(sauceSplashVfx, tg.Anchor.position, coatedSplashScale, sauceTint);
+                Vfx.Play(coatedSparkleVfx, tg.Anchor.position + Vector3.up * 0.05f, coatedSparkleScale);
+                SoundManager.Play(coatedClip, coatedVolume, 0.08f);
+                if (tg.Visual != null && popFrom < 1f) StartCoroutine(Pop(tg.Visual.transform));
                 OnProgress?.Invoke(CoatedCount, TotalCount);
             }
         }
@@ -326,6 +345,23 @@ namespace Marea.Cooking
                 bottle.position = RestPosition(_bottleHome);
                 bottle.localRotation = _restRot;
             }
+        }
+
+        /// <summary>(+10/7) popFrom → popOvershoot(앞 60%) → 1(뒤 40%). 패널이 꺼지면 모습째 지워지니 중간에 멈춰도 된다.</summary>
+        private IEnumerator Pop(Transform shown)
+        {
+            Vector3 full = shown.localScale;
+            for (float t = 0f; t < popTime; t += Time.deltaTime)
+            {
+                if (shown == null) yield break;
+                float u = t / popTime;
+                float k = u < 0.6f
+                    ? Mathf.Lerp(popFrom, popOvershoot, Mathf.SmoothStep(0f, 1f, u / 0.6f))
+                    : Mathf.Lerp(popOvershoot, 1f, Mathf.SmoothStep(0f, 1f, (u - 0.6f) / 0.4f));
+                shown.localScale = full * k;
+                yield return null;
+            }
+            if (shown != null) shown.localScale = full;
         }
 
         private void Cleanup()

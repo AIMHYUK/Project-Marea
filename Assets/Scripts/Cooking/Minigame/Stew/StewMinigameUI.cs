@@ -19,6 +19,10 @@ namespace Marea.Cooking
         [SerializeField] private RectTransform ladleIcon;
         [SerializeField] private RectTransform safeZoneRect;
         [SerializeField] private Image safeZoneHighlight;
+        [Tooltip("(+10/7) 젓기 게이지 채움 — gaugeFillBar 안, 아래 붙이기. 높이를 게이지만큼 늘린다.")]
+        [SerializeField] private Image gaugeFill;
+        [SerializeField] private Color gaugeFillColor = new Color(0.35f, 1f, 0.4f, 0.9f);
+        [SerializeField] private Color gaugeDrainColor = new Color(1f, 0.35f, 0.3f, 0.9f);
 
         [Header("진행도 타이머")]
         [SerializeField] private Slider timerSlider;
@@ -99,8 +103,24 @@ namespace Marea.Cooking
         {
             if (gaugeFillBar != null) gaugeFillBar.gameObject.SetActive(visible);
             if (ladleIcon != null) ladleIcon.gameObject.SetActive(visible);
-            if (safeZoneRect != null) safeZoneRect.gameObject.SetActive(visible);
-            if (arrowIcon != null) arrowIcon.gameObject.SetActive(visible);
+            if (safeZoneRect != null) safeZoneRect.gameObject.SetActive(visible && gaugeFill == null);   // (+10/7) 채움 게이지에선 구간 표시가 필요 없다
+            if (arrowIcon != null) arrowIcon.gameObject.SetActive(visible && gaugeFill == null);   // (+10/7) 방향 화살표는 예전 상하좌우 젓기 것
+            if (gaugeFill != null) gaugeFill.gameObject.SetActive(visible);
+        }
+
+        /// <summary>
+        /// (+10/7) 젓기 게이지 — 채움 높이 = gauge01, 원 안이면 초록 · 밖이면 빨강. 국자 아이콘은 채움 꼭대기에 탄다.
+        /// </summary>
+        public void UpdateStirGauge(float gauge01, bool inside)
+        {
+            gauge01 = Mathf.Clamp01(gauge01);
+            if (gaugeFill != null)
+            {
+                RectTransform rt = gaugeFill.rectTransform;
+                rt.anchorMax = new Vector2(rt.anchorMax.x, gauge01);
+                gaugeFill.color = inside ? gaugeFillColor : gaugeDrainColor;
+            }
+            UpdateGauge(gauge01);
         }
 
         /// <summary>안내 문구를 직접 쓴다. 1 · 2 · 3단계 모두 이걸로 쓴다. (+9/30, +10/2)</summary>
