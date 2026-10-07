@@ -382,6 +382,8 @@ MonoBehaviour:
     - {fileID: 7646254719706748327, guid: 786ab0f1c35bf41438523dafd9490865, type: 3}
     - {fileID: 8305912301389287499, guid: a44b43b3b66ad2f4995ad241680e1995, type: 3}
     - {fileID: 901751597827677893, guid: 690ec5e7ca73c544eaacb52d6926864f, type: 3}
+  clamScale: 1
+  hideWhileScrubbing: []
   stagePrefabs: []
   placeholderColors:
   - {r: 0.35, g: 0.25, b: 0.15, a: 1}
@@ -389,9 +391,28 @@ MonoBehaviour:
   - {r: 0.78, g: 0.7, b: 0.58, a: 1}
   - {r: 0.96, g: 0.93, b: 0.86, a: 1}
   placeholderSize: {x: 0.22, y: 0.07, z: 0.18}
-  dragPerStage: 300
+  scrubPerStage: 1.5
   timeLimit: 10
   hitPadding: 1.3
+  scrubSplashVfx: 4
+  waterTint: {r: 0.8, g: 0.92, b: 1, a: 1}
+  splashInterval: 0.25
+  stageSplashScale: 1.4
+  stageCoverVfx: 205
+  stageCoverScale: 0.55
+  stageCoverTint: {r: 1, g: 1, b: 1, a: 0.95}
+  coverSwapDelay: 0.1
+  squashScale: 0.6
+  popTime: 0.18
+  popOvershoot: 1.12
+  washLoop: {fileID: 0}
+  washVolume: 0.6
+  washHold: 0.15
+  brush: {fileID: 0}
+  brushContact: 0.04
+  brushLift: 0.08
+  brushFollow: 18
+  brushTilt: 15
 --- !u!1 &232715247164371132
 GameObject:
   m_ObjectHideFlags: 0
@@ -673,7 +694,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 8300000, guid: f2836ae0528f6624d977de3711a8f255, type: 3}
+  m_Resource: {fileID: 8300000, guid: 5a62e2af96aecfd4a9cc6e120ec952e8, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 0.8
   m_Pitch: 1
@@ -2408,6 +2429,11 @@ MonoBehaviour:
   blurRadius: 0.65
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &1212612752453604226
 GameObject:
   m_ObjectHideFlags: 0
@@ -2583,11 +2609,32 @@ MonoBehaviour:
   spawnInterval: 0.6
   lifetimeRange: {x: 1.2, y: 2}
   maxAlive: 4
+  hitRingVfx: 8
+  perfectVfx: 12
+  perfectScore: 0.75
+  missVfx: 0
+  missTint: {r: 1, g: 1, b: 1, a: 1}
+  missVfxScale: 1
+  vfxScale: 1
+  burstVfx: 0
+  burstTint: {r: 1, g: 1, b: 1, a: 1}
+  burstVfxScale: 1
+  openVfx: 0
+  openVfxScale: 1
+  appearClip: {fileID: 0}
+  appearVolume: 0.5
+  hitClip: {fileID: 0}
+  hitVolume: 0.8
+  successClip: {fileID: 0}
+  perfectClip: {fileID: 0}
+  missClip: {fileID: 0}
+  judgeVolume: 0.7
   timeLimit: 12
   slots:
   - {fileID: 5986020527754011102}
   - {fileID: 536737919044982506}
   - {fileID: 7154538304690804296}
+  slotScale: 1
   idlePrefab: {fileID: 0}
   slotIdlePrefabs:
   - {fileID: 6982058212577153818, guid: 6c3175c72c96f6c42be0abffb4d4a542, type: 3}
@@ -13671,6 +13718,11 @@ MonoBehaviour:
   blurRadius: 0.75
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &2054617490187640447
 GameObject:
   m_ObjectHideFlags: 0
@@ -13733,21 +13785,27 @@ MonoBehaviour:
   disableDuringMinigame: []
   hideCookingDeco: 0
   stewPot: {fileID: 3101196614948759483}
-  soupRotationSpeed: 80
-  gameDuration: 8
-  dragPower: 2.5
-  gaugeDecaySpeed: 0.22
-  dragSensitivity: 8
+  stirZone: {fileID: 0}
   safeZoneMin: 0.35
   safeZoneMax: 0.75
-  maxDirectionChanges: 2
-  requiredSafeTimeForChange: 1.8
   perfectRatio: 0.55
   goodRatio: 0.35
   badRatio: 0.15
   minigameUI: {fileID: 0}
   catchGame: {fileID: 9090313193023762016}
+  catchVisuals: []
+  waterInStep1: 1
   popupTouch: {fileID: 5922315153870899371}
+  burnerVfx: 1
+  steamVfx: 3
+  burnerScale: 1
+  steamScale: 1
+  burnerAnchor: {fileID: 0}
+  extraBurnerAnchors: []
+  minigameLights: []
+  steamAnchor: {fileID: 0}
+  boilLoop: {fileID: 0}
+  boilVolume: 0.5
 --- !u!1 &2083180022438807346
 GameObject:
   m_ObjectHideFlags: 0
@@ -15185,6 +15243,11 @@ MonoBehaviour:
   blurRadius: 0.7
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &2840107305704274224
 GameObject:
   m_ObjectHideFlags: 0
@@ -15271,6 +15334,11 @@ MonoBehaviour:
   blurRadius: 0.85
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &3048081773017939996
 GameObject:
   m_ObjectHideFlags: 0
@@ -15535,6 +15603,11 @@ MonoBehaviour:
   blurRadius: 0.75
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &3113726218058260355
 GameObject:
   m_ObjectHideFlags: 0
@@ -26767,6 +26840,11 @@ MonoBehaviour:
   blurRadius: 0.65
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &4210474267041683404
 GameObject:
   m_ObjectHideFlags: 0
@@ -28576,6 +28654,11 @@ MonoBehaviour:
   blurRadius: 0.7
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &4937312003797456419
 GameObject:
   m_ObjectHideFlags: 0
@@ -28690,6 +28773,11 @@ MonoBehaviour:
   blurRadius: 0.7
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &4995182867489282979
 GameObject:
   m_ObjectHideFlags: 0
@@ -39704,6 +39792,11 @@ MonoBehaviour:
   blurRadius: 0.75
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &5558721463632629438
 GameObject:
   m_ObjectHideFlags: 0
@@ -40054,6 +40147,16 @@ MonoBehaviour:
   sauceGame: {fileID: 7404134618522493232}
   guideLabel: {fileID: 925087572540154128}
   guideRoot: {fileID: 8956331849590607386}
+  grillFlameVfx: 1
+  grillSteamVfx: 3
+  oilSplashVfx: 4
+  oilTint: {r: 1, g: 0.85, b: 0.45, a: 1}
+  flameDrop: 0.15
+  flameAnchor: {fileID: 0}
+  steamAnchor: {fileID: 0}
+  oilInterval: {x: 0.5, y: 1.2}
+  grillLoop: {fileID: 0}
+  grillVolume: 0.5
   resultDelay: 1.2
 --- !u!1 &5673077831513154239
 GameObject:
@@ -41116,6 +41219,11 @@ MonoBehaviour:
   blurRadius: 0.7
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &6343056829402394011
 GameObject:
   m_ObjectHideFlags: 0
@@ -41298,6 +41406,11 @@ MonoBehaviour:
   blurRadius: 0.7
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &6446955047351913036
 GameObject:
   m_ObjectHideFlags: 0
@@ -41617,6 +41730,11 @@ MonoBehaviour:
   blurRadius: 0.65
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &6592406953396174835
 GameObject:
   m_ObjectHideFlags: 0
@@ -42080,8 +42198,29 @@ MonoBehaviour:
   spawnInterval: 0.6
   lifetimeRange: {x: 1.2, y: 2}
   maxAlive: 4
+  hitRingVfx: 8
+  perfectVfx: 12
+  perfectScore: 0.75
+  missVfx: 0
+  missTint: {r: 1, g: 1, b: 1, a: 1}
+  missVfxScale: 1
+  vfxScale: 1
+  burstVfx: 0
+  burstTint: {r: 1, g: 1, b: 1, a: 1}
+  burstVfxScale: 1
+  openVfx: 0
+  openVfxScale: 1
+  appearClip: {fileID: 0}
+  appearVolume: 0.5
+  hitClip: {fileID: 0}
+  hitVolume: 0.8
+  successClip: {fileID: 0}
+  perfectClip: {fileID: 0}
+  missClip: {fileID: 0}
+  judgeVolume: 0.7
   timeLimit: 10
   slots: []
+  slotScale: 1
   idlePrefab: {fileID: 0}
   slotIdlePrefabs: []
   slotOpenPrefabs: []
@@ -44468,6 +44607,11 @@ MonoBehaviour:
   blurRadius: 0.8
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &8035083523920933889
 GameObject:
   m_ObjectHideFlags: 0
@@ -49846,6 +49990,11 @@ MonoBehaviour:
   blurRadius: 0.75
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &8185493745041956805
 GameObject:
   m_ObjectHideFlags: 0
@@ -50764,6 +50913,11 @@ MonoBehaviour:
   blurRadius: 0.85
   highQualitySampling: 1
   focalLength: 50
+  edgeBlur: 0
+  edgeInner: 0.35
+  edgeOuter: 0.85
+  edgeRadius: 24
+  edgeDarken: 0.25
 --- !u!1 &8536295668803951029
 GameObject:
   m_ObjectHideFlags: 0
@@ -56129,6 +56283,7 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 4985406297903314930, guid: 4b43a2a69391ddf47813541e3329e989, type: 3}
   targetRadius: 0.1
+  clamScale: 1
   coatSeconds: 0.5
   bottle: {fileID: 2978631473361591467}
   nozzle: {fileID: 5031948535645491479}
@@ -56141,6 +56296,25 @@ MonoBehaviour:
   stream: {fileID: 8193659378500251894}
   streamBend: 0.08
   streamSegments: 16
+  sauceSplashVfx: 4
+  sauceTint: {r: 0.75, g: 0.12, b: 0.05, a: 1}
+  splashInterval: 0.2
+  coatedSplashScale: 1.1
+  coatedSparkleVfx: 12
+  coatedSparkleScale: 0.7
+  popFrom: 0.7
+  popTime: 0.2
+  popOvershoot: 1.15
+  coatedClip: {fileID: 0}
+  coatedVolume: 0.7
+  stainDecal: {fileID: 0}
+  stainRadius: 0.3
+  stainSpacing: 0.03
+  stainSize: {x: 0.06, y: 0.1}
+  stainDepth: 0.08
+  stainMax: 60
+  squeezeLoop: {fileID: 0}
+  squeezeVolume: 0.7
   timeLimit: 8
   coatedColor: {r: 0.85, g: 0.35, b: 0.1, a: 1}
   plainColor: {r: 0.96, g: 0.93, b: 0.86, a: 1}
@@ -56391,6 +56565,29 @@ MonoBehaviour:
   spawnInterval: 0.9
   fallSpeedRange: {x: 1.2, y: 3.2}
   fallbackSize: 0.3
+  normalizeSize: 0
+  dropCount: 0
+  straightWeight: 1
+  zigzagWeight: 0
+  feintWeight: 0
+  dashWeight: 0
+  zigzagAmplitude: {x: 0.3, y: 0.7}
+  zigzagFrequency: {x: 1.2, y: 2.4}
+  feintHeight: {x: 0.5, y: 1}
+  feintBounce: 3.5
+  dashDistance: {x: 0.6, y: 1.2}
+  spinSpeed: {x: 90, y: 90}
+  catchVfx: 4
+  catchTint: {r: 0.85, g: 0.7, b: 0.5, a: 1}
+  catchVfxScale: 1
+  splashSurface: {fileID: 0}
+  missVfx: 13
+  missVfxScale: 0.5
+  missDrop: 0
+  missClip: {fileID: 0}
+  missVolume: 0.7
+  catchClip: {fileID: 0}
+  catchVolume: 0.8
   timeLimit: 10
 --- !u!1 &8974396319822613578
 GameObject:

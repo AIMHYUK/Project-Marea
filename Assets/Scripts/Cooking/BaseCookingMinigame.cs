@@ -258,7 +258,9 @@ namespace Marea.Cooking
         }
 
         /// <summary>(+10/7, A) 1~3단계 중이다(단계 전환 대기 포함).</summary>
-        public bool IsRunning => CurrentStepIndex >= MinigameStepIndex.Step1 && CurrentStepIndex <= MinigameStepIndex.Step3;
+        // (+10/8, A) 전환 대기 중엔 CurrentStepIndex가 NotStarted라 빠져 있었다 — 그 사이 BGM이 끊기고 Abort도 안 먹었다.
+        public bool IsRunning => (CurrentStepIndex >= MinigameStepIndex.Step1 && CurrentStepIndex <= MinigameStepIndex.Step3)
+                                 || _stepTransitionRoutine != null;
 
         /// <summary>
         /// (+10/7, A) 하던 요리를 버린다 — 영업이 끝나 정산이 뜨면 부른다(CookingMenuUI.AbortCooking).

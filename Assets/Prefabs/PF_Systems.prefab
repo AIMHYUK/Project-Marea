@@ -341,6 +341,7 @@ GameObject:
   - component: {fileID: 415340375073279383}
   - component: {fileID: 2540703285820803666}
   - component: {fileID: 5938375209147317045}
+  - component: {fileID: 4310536159891647404}
   m_Layer: 0
   m_Name: SoundManager
   m_TagString: Untagged
@@ -400,3 +401,17 @@ MonoBehaviour:
   - {fileID: 8300000, guid: ffab9191e9bd8a5479b4f0ca752223af, type: 3}
   - {fileID: 8300000, guid: fa155b4b8afa1cc4bad7ec16005833ea, type: 3}
   ambienceVolume: 0.35
+--- !u!114 &4310536159891647404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7809901502402275335}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94c9367e1225fd24394728e194f01c97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.BgmDirector
+  businessTrack: {fileID: 8300000, guid: 8be36314a3414af4c9f07a7cad3f881f, type: 3}
+  minigameTrack: {fileID: 8300000, guid: c43c3f46a63191b449830e279e3b13f3, type: 3}
