@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 3488808261385047707}
   - component: {fileID: 3907892234922634544}
   - component: {fileID: 4540171797525366346}
+  - component: {fileID: 679294064009359279}
   m_Layer: 0
   m_Name: PF_ServingStaff
   m_TagString: Untagged
@@ -114,6 +115,8 @@ MonoBehaviour:
   carriedIcon: {fileID: 0}
   holdPoint: {fileID: 5583242642452255996}
   counter: {fileID: 0}
+  emote: {fileID: 679294064009359279}
+  surprisedEmote: {fileID: 21300000, guid: 6573d149dfe0bb8449193ac01ae892d7, type: 3}
   handoffRadius: 1.8
   navSampleRadius: 4
   tripPenalty: 50
@@ -155,6 +158,22 @@ MonoBehaviour:
   runStride: 1.1
   runSpeed: 4
   minSpeed: 0.3
+--- !u!114 &679294064009359279
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 373078574124041463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec039de0493cbf94683d6b347d03cf32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Core.EmotePopup
+  height: 1.35
+  size: 0.7
+  defaultSeconds: 1.2
+  popSeconds: 0.18
 --- !u!1 &3026453516294917458
 GameObject:
   m_ObjectHideFlags: 0

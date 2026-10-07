@@ -5,6 +5,7 @@ using Marea.Core;
 using Marea.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering.Universal;
 
 namespace Marea.Cooking
 {
@@ -89,6 +90,22 @@ namespace Marea.Cooking
         [SerializeField, Range(0f, 1f)] private float coatedVolume = 0.7f;
 
         private float _nextSplash;
+
+        [Header("그릇에 묻는 소스 (+10/8) — 줄기 끝이 지나간 자리에 데칼을 찍는다")]
+        [Tooltip("찍을 소스 데칼(DecalProjector). 비우면 안 묻힌다.")]
+        [SerializeField] private DecalProjector stainDecal;
+        [Tooltip("surface에서 이 반경(m) 안에서만 찍는다 — 그릇 밖 조리대엔 안 묻는다.")]
+        [SerializeField, Min(0.01f)] private float stainRadius = 0.3f;
+        [Tooltip("줄기 끝이 이만큼(m) 움직일 때마다 하나 찍는다.")]
+        [SerializeField, Min(0.005f)] private float stainSpacing = 0.03f;
+        [SerializeField] private Vector2 stainSize = new Vector2(0.06f, 0.1f);
+        [Tooltip("투사 깊이(m). surface 높이를 가운데로 위아래 절반씩 — 그릇 굴곡만 덮고 조리대엔 안 닿게.")]
+        [SerializeField, Min(0.01f)] private float stainDepth = 0.08f;
+        [Tooltip("이보다 많으면 가장 오래된 것부터 지운다.")]
+        [SerializeField, Min(1)] private int stainMax = 60;
+
+        private readonly Queue<DecalProjector> _stains = new();
+        private Vector3? _lastStain;
 
         [Header("소리 (+10/6, 이슈 117) — 기획 sfx_sauce_squeeze_loop")]
         [Tooltip("소스가 나오는 동안.")]
@@ -209,7 +226,11 @@ namespace Marea.Cooking
             SetStream(pouring);
             SoundManager.Hold(ref _squeeze, squeezeLoop, pouring, squeezeVolume);   // (+10/6)
             if (pouring) Pour();
-            else _lastBottlePos = bottle.position;
+            else
+            {
+                _lastBottlePos = bottle.position;
+                _lastStain = null;   // 다시 짜기 시작하면 첫 자리부터 찍는다
+            }
 
             if (_timeLeft <= 0f || CoatedCount == TotalCount) Finish();
         }
@@ -268,6 +289,7 @@ namespace Marea.Cooking
                     stream.SetPosition(i, p);
                 }
             }
+            Stain(to);
 
             foreach (Target tg in _targets)
             {
@@ -303,6 +325,29 @@ namespace Marea.Cooking
                 SoundManager.Play(coatedClip, coatedVolume, 0.08f);
                 if (tg.Visual != null && popFrom < 1f) StartCoroutine(Pop(tg.Visual.transform));
                 OnProgress?.Invoke(CoatedCount, TotalCount);
+            }
+        }
+
+        /// <summary>(+10/8) 줄기 끝 at에 소스 자국을 찍는다. 그릇(stainRadius) 밖이거나 지난 자국과 가까우면 건너뛴다.</summary>
+        private void Stain(Vector3 at)
+        {
+            if (stainDecal == null) return;
+            Vector3 flat = at - surface.position;
+            flat.y = 0f;
+            if (flat.magnitude > stainRadius) return;
+            if (_lastStain.HasValue && (at - _lastStain.Value).magnitude < stainSpacing) return;
+            _lastStain = at;
+
+            Vector3 pos = new Vector3(at.x, surface.position.y, at.z);
+            DecalProjector d = Instantiate(stainDecal, pos, Quaternion.Euler(90f, UnityEngine.Random.Range(0f, 360f), 0f), transform);
+            float s = UnityEngine.Random.Range(stainSize.x, stainSize.y);
+            d.pivot = Vector3.zero;
+            d.size = new Vector3(s, s, stainDepth);
+            _stains.Enqueue(d);
+            while (_stains.Count > stainMax)
+            {
+                DecalProjector old = _stains.Dequeue();
+                if (old != null) Destroy(old.gameObject);
             }
         }
 
@@ -368,6 +413,10 @@ namespace Marea.Cooking
         {
             foreach (Target t in _targets) if (t.Visual != null) Destroy(t.Visual);
             _targets.Clear();
+            // (+10/8) 그릇 자국도 조개와 같이 — 다음 요리는 깨끗한 그릇으로 시작한다.
+            foreach (DecalProjector d in _stains) if (d != null) Destroy(d.gameObject);
+            _stains.Clear();
+            _lastStain = null;
         }
     }
 }

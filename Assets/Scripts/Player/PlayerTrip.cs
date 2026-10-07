@@ -30,6 +30,10 @@ namespace Marea.Player
         [SerializeField] private AudioClip tripClip;
         [SerializeField, Range(0f, 1f)] private float tripVolume = 0.8f;
 
+        [Header("놀람 이모트 (+10/8)")]
+        [SerializeField] private EmotePopup emote;
+        [SerializeField] private Sprite surprisedEmote;
+
         private static readonly int TripHash = Animator.StringToHash("Trip");
 
         private PlayerController _player;
@@ -86,6 +90,7 @@ namespace Marea.Player
             int price = _serving.LastCookingResult.finalPrice;   // 버리기 전에 — 들고 있던 음식값을 물어낸다
             _serving.ClearHeldFood();
             if (animator != null) animator.SetTrigger(TripHash);
+            if (emote != null) emote.Show(surprisedEmote, 1.5f);   // (+10/8) 넘어짐 ❗
 
             Vector3 drop = transform.position + transform.forward * 0.6f;
             Vfx.Play(tripDustVfx, drop, 0.6f);

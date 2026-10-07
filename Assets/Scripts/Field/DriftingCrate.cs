@@ -97,8 +97,15 @@ namespace Marea.Field
                 Debug.LogError($"{name}: 씬에 Warehouse가 없다. 주운 재료가 갈 곳이 없다.", this);
                 return;
             }
+            var got = new System.Collections.Generic.List<string>();
             foreach (RecipeEntry entry in contents)
+            {
                 warehouse.Add(entry.ingredient, entry.requiredAmount);
+                if (entry.ingredient != null && entry.requiredAmount > 0)
+                    got.Add($"<b>{entry.ingredient.DisplayName}</b> {entry.requiredAmount}개");
+            }
+            // (+10/8) 알림 — "고기 2개를 획득했습니다!" (늘 "개"로 끝나 조사는 "를")
+            if (got.Count > 0) Toast.Show(string.Join(", ", got) + "를 획득했습니다!");
 
             Vfx.Play(pickVfx, transform.position + Vector3.up * 0.6f, 0.8f);
             SoundManager.PlayAt(pickClip, transform.position, pickVolume);
