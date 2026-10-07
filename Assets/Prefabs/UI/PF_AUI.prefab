@@ -2386,6 +2386,9 @@ MonoBehaviour:
   panel: {fileID: 2944870293619014221}
   closeButton: {fileID: 6977146220171456764}
   openOnStart: 0
+  openClip: {fileID: 0}
+  closeClip: {fileID: 0}
+  openCloseVolume: 0.8
   goldLabel: {fileID: 8601586680153146112}
   tabs:
   - button: {fileID: 4326419240948413653}
@@ -2408,6 +2411,9 @@ MonoBehaviour:
   conditionLabel: {fileID: 5442593637856683944}
   descriptionLabel: {fileID: 3283396647805956933}
   upgradeButton: {fileID: 2271655309597541665}
+  boughtVfx: 2
+  buyClip: {fileID: 0}
+  buyVolume: 0.8
   upgradeButtonLabel: {fileID: 6793023791918205853}
   input: {fileID: 0}
 --- !u!1 &923879558049152831
@@ -2637,6 +2643,9 @@ MonoBehaviour:
   panel: {fileID: 1853539391169195849}
   closeButton: {fileID: 3357769137394107444}
   openOnStart: 0
+  openClip: {fileID: 0}
+  closeClip: {fileID: 0}
+  openCloseVolume: 0.8
   titleLabel: {fileID: 1646741888159938715}
   bodyLabel: {fileID: 3729316011862787834}
   statusLabel: {fileID: 435775279786908261}
@@ -2983,6 +2992,9 @@ MonoBehaviour:
   panel: {fileID: 2235870265572844298}
   closeButton: {fileID: 187190349307467196}
   openOnStart: 0
+  openClip: {fileID: 0}
+  closeClip: {fileID: 0}
+  openCloseVolume: 0.8
   mapRoot: {fileID: 8640437558306655450}
   nodePrefab: {fileID: 7543761357286000449, guid: ba4eca6cdb7bb3f49b6c099ac1acf2be, type: 3}
   nodePositions:
@@ -11756,7 +11768,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4279971658
   m_fontColor: {r: 0.2901961, g: 0.18431373, b: 0.105882354, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -11769,7 +11781,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -12247,7 +12259,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -12416,12 +12428,21 @@ MonoBehaviour:
   panel: {fileID: 2739511651188059701}
   closeButton: {fileID: 8180002235614281763}
   openOnStart: 0
+  openClip: {fileID: 0}
+  closeClip: {fileID: 0}
+  openCloseVolume: 0.8
   cardParent: {fileID: 9185296305950133753}
   cardPrefab: {fileID: 7112865672902180356, guid: 913f07f0679fb83468210b007ebfe959, type: 3}
   goldLabel: {fileID: 7489193279291510681}
   countLabel: {fileID: 5406239384083194592}
   startButton: {fileID: 6156378680459107558}
   startButtonLabel: {fileID: 6143214890681029826}
+  newMenuVfx: 2
+  selectClip: {fileID: 0}
+  deselectClip: {fileID: 0}
+  errorClip: {fileID: 0}
+  openBusinessClip: {fileID: 8300000, guid: eb17cd0f614df7f47ab6fc20fdef6f81, type: 3}
+  clipVolume: 0.8
 --- !u!1 &5206062269706120863
 GameObject:
   m_ObjectHideFlags: 0
@@ -13278,6 +13299,12 @@ MonoBehaviour:
   holdTime: 1.6
   raySpeed: 25
   useUnscaledTime: 0
+  doneVfx: 0
+  highGradeVfx: 0
+  steamVfx: 0
+  vfxScale: 1
+  doneClip: {fileID: 0}
+  doneVolume: 0.8
 --- !u!1 &5425465298278257043
 GameObject:
   m_ObjectHideFlags: 0
@@ -13330,6 +13357,9 @@ MonoBehaviour:
   panel: {fileID: 3160254436458253068}
   closeButton: {fileID: 8616400100168468945}
   openOnStart: 0
+  openClip: {fileID: 0}
+  closeClip: {fileID: 0}
+  openCloseVolume: 0.8
   awayGroup: {fileID: 5266814782773260354}
   awayArea: {fileID: 1985803441264122292}
   awayRemaining: {fileID: 6171264912638099482}
@@ -13675,6 +13705,9 @@ MonoBehaviour:
   panel: {fileID: 2260409433605191369}
   closeButton: {fileID: 7135765685646695352}
   openOnStart: 0
+  openClip: {fileID: 0}
+  closeClip: {fileID: 0}
+  openCloseVolume: 0.8
   cardParent: {fileID: 2883990627120646609}
   cardPrefab: {fileID: 2613633532921541175, guid: 5b90d1ed23dbc5c4db8fe6b180652224, type: 3}
   detailIcon: {fileID: 2482545812975708834}
@@ -15348,6 +15381,9 @@ MonoBehaviour:
   panel: {fileID: 8739695684237386487}
   closeButton: {fileID: 3866301127101688599}
   openOnStart: 0
+  openClip: {fileID: 0}
+  closeClip: {fileID: 0}
+  openCloseVolume: 0.8
   cellParent: {fileID: 2817874244248237674}
   cellPrefab: {fileID: 3015475780062082559, guid: 4257829001e652e45be04c7045fad754, type: 3}
   input: {fileID: 0}
@@ -15357,6 +15393,8 @@ MonoBehaviour:
   tabExpedition: {fileID: 5307693395000408649}
   tabOnSprite: {fileID: 21300000, guid: 11b2755922ae43a4c85fc01a04c6a6c8, type: 3}
   tabOffSprite: {fileID: 21300000, guid: e42bc6869f826ee4e9b8d8b5d8fb176f, type: 3}
+  countTickClip: {fileID: 0}
+  countTickVolume: 0.5
 --- !u!1 &6359573147120810821
 GameObject:
   m_ObjectHideFlags: 0
@@ -15799,7 +15837,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4283458680
   m_fontColor: {r: 0.47058824, g: 0.39215687, b: 0.3137255, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -15812,7 +15850,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -17720,6 +17758,8 @@ MonoBehaviour:
   prompt: {fileID: 9213867206121465004}
   label: {fileID: 2730657012255278138}
   heightOffset: 0.4
+  hoverClip: {fileID: 0}
+  hoverVolume: 0.3
 --- !u!1 &7381481946876124198
 GameObject:
   m_ObjectHideFlags: 0
@@ -19684,7 +19724,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4279971658
   m_fontColor: {r: 0.2901961, g: 0.18431373, b: 0.105882354, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -19697,7 +19737,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -20741,7 +20781,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4279971658
   m_fontColor: {r: 0.2901961, g: 0.18431373, b: 0.105882354, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -20754,7 +20794,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2

@@ -29,6 +29,17 @@ namespace Marea.Field
         [Tooltip("관리할 밭 칸. 비워두면 자식에서 전부 찾는다.")]
         [SerializeField] private FarmPlotCell[] plots;
 
+        [Header("연출 (+10/6, 이슈 117) — 기획 「작물 수확」 VFX_10 / VFX_02")]
+        [SerializeField] private VfxId harvestDustVfx = VfxId.Dust;
+        [SerializeField] private VfxId harvestSparkleVfx = VfxId.Sparkle;
+
+        [Header("소리 (+10/6, 이슈 117) — 기획 FRM-01 sfx_farm_harvest")]
+        [Tooltip("심을 때 흙 파는 소리.")]
+        [SerializeField] private AudioClip plantClip;
+        [Tooltip("수확할 때 \"뽁\".")]
+        [SerializeField] private AudioClip harvestClip;
+        [SerializeField, Range(0f, 1f)] private float clipVolume = 0.8f;
+
         private sealed class Plot
         {
             public PlotState State;
@@ -169,6 +180,7 @@ namespace Marea.Field
             plot.GrowSeconds = Mathf.Max(0.1f, GrowSecondsOf(crop));
             cell.Plant(crop.StagePrefabs);   // (+9/30) 단계 모델을 한 번에 만들어 둔다
             cell.ShowGrowing(0f);
+            SoundManager.PlayAt(plantClip, cell.transform.position, clipVolume, 0.08f);   // (+10/6)
             return PlantResult.Ok;
         }
 
@@ -190,6 +202,12 @@ namespace Marea.Field
             }
 
             warehouse.Add(plot.Crop.Harvest, plot.Crop.HarvestCount + HarvestBonus());
+
+            // (+10/6) 흙 조각 + 획득 반짝임
+            Vector3 at = cell.transform.position;
+            Vfx.Play(harvestDustVfx, at, 0.6f);
+            Vfx.Play(harvestSparkleVfx, at + Vector3.up * 0.6f, 0.5f);
+            SoundManager.PlayAt(harvestClip, at, clipVolume, 0.08f);   // (+10/6)
 
             plot.State = PlotState.Empty;
             plot.Crop = null;

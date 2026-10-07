@@ -3778,7 +3778,21 @@ MonoBehaviour:
   - {fileID: 4959792497398989489}
   - {fileID: 7983915587306472317}
   - {fileID: 4792800420925373044}
-  slotsPerLevel: 2
+  baseSlots: 2
+  dustVfx: 10
+  doneVfx: 2
+  vfxScale: 1
+  doneClip: {fileID: 0}
+  doneVolume: 0.9
+  lookHold: 0.3
+  revealDelay: 0
+  afterReveal: 1
+  arriveTimeout: 2
+  revealSteps:
+  - {fileID: 2074325805323339148}
+  - {fileID: 1706883828717922106}
+  stepDelay: 0.5
+  stepGap: 1
 --- !u!114 &4554201981260268567
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3805,6 +3819,11 @@ MonoBehaviour:
   - {fileID: 7260297207121688203}
   - {fileID: 9199000679247241332}
   - {fileID: 5250654662771194359}
+  harvestDustVfx: 10
+  harvestSparkleVfx: 2
+  plantClip: {fileID: 0}
+  harvestClip: {fileID: 0}
+  clipVolume: 0.8
 --- !u!1 &5047159045052718702
 GameObject:
   m_ObjectHideFlags: 0
@@ -7715,6 +7734,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 38b9110d805de4f428a9ef86b8ab9d94, type: 3}
+--- !u!1 &2074325805323339148 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5888771728071689020, guid: 38b9110d805de4f428a9ef86b8ab9d94, type: 3}
+  m_PrefabInstance: {fileID: 5580068771200681648}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8051009938723021893 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2506970184692228853, guid: 38b9110d805de4f428a9ef86b8ab9d94, type: 3}
@@ -7839,6 +7863,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c84cbf71eca3a0f4a8a7f51c75605c9b, type: 3}
+--- !u!1 &1706883828717922106 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8002961494209428012, guid: c84cbf71eca3a0f4a8a7f51c75605c9b, type: 3}
+  m_PrefabInstance: {fileID: 8691994421025856790}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &4893798155606284919 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4272343340310300513, guid: c84cbf71eca3a0f4a8a7f51c75605c9b, type: 3}

@@ -22,6 +22,11 @@ namespace Marea.Player
         [Tooltip("WASD 방향의 기준. 비워두면 Awake에서 Camera.main을 쓴다. 프리팹은 이 칸이 비어 있는 게 정상이다.")]
         [SerializeField] private Transform cameraBasis;
 
+        [Header("소리 (+10/6, 이슈 117) — 기획 MOV-03 ui_interact_confirm")]
+        [Tooltip("상호작용을 실행하는 순간 \"톡\". 클릭해서 걸어가 도착했을 때와 E 둘 다. 비우면 조용하다.")]
+        [SerializeField] private AudioClip interactClip;
+        [SerializeField, Range(0f, 1f)] private float interactVolume = 0.7f;
+
         private AgentMover _mover;
         private PlayerInputReader _input;
         private State _state = State.Idle;
@@ -96,6 +101,7 @@ namespace Marea.Player
                 onArrived: () =>
                 {
                     _state = State.Interacting;
+                    PlayInteractSound();   // (+10/6)
 
                     // 여기서 B의 코드가 돈다.
                     // 여러 프레임 걸리는 일이면 BeginBusy를 부를 것이다.
@@ -136,6 +142,9 @@ namespace Marea.Player
 
                 allowPartialPath: true);
         }
+
+        /// <summary>(+10/6) 상호작용 실행음. E 경로(ProximityInteractor)도 여기를 불러 한 칸에서 고친다. B 계약 아님.</summary>
+        public void PlayInteractSound() => SoundManager.Play(interactClip, interactVolume);
 
         private Vector3 ToWorldDirection(Vector2 axis)
         {

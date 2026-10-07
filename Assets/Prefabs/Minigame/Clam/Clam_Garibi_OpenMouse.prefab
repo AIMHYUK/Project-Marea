@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6737782704420047603}
   - component: {fileID: 2877286568277948878}
+  - component: {fileID: 8491836741138094107}
   m_Layer: 0
   m_Name: Clam_Garibi_OpenMouse
   m_TagString: Untagged
@@ -27,7 +28,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.865, y: 0.865, z: 0.865}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5977205233773717603}
@@ -54,6 +55,24 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.108132765, z: 0.19078165}
   m_Center: {x: 0, y: 0.054066382, z: 0}
+--- !u!114 &8491836741138094107
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1363860713242064406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1c52885ef8f94e4e88ca267890080c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ShellOpen
+  lid: {fileID: 6522188967708531003}
+  hingeAxis: {x: 1, y: 0, z: 0}
+  closedAngle: 30
+  openAngle: 0
+  openTime: 0.35
+  overshoot: 6
 --- !u!1001 &6159223348607668104
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -120,11 +139,81 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 7146d491fd7c2494984eab671ecfbe8f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9195291542593754589}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7146d491fd7c2494984eab671ecfbe8f, type: 3}
 --- !u!4 &5977205233773717603 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 7146d491fd7c2494984eab671ecfbe8f, type: 3}
   m_PrefabInstance: {fileID: 6159223348607668104}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6522188967708531003 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1151388028547126963, guid: 7146d491fd7c2494984eab671ecfbe8f, type: 3}
+  m_PrefabInstance: {fileID: 6159223348607668104}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &8653250574890381878
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 5977205233773717603}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 1451ad92019f3cf40a6bff6c74b6eb22, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1451ad92019f3cf40a6bff6c74b6eb22, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1451ad92019f3cf40a6bff6c74b6eb22, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1451ad92019f3cf40a6bff6c74b6eb22, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1451ad92019f3cf40a6bff6c74b6eb22, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1451ad92019f3cf40a6bff6c74b6eb22, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1451ad92019f3cf40a6bff6c74b6eb22, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1451ad92019f3cf40a6bff6c74b6eb22, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1451ad92019f3cf40a6bff6c74b6eb22, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1451ad92019f3cf40a6bff6c74b6eb22, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 1451ad92019f3cf40a6bff6c74b6eb22, type: 3}
+      propertyPath: m_Name
+      value: Garbi_openMouse_02
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 1451ad92019f3cf40a6bff6c74b6eb22, type: 3}
+--- !u!4 &9195291542593754589 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 1451ad92019f3cf40a6bff6c74b6eb22, type: 3}
+  m_PrefabInstance: {fileID: 8653250574890381878}
   m_PrefabAsset: {fileID: 0}

@@ -57,8 +57,55 @@ namespace Marea.Cooking
         [Header("1단계: 재료 받기 (+9/30)")]
         [SerializeField] private CatchGame catchGame;
 
+        [Header("1단계 떨어지는 모양 (+10/7)")]
+        [Tooltip("채우면 레시피 재료 모델 대신 이 모양들을 섞어 떨어뜨린다(해물 · 야채). 점수 · 재료 소모는 레시피 그대로. 비우면 레시피 재료 모델.")]
+        [SerializeField] private GameObject[] catchVisuals;
+        [Tooltip("1단계(재료 받기) 동안 국물 대신 맑은 물을 보인다(StewPot.waterSurface). 2단계가 시작될 때 수프로 돌아간다.")]
+        [SerializeField] private bool waterInStep1 = true;
+
         [Header("3단계: 거품 터뜨리기 (+9/30)")]
         [SerializeField] private PopupTouchGame popupTouch;
+
+        [Header("연출 (+10/6, 이슈 117) — 기획 「화구 사용」 VFX_01 · 「스튜 등 끓이기」 VFX_03")]
+        [Tooltip("미니게임 내내 냄비 밑 화구에서 나는 작은 불꽃. 냄비가 움직여도 화구에 남는다.")]
+        [SerializeField] private VfxId burnerVfx = VfxId.Flame;
+        [Tooltip("미니게임 내내 국물 위로 올라오는 증기. 냄비를 따라다닌다.")]
+        [SerializeField] private VfxId steamVfx = VfxId.Steam;
+        [SerializeField, Min(0.1f)] private float burnerScale = 1f;
+        [SerializeField, Min(0.1f)] private float steamScale = 1f;
+        [Tooltip("(+10/6) 화구 불꽃이 나올 자리. 씬에서 끌어 옮겨 맞춘다. 비우면 냄비 바닥 가운데.")]
+        [SerializeField] private Transform burnerAnchor;
+        [Tooltip("(+10/6) 화구 불꽃을 더 낼 자리들. 같은 효과 · 크기로 하나씩 더 켠다.")]
+        [SerializeField] private Transform[] extraBurnerAnchors;
+        [Tooltip("(+10/6) 미니게임 동안만 켤 조명 — 김 · 연기에 가려 어두워진 스튜를 밝힌다. 평소엔 꺼 둔다(식당이 밝아지지 않게).")]
+        [SerializeField] private Light[] minigameLights;
+        [Tooltip("(+10/6) 김이 나올 자리. 냄비를 따라 움직이게 냄비 아래에 두는 게 좋다. 비우면 국물 가운데 5cm 위.")]
+        [SerializeField] private Transform steamAnchor;
+
+        [Header("소리 (+10/6, 이슈 117) — 기획 sfx_cook_boil_loop")]
+        [Tooltip("미니게임 내내 보글보글.")]
+        [SerializeField] private AudioClip boilLoop;
+        [SerializeField, Range(0f, 1f)] private float boilVolume = 0.5f;
+
+        private VfxLoop _burner, _steam;
+        private readonly System.Collections.Generic.List<VfxLoop> _extraBurners = new();
+        private SoundLoop _boil;
+        private bool _ambienceOn;   // (+10/6) 디버거가 "지금 도는 중이면 갈아 끼운다"를 판단할 때 본다
+
+        public VfxId SteamVfx => steamVfx;
+        public VfxId BurnerVfx => burnerVfx;
+        public bool AmbienceOn => _ambienceOn;
+
+        /// <summary>
+        /// (+10/6) 개발용 — StewVfxDebug가 부른다. 증기 · 화구 효과를 바꾸고, 미니게임 중이면 그 자리에서 다시 띄운다.
+        /// 프리팹 값은 안 바꾼다(플레이를 끄면 원래대로).
+        /// </summary>
+        public void DebugSetAmbience(VfxId steam, VfxId burner)
+        {
+            steamVfx = steam;
+            burnerVfx = burner;
+            if (_ambienceOn) StartAmbience();
+        }
 
         private MenuData _targetMenu;
         private Action<CookingResult> _onCompleteCallback;
@@ -98,6 +145,7 @@ namespace Marea.Cooking
             _stirGrade = HitGrade.Miss;
 
             if (stewPot != null) stewPot.ResetPosition();
+            StartAmbience();
 
             if (minigameUI != null)
             {
@@ -125,9 +173,21 @@ namespace Marea.Cooking
                 return;
             }
 
+            if (stewPot != null) stewPot.ShowWater(waterInStep1);   // (+10/7) 1단계는 물
+
             // 레시피 재료를 필요한 수만큼 떨어뜨린다. 재료 모델은 IngredientData.MinigamePrefab (없으면 구).
+            // (+10/7) catchVisuals가 있으면 그걸 섞어서 — CatchGame이 목록을 돌려 쓰니 순서를 섞어 넘겨 겹치는 게 매번 다르게.
             _catchItems.Clear();
-            if (_targetMenu != null && _targetMenu.Recipe != null)
+            if (catchVisuals != null && catchVisuals.Length > 0)
+            {
+                foreach (GameObject v in catchVisuals) if (v != null) _catchItems.Add(v);
+                for (int i = _catchItems.Count - 1; i > 0; i--)
+                {
+                    int j = UnityEngine.Random.Range(0, i + 1);
+                    (_catchItems[i], _catchItems[j]) = (_catchItems[j], _catchItems[i]);
+                }
+            }
+            else if (_targetMenu != null && _targetMenu.Recipe != null)
             {
                 foreach (RecipeEntry entry in _targetMenu.Recipe)
                 {
@@ -156,9 +216,11 @@ namespace Marea.Cooking
         // ==========================================
         protected override void OnStep2Start()
         {
+            if (stewPot != null) stewPot.ShowWater(false);   // (+10/7) 2단계부터 수프
+
             if (minigameUI != null)
             {
-                minigameUI.SetGaugeVisible(false);
+                minigameUI.SetGaugeVisible(true);   // (+10/7) 화면 옆 세로 게이지 — 안이면 차고 밖이면 준다
                 minigameUI.SetGuide("국자를 초록 원 안에 두세요!", "원을 따라 저으세요");
             }
 
@@ -177,14 +239,15 @@ namespace Marea.Cooking
             if (minigameUI != null)
             {
                 minigameUI.UpdateTimer(stirZone.TimeLeft01);
-                minigameUI.SetGuide(stirZone.IsInside ? "좋아요! 계속 따라가세요" : "국자를 초록 원 안에 두세요!",
-                                    $"유지 {stirZone.Score * 100f:F0}%");
+                minigameUI.UpdateStirGauge(stirZone.Gauge01, stirZone.IsInside);   // (+10/7)
+                minigameUI.SetGuide(stirZone.IsInside ? "좋아요! 계속 따라가세요" : "원을 놓치면 게이지가 줄어요!",
+                                    $"평균 {stirZone.Score * 100f:F0}%");
             }
 
             if (stirZone.IsFinished) FinishStir(stirZone.Score);
         }
 
-        /// <summary>2단계 끝 — 체류 비율로 판정하고 배율을 Step2Score로 넘긴다.</summary>
+        /// <summary>2단계 끝 — 게이지 평균(+10/7, 예전엔 체류 비율)으로 판정하고 배율을 Step2Score로 넘긴다.</summary>
         private void FinishStir(float ratio)
         {
             ratio = Mathf.Clamp01(ratio);
@@ -253,6 +316,7 @@ namespace Marea.Cooking
         // ==========================================
         protected override void OnMinigameCompleted(float finalScore)
         {
+            StopAmbience();
             CustomerManager customerManager = FindFirstObjectByType<CustomerManager>();
             if (customerManager != null) customerManager.PauseSpawning(false);
 
@@ -266,6 +330,59 @@ namespace Marea.Cooking
             };
 
             StartCoroutine(ShowResultRoutine(result));
+        }
+
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            StopAmbience();
+            if (stewPot != null) stewPot.ShowWater(false);   // (+10/7) 1단계 중에 꺼져도 물로 남지 않게
+        }
+
+        /// <summary>(+10/6) 화구 불꽃은 냄비 제자리 바닥 — 냄비의 부모(조리대)에 단다. 증기는 국물 면 위 — 냄비에 단다.</summary>
+        private void StartAmbience()
+        {
+            StopAmbience();
+            _ambienceOn = true;
+            SetLights(true);   // (+10/6)
+            _boil = SoundManager.PlayLoop(boilLoop, boilVolume);   // (+10/6)
+            if (stewPot == null) return;
+            Bounds b = new Bounds(stewPot.transform.position, Vector3.zero);
+            bool has = false;
+            foreach (Renderer r in stewPot.GetComponentsInChildren<Renderer>())
+            {
+                if (r is ParticleSystemRenderer) continue;
+                if (!has) { b = r.bounds; has = true; } else b.Encapsulate(r.bounds);
+            }
+            Transform station = stewPot.transform.parent != null ? stewPot.transform.parent : stewPot.transform;
+            // (+10/6) 기준점이 있으면 그 자리(오프셋 0), 없으면 예전처럼 계산.
+            _burner = burnerAnchor != null
+                ? Vfx.PlayLoop(burnerVfx, burnerAnchor, Vector3.zero, burnerScale)
+                : Vfx.PlayLoop(burnerVfx, station, station.InverseTransformPoint(new Vector3(b.center.x, b.min.y, b.center.z)), burnerScale);
+            if (extraBurnerAnchors != null)
+                foreach (Transform a in extraBurnerAnchors)
+                    if (a != null) _extraBurners.Add(Vfx.PlayLoop(burnerVfx, a, Vector3.zero, burnerScale));
+            Vector3 surface = stewPot.HasLiquid ? stewPot.StirCenter : b.center;
+            _steam = steamAnchor != null
+                ? Vfx.PlayLoop(steamVfx, steamAnchor, Vector3.zero, steamScale)
+                : Vfx.PlayLoop(steamVfx, stewPot.transform, stewPot.transform.InverseTransformPoint(surface + Vector3.up * 0.05f), steamScale);
+        }
+
+        private void SetLights(bool on)
+        {
+            if (minigameLights == null) return;
+            foreach (Light l in minigameLights) if (l != null) l.enabled = on;
+        }
+
+        private void StopAmbience()
+        {
+            _burner.Stop();
+            _steam.Stop();
+            _boil.Stop();
+            foreach (VfxLoop loop in _extraBurners) loop.Stop();
+            _extraBurners.Clear();
+            SetLights(false);   // (+10/6)
+            _ambienceOn = false;
         }
 
         private IEnumerator ShowResultRoutine(CookingResult result)

@@ -43,6 +43,11 @@ namespace Marea.Field
 
         // 창고와 같은 이유로 키가 id가 아니라 재료 자체다 —
         // id를 안 채운 에셋 둘이 있으면(둘 다 0) 한 줄로 합쳐진다.
+        [Header("소리 (+10/6, 이슈 117) — 기획 MNU-05 ui_count_tick")]
+        [Tooltip("창이 보이는 동안 재료 수가 바뀔 때. 비우면 조용하다.")]
+        [SerializeField] private AudioClip countTickClip;
+        [SerializeField, Range(0f, 1f)] private float countTickVolume = 0.5f;
+
         private readonly Dictionary<IngredientData, IngredientCell> _cells = new();
         private Warehouse _warehouse;
         private ObtainRoute? _filter;   // null = 전체
@@ -130,6 +135,7 @@ namespace Marea.Field
             if (_cells.TryGetValue(ingredient, out var cell))
             {
                 cell.SetCount(count);
+                if (IsVisible) SoundManager.Play(countTickClip, countTickVolume, 0.05f);   // (+10/6)
                 return;
             }
 

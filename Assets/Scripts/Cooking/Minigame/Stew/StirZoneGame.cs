@@ -1,3 +1,5 @@
+using Marea.Core;
+using Marea.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -9,6 +11,9 @@ namespace Marea.Cooking
     /// 1. 국물 면 위에 원(세이프존)이 냄비 안을 빙글빙글 돈다 — 가끔 도는 방향이 바뀌고 안팎으로 출렁인다.
     /// 2. 국자는 마우스를 따라 냄비 안에서 움직인다(누르지 않아도). 국자가 원 안이면 시간이 쌓인다.
     /// 3. 시간이 끝나면 원 안에 있던 비율이 Score다. 판정(Perfect/Good/Bad)은 컨트롤러가 한다.
+    ///
+    /// (+10/7) 게이지 — 원 안이면 gaugeFill 속도로 차고, 밖이면 gaugeDrain 속도로 준다. Score는 이제 체류 비율이 아니라
+    /// 게이지의 시간 평균이다(초반 실수도 남고, 끝에 회복해도 반영된다). 화면 옆 세로 막대가 Gauge01을 그린다.
     ///
     /// 예전엔 상하좌우 드래그로 게이지를 채웠다. 단계 진행 · 카메라 · 결과는 모른다 — CatchGame · PopupTouchGame과 같은 모양.
     /// </summary>
@@ -38,21 +43,61 @@ namespace Marea.Cooking
         [Header("시간")]
         [SerializeField, Min(1f)] private float duration = 8f;
 
+        [Header("게이지 (+10/7) — 안이면 차고 밖이면 준다. 점수는 게이지 평균")]
+        [Tooltip("시작 게이지(0~1).")]
+        [SerializeField, Range(0f, 1f)] private float gaugeStart = 0.5f;
+        [Tooltip("원 안에 있을 때 1초에 차는 양.")]
+        [SerializeField, Min(0f)] private float gaugeFill = 0.35f;
+        [Tooltip("원 밖에 있을 때 1초에 주는 양.")]
+        [SerializeField, Min(0f)] private float gaugeDrain = 0.45f;
+
         [Header("국물")]
-        [Tooltip("국물이 원을 따라 도는 비율.")]
-        [SerializeField, Range(0f, 1f)] private float soupFollow = 0.35f;
+        [Tooltip("(+10/6) 국물이 국자를 따라 도는 비율. 1이면 국자와 같은 빠르기로 돈다.")]
+        [SerializeField, Range(0f, 1f)] private float soupFollow = 0.5f;
+        [Tooltip("(+10/6) 국물이 국자 빠르기를 따라잡는 시간(초). 국자를 멈추면 이만큼에 걸쳐 서서히 멈춘다.")]
+        [SerializeField, Min(0.01f)] private float soupLag = 0.5f;
+        [Tooltip("(+10/6) 국자가 냄비 중심에서 이보다 가까우면 도는 방향을 안 잰다(m) — 중심 근처에선 조금만 움직여도 각도가 튄다.")]
+        [SerializeField, Min(0f)] private float minStirRadius = 0.05f;
+
+        [Header("연출 (+10/6, 이슈 117) — 기획 「휘젓기」 VFX_04")]
+        [Tooltip("국자를 빨리 돌릴 때 국자 자리에서 튀는 국물.")]
+        [SerializeField] private VfxId stirSplashVfx = VfxId.Splash;
+        [SerializeField] private Color soupTint = new Color(0.85f, 0.7f, 0.5f, 1f);
+        [Tooltip("국자가 이보다 빨리 돌 때만 튄다(도/초).")]
+        [SerializeField, Min(0f)] private float splashSpeed = 150f;
+        [Tooltip("튀는 간격(초).")]
+        [SerializeField, Min(0.05f)] private float splashInterval = 0.35f;
+        [SerializeField, Min(0.1f)] private float splashScale = 0.7f;
+
+        [Header("소리 (+10/6, 이슈 117) — 기획 sfx_stir_loop · sfx_gauge")]
+        [Tooltip("국자를 돌리는 동안. 크기는 국물 도는 빠르기를 따른다.")]
+        [SerializeField] private AudioClip stirLoop;
+        [SerializeField, Range(0f, 1f)] private float stirVolume = 0.7f;
+        [Tooltip("국물이 이 빠르기(도/초)일 때 stirVolume 그대로. 느리면 작아진다.")]
+        [SerializeField, Min(1f)] private float stirFullSpeed = 120f;
+        [Tooltip("국자가 원(세이프존) 안에 있는 동안 — 게이지가 차는 소리.")]
+        [SerializeField] private AudioClip gaugeLoop;
+        [SerializeField, Range(0f, 1f)] private float gaugeVolume = 0.35f;
+
+        private SoundLoop _stirSound, _gaugeSound;
 
         private float _angle, _dir = 1f, _speed, _segmentLeft;
-        private float _time, _inside;
+        private float _time, _gaugeSum;   // (+10/7) _inside(체류 시간) 대신 게이지 적분
+        private Vector3 _lastLadle;      // 지난 프레임 국자 위치(냄비 중심 기준, 수평)
+        private bool _hasLastLadle;
+        private float _soupSpeed;        // 국물 회전 속도(도/초, Rotate 기준 — 위에서 볼 때 시계방향이 +)
+        private float _nextSplash;
         private bool _running;
         private Renderer _zoneRenderer;
         private MaterialPropertyBlock _mpb;
 
         public bool IsFinished { get; private set; }
         public bool IsInside { get; private set; }
+        /// <summary>(+10/7) 지금 게이지(0~1). 원 안이면 차고 밖이면 준다.</summary>
+        public float Gauge01 { get; private set; }
         public float TimeLeft01 => duration > 0f ? Mathf.Clamp01(1f - _time / duration) : 0f;
-        /// <summary>원 안에 있던 비율 (0~1).</summary>
-        public float Score => duration > 0f ? Mathf.Clamp01(_inside / duration) : 0f;
+        /// <summary>(+10/7) 게이지의 시간 평균 (0~1). 예전엔 원 안에 있던 비율이었다.</summary>
+        public float Score => _time > 0f ? Mathf.Clamp01(_gaugeSum / _time) : Gauge01;
 
         private void Awake()
         {
@@ -69,7 +114,10 @@ namespace Marea.Cooking
         public void Begin()
         {
             _time = 0f;
-            _inside = 0f;
+            _gaugeSum = 0f;
+            Gauge01 = gaugeStart;
+            _hasLastLadle = false;
+            _soupSpeed = 0f;
             _angle = Random.value * Mathf.PI * 2f;
             _dir = Random.value < 0.5f ? -1f : 1f;
             NewSegment();
@@ -127,13 +175,45 @@ namespace Marea.Cooking
             Vector3 d = ladle - zonePos;
             d.y = 0f;
             IsInside = d.magnitude <= zoneRadius;
-            if (IsInside) _inside += dt;
+            Gauge01 = Mathf.Clamp01(Gauge01 + (IsInside ? gaugeFill : -gaugeDrain) * dt);   // (+10/7)
+            _gaugeSum += Gauge01 * dt;
             Tint(IsInside ? insideColor : outsideColor);
 
-            // 국물도 원을 따라 돈다 — 위에서 볼 때 각도 증가(반시계) = Y축 음의 회전
-            pot.RotateLiquid(-_dir * _speed * soupFollow * dt);
+            StirSoup(ladle - center, dt);
+            if (Mathf.Abs(_soupSpeed) >= splashSpeed * soupFollow && Time.time >= _nextSplash)
+            {
+                _nextSplash = Time.time + splashInterval;
+                Vfx.Play(stirSplashVfx, ladle, splashScale, soupTint);   // (+10/6)
+            }
+
+            // (+10/6)
+            float stir = Mathf.Clamp01(Mathf.Abs(_soupSpeed) / stirFullSpeed);
+            SoundManager.Hold(ref _stirSound, stirLoop, stir > 0.05f, stir * stirVolume);
+            SoundManager.Hold(ref _gaugeSound, gaugeLoop, IsInside, gaugeVolume);
 
             if (_time >= duration) Finish();
+        }
+
+        /// <summary>
+        /// (+10/6) 국물이 국자가 도는 방향으로 돈다 — 세이프존이 돌고, 국자가 따라 돌고, 국물은 국자를 따라 돈다.
+        /// 예전엔 국물이 세이프존 방향으로 돌아서 국자를 반대로 돌려도 국물은 원 방향으로 돌았다.
+        /// 국자의 냄비 중심 기준 각속도를 재서 soupLag 동안 따라잡는다. SignedAngle과 Rotate는 같은 부호(위에서 볼 때 시계방향 +)다.
+        /// </summary>
+        private void StirSoup(Vector3 ladleOffset, float dt)
+        {
+            ladleOffset.y = 0f;
+            float ladleSpeed = 0f;
+            if (_hasLastLadle && dt > 0f
+                && ladleOffset.magnitude > minStirRadius && _lastLadle.magnitude > minStirRadius)
+            {
+                ladleSpeed = Vector3.SignedAngle(_lastLadle, ladleOffset, Vector3.up) / dt;
+                ladleSpeed = Mathf.Clamp(ladleSpeed, -540f, 540f);   // 마우스가 중심을 가로지를 때 튀는 값
+            }
+            _lastLadle = ladleOffset;
+            _hasLastLadle = true;
+
+            _soupSpeed = Mathf.Lerp(_soupSpeed, ladleSpeed * soupFollow, 1f - Mathf.Exp(-dt / soupLag));
+            pot.RotateLiquid(_soupSpeed * dt);
         }
 
         private void Tint(Color c)
@@ -149,12 +229,20 @@ namespace Marea.Cooking
             _running = false;
             IsFinished = true;
             if (zoneVisual != null) zoneVisual.gameObject.SetActive(false);
+            StopSounds();
         }
 
         private void OnDisable()
         {
             _running = false;
             if (zoneVisual != null) zoneVisual.gameObject.SetActive(false);
+            StopSounds();
+        }
+
+        private void StopSounds()
+        {
+            _stirSound.Stop();
+            _gaugeSound.Stop();
         }
     }
 }

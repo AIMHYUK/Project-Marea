@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Marea.Core;
+using Marea.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -48,6 +50,9 @@ namespace Marea.Cooking
         [Tooltip("재료 모델이 없을 때 대신 쓸 구의 지름(m).")]
         [SerializeField, Min(0.05f)] private float fallbackSize = 0.3f;
 
+        [Tooltip("(+10/7) 재료 모델의 가장 긴 변을 이 크기(m)로 맞춘다 — 통연어(1m)와 양파 조각(0.3m)처럼 제각각인 모델을 섞을 때. 0이면 모델 크기 그대로.")]
+        [SerializeField, Min(0f)] private float normalizeSize;
+
         [Tooltip("(+10/2) 떨어뜨릴 개수. 받은 재료 목록보다 크면 섞어서 반복한다. 0이면 목록 그대로.")]
         [SerializeField, Min(0)] private int dropCount;
 
@@ -70,6 +75,29 @@ namespace Marea.Cooking
         [Tooltip("빙글빙글 도는 속도(도/초).")]
         [SerializeField] private Vector2 spinSpeed = new Vector2(90f, 90f);
 
+        [Header("연출 (+10/6, 이슈 117) — 기획 「냄비·팬에 재료 투입」 VFX_04")]
+        [Tooltip("재료가 그릇에 들어간 자리에서 튀는 방울.")]
+        [SerializeField] private VfxId catchVfx = VfxId.Splash;
+        [Tooltip("방울 색 — 국물 · 기름 색에 맞춘다.")]
+        [SerializeField] private Color catchTint = new Color(0.85f, 0.7f, 0.5f, 1f);
+        [SerializeField, Min(0.1f)] private float catchVfxScale = 1f;
+        [Tooltip("(+10/6) 받은 재료가 여기(국물 면 — SM_Soup_Pot_Inside)에 닿을 때 튀고 사라진다. 비우면 예전처럼 입구에서 바로.")]
+        [SerializeField] private Renderer splashSurface;
+
+        [Header("놓침 (+10/7) — 기획 VFX_13 「실패 · 떨어뜨림」")]
+        [Tooltip("놓친 재료가 바닥(입구에서 missDrop 아래)에 닿을 때 터지는 것.")]
+        [SerializeField] private VfxId missVfx = VfxId.Fail;
+        [SerializeField, Min(0.1f)] private float missVfxScale = 0.5f;
+        [Tooltip("바닥(조리대 윗면)이 입구보다 이만큼 아래(m). 조리대는 프리팹 밖이라 높이로 둔다. 0이면 입구 높이를 지나는 순간 터진다.")]
+        [SerializeField, Min(0f)] private float missDrop;
+        [SerializeField] private AudioClip missClip;
+        [SerializeField, Range(0f, 1f)] private float missVolume = 0.7f;
+
+        [Header("소리 (+10/6, 이슈 117) — 기획 sfx_ingredient_catch")]
+        [Tooltip("재료가 그릇에 들어갈 때.")]
+        [SerializeField] private AudioClip catchClip;
+        [SerializeField, Range(0f, 1f)] private float catchVolume = 0.8f;
+
         [Header("시간")]
         [Tooltip("제한시간(초). 기획 CookingMiniGameData MG_OBJECT_CATCH = 10.")]
         [SerializeField, Min(1f)] private float timeLimit = 10f;
@@ -81,6 +109,7 @@ namespace Marea.Cooking
             public Transform T;
             public float Speed;
             public bool Resolved;
+            public bool Sinking;     // (+10/6) 받았고 국물 면으로 떨어지는 중 — 닿으면 튀고 사라진다
             public Motion Kind;
             public float Y;          // 입구 높이 기준 높이(m)
             public float Along;      // 좌우 축 위치(m, 입구 기준)
@@ -183,10 +212,17 @@ namespace Marea.Cooking
                 f.T.position = _mouthHome + _axis * f.Along + Vector3.up * f.Y;
                 f.T.Rotate(f.SpinAxis, f.Spin * Time.deltaTime, Space.World);
 
+                if (f.Sinking)
+                {
+                    // (+10/6) 국물 면에 닿으면 그 자리에서 튄다. 냄비가 움직여서 높이를 매 프레임 다시 잰다.
+                    if (f.T.position.y <= SurfaceY(rimY)) Splash(f);
+                    continue;
+                }
                 if (f.Resolved)
                 {
-                    // 놓친 재료는 입구 아래로 조금 더 떨어진 뒤 지운다.
-                    if (f.T.position.y < rimY - 2f) Destroy(f.T.gameObject);
+                    // (+10/7) 놓친 재료는 바닥에 닿으면 터지고 사라진다. 바닥이 없으면 입구에서 이미 터졌고, 조금 더 떨어진 뒤 지운다.
+                    if (missDrop > 0f && f.T.position.y <= rimY - missDrop) Miss(f, rimY - missDrop);
+                    else if (f.T.position.y < rimY - Mathf.Max(2f, missDrop + 0.5f)) Destroy(f.T.gameObject);
                     continue;
                 }
 
@@ -198,15 +234,19 @@ namespace Marea.Cooking
                     if (d.magnitude <= catchRadius)
                     {
                         _caught++;
-                        Destroy(f.T.gameObject);
                         OnProgress?.Invoke(_caught, _total);
+                        // (+10/6) 점수는 입구에서 바로, 튀는 건 국물 면에 닿을 때. 국물 면이 없으면 예전처럼 여기서.
+                        if (splashSurface != null) f.Sinking = true;
+                        else Splash(f);
                     }
+                    else if (missDrop <= 0f) PlayMiss(f.T.position);   // (+10/7) 바닥 높이가 없으면 놓친 순간에
                 }
             }
             _falling.RemoveAll(f => f.T == null);
 
             _timeLeft -= Time.deltaTime;
-            bool allDone = _queue.Count == 0 && _falling.TrueForAll(f => f.Resolved);
+            // 가라앉는 중인 재료가 국물에 닿기 전에 끝내면 마지막 하나가 안 튄다.
+            bool allDone = _queue.Count == 0 && _falling.TrueForAll(f => f.Resolved && !f.Sinking);
             if (allDone || _timeLeft <= 0f) Finish();
         }
 
@@ -302,6 +342,7 @@ namespace Marea.Cooking
                 // 재료 모델에 물리가 붙어 있어도 여기선 끈다. 떨어지는 건 이 부품이 직접 움직인다.
                 foreach (var rb in go.GetComponentsInChildren<Rigidbody>()) rb.isKinematic = true;
                 foreach (var col in go.GetComponentsInChildren<Collider>()) col.enabled = false;
+                if (normalizeSize > 0f) FitSize(go.transform, normalizeSize);   // (+10/7)
             }
             else
             {
@@ -333,6 +374,45 @@ namespace Marea.Cooking
             f.DashFrom = along;
             f.DashTo = SideStep(along, dashDistance);
             _falling.Add(f);
+        }
+
+        /// <summary>(+10/7) 렌더러 상자의 가장 긴 변이 size가 되게 루트 크기를 곱한다.</summary>
+        private static void FitSize(Transform t, float size)
+        {
+            Bounds b = default;
+            bool has = false;
+            foreach (Renderer r in t.GetComponentsInChildren<Renderer>())
+            {
+                if (r is ParticleSystemRenderer) continue;
+                if (!has) { b = r.bounds; has = true; }
+                else b.Encapsulate(r.bounds);
+            }
+            float longest = has ? Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z)) : 0f;
+            if (longest > 1e-4f) t.localScale *= size / longest;
+        }
+
+        /// <summary>(+10/6) 국물 면 높이 — 렌더러 상자 위쪽. 없으면 입구 높이.</summary>
+        private float SurfaceY(float rimY) => splashSurface != null ? splashSurface.bounds.max.y : rimY;
+
+        private void Splash(Falling f)
+        {
+            Vfx.Play(catchVfx, f.T.position, catchVfxScale, catchTint);   // (+10/6)
+            SoundManager.Play(catchClip, catchVolume, 0.08f);             // (+10/6)
+            Destroy(f.T.gameObject);
+            f.Sinking = false;
+        }
+
+        /// <summary>(+10/7) 놓친 재료가 바닥에 닿았다 — 터지고 사라진다.</summary>
+        private void Miss(Falling f, float floorY)
+        {
+            PlayMiss(new Vector3(f.T.position.x, floorY, f.T.position.z));
+            Destroy(f.T.gameObject);
+        }
+
+        private void PlayMiss(Vector3 at)
+        {
+            Vfx.Play(missVfx, at, missVfxScale);
+            SoundManager.Play(missClip, missVolume, 0.08f);
         }
 
         private void Finish()

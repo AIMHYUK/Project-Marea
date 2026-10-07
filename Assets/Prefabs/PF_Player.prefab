@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 4074139890704259622}
   - component: {fileID: 1552516553371905641}
   - component: {fileID: 7648466230469572702}
+  - component: {fileID: 7811177258580110710}
   m_Layer: 0
   m_Name: PF_Player
   m_TagString: Player
@@ -76,6 +77,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Player.PlayerController
   cameraBasis: {fileID: 0}
+  interactClip: {fileID: 0}
+  interactVolume: 0.7
 --- !u!114 &3602482615759386493
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -174,6 +177,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Player.PlayerAnimator
   animator: {fileID: 3288199160165779556}
   dampTime: 0.1
+--- !u!114 &7811177258580110710
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5865860010280533184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: add7e096922b7614c972347e5c824ce0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Core.Footsteps
+  clips:
+  - {fileID: 8300000, guid: cb9888c95551cff40abe4188c7080af7, type: 3}
+  - {fileID: 8300000, guid: 44bcc02887fc4a84eb624fd6323ebaaa, type: 3}
+  - {fileID: 8300000, guid: 7eba24422572f1e4aa14d9c69b90c0e9, type: 3}
+  - {fileID: 8300000, guid: ab89c50f1b0596d4b87ee222377d4958, type: 3}
+  volume: 0.5
+  pitchJitter: 0.08
+  spatial: 0
+  walkStride: 0.7
+  runStride: 1.1
+  runSpeed: 4
+  minSpeed: 0.3
 --- !u!1 &8430114262895805584
 GameObject:
   m_ObjectHideFlags: 0

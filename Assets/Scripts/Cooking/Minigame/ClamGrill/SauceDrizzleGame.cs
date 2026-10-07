@@ -1,5 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using Marea.Core;
+using Marea.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -33,6 +36,8 @@ namespace Marea.Cooking
 
         [Tooltip("줄기 끝이 이 반경(m) 안이면 조개 위다.")]
         [SerializeField, Min(0.01f)] private float targetRadius = 0.12f;
+        [Tooltip("(+10/6) 조개 모습에 곱하는 크기. 프리팹은 넓이 기준으로 맞춰 두고 접시 크기에 맞춘다.")]
+        [SerializeField, Min(0.01f)] private float clamScale = 1f;
 
         [Tooltip("조개 하나에 이만큼(초) 뿌리면 묻은 것으로 친다.")]
         [SerializeField, Min(0.05f)] private float coatSeconds = 0.5f;
@@ -64,6 +69,33 @@ namespace Marea.Cooking
         [Tooltip("줄기가 앞으로 휘는 정도(m). 소스통 진행 방향으로 휜다.")]
         [SerializeField] private float streamBend = 0.08f;
         [SerializeField, Range(4, 32)] private int streamSegments = 16;
+
+        [Header("연출 (+10/6, 이슈 117) — 기획 「소스 뿌리기」 VFX_04(닿을 때 작은 방울)")]
+        [SerializeField] private VfxId sauceSplashVfx = VfxId.Splash;
+        [SerializeField] private Color sauceTint = new Color(0.75f, 0.12f, 0.05f, 1f);
+        [SerializeField, Min(0.05f)] private float splashInterval = 0.2f;
+
+        [Header("다 묻었을 때 (+10/7) — 닦기 단계 크기 팝과 같은 모양")]
+        [Tooltip("다 묻은 순간 조개 자리에서 크게 한 번 튀는 소스.")]
+        [SerializeField, Min(0.1f)] private float coatedSplashScale = 1.1f;
+        [Tooltip("다 묻은 순간 더하는 반짝임. None이면 안 띄운다.")]
+        [SerializeField] private VfxId coatedSparkleVfx = VfxId.HitSpark;
+        [SerializeField, Min(0.1f)] private float coatedSparkleScale = 0.7f;
+        [Tooltip("새 모습이 튀어나오기 시작하는 크기(원래의 비율). 1이면 팝 없음.")]
+        [SerializeField, Range(0.1f, 1f)] private float popFrom = 0.7f;
+        [SerializeField, Min(0.01f)] private float popTime = 0.2f;
+        [SerializeField, Min(1f)] private float popOvershoot = 1.15f;
+        [SerializeField] private AudioClip coatedClip;
+        [SerializeField, Range(0f, 1f)] private float coatedVolume = 0.7f;
+
+        private float _nextSplash;
+
+        [Header("소리 (+10/6, 이슈 117) — 기획 sfx_sauce_squeeze_loop")]
+        [Tooltip("소스가 나오는 동안.")]
+        [SerializeField] private AudioClip squeezeLoop;
+        [SerializeField, Range(0f, 1f)] private float squeezeVolume = 0.7f;
+
+        private SoundLoop _squeeze;
 
         [Header("시간")]
         [Tooltip("제한시간(초). 기획 MG_GUIDE_DRAG = 8.")]
@@ -137,6 +169,7 @@ namespace Marea.Cooking
                 t.Visual = prefab != null
                     ? Instantiate(prefab, anchor.position, anchor.rotation, transform)
                     : MakePlaceholder(anchor);
+                if (prefab != null) t.Visual.transform.localScale *= clamScale;   // (+10/6)
                 StripColliders(t.Visual);
                 _targets.Add(t);
             }
@@ -174,6 +207,7 @@ namespace Marea.Cooking
             UpdateFlip();
             bool pouring = _holding && Quaternion.Angle(bottle.localRotation, _pourRot) < pourAngle;
             SetStream(pouring);
+            SoundManager.Hold(ref _squeeze, squeezeLoop, pouring, squeezeVolume);   // (+10/6)
             if (pouring) Pour();
             else _lastBottlePos = bottle.position;
 
@@ -243,6 +277,11 @@ namespace Marea.Cooking
                 if (d.magnitude > targetRadius) continue;
 
                 tg.Coat += Time.deltaTime;
+                if (Time.time >= _nextSplash)
+                {
+                    _nextSplash = Time.time + splashInterval;
+                    Vfx.Play(sauceSplashVfx, to, 0.5f, sauceTint);   // (+10/6) 조개에 닿는 자리
+                }
                 if (tg.Coat < coatSeconds) continue;
 
                 tg.Done = true;
@@ -251,12 +290,18 @@ namespace Marea.Cooking
                 {
                     Destroy(tg.Visual);
                     tg.Visual = Instantiate(coated, tg.Anchor.position, tg.Anchor.rotation, transform);
+                    tg.Visual.transform.localScale *= clamScale;   // (+10/6)
                     StripColliders(tg.Visual);
                 }
                 else
                 {
                     foreach (Renderer r in tg.Visual.GetComponentsInChildren<Renderer>()) r.material.color = coatedColor;
                 }
+                // (+10/7) 다 묻은 순간 — 크게 튀고 반짝, 새 모습은 작게 시작해 튀어나온다.
+                Vfx.Play(sauceSplashVfx, tg.Anchor.position, coatedSplashScale, sauceTint);
+                Vfx.Play(coatedSparkleVfx, tg.Anchor.position + Vector3.up * 0.05f, coatedSparkleScale);
+                SoundManager.Play(coatedClip, coatedVolume, 0.08f);
+                if (tg.Visual != null && popFrom < 1f) StartCoroutine(Pop(tg.Visual.transform));
                 OnProgress?.Invoke(CoatedCount, TotalCount);
             }
         }
@@ -284,6 +329,7 @@ namespace Marea.Cooking
             _running = false;
             _holding = false;
             SetStream(false);
+            _squeeze.Stop();
             IsFinished = true;
         }
 
@@ -292,12 +338,30 @@ namespace Marea.Cooking
             _running = false;
             _holding = false;
             SetStream(false);
+            _squeeze.Stop();
             Cleanup();
             if (bottle != null && surface != null)
             {
                 bottle.position = RestPosition(_bottleHome);
                 bottle.localRotation = _restRot;
             }
+        }
+
+        /// <summary>(+10/7) popFrom → popOvershoot(앞 60%) → 1(뒤 40%). 패널이 꺼지면 모습째 지워지니 중간에 멈춰도 된다.</summary>
+        private IEnumerator Pop(Transform shown)
+        {
+            Vector3 full = shown.localScale;
+            for (float t = 0f; t < popTime; t += Time.deltaTime)
+            {
+                if (shown == null) yield break;
+                float u = t / popTime;
+                float k = u < 0.6f
+                    ? Mathf.Lerp(popFrom, popOvershoot, Mathf.SmoothStep(0f, 1f, u / 0.6f))
+                    : Mathf.Lerp(popOvershoot, 1f, Mathf.SmoothStep(0f, 1f, (u - 0.6f) / 0.4f));
+                shown.localScale = full * k;
+                yield return null;
+            }
+            if (shown != null) shown.localScale = full;
         }
 
         private void Cleanup()

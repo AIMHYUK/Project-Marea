@@ -47,6 +47,22 @@ namespace Marea.Field
         [Tooltip("귀환했을 때 켜는 표식(느낌표).")]
         [SerializeField] private GameObject returnedMarker;
 
+        [Header("연출 (+10/6, 이슈 117) — 기획 「출항·귀환」 VFX_04 · 「탐사 보상 획득」 VFX_02")]
+        [Tooltip("출항 · 귀환 순간 배에서 튀는 물방울.")]
+        [SerializeField] private VfxId splashVfx = VfxId.Splash;
+        [Tooltip("떠나는 동안 배 뒤에 남는 항적.")]
+        [SerializeField] private VfxId wakeVfx = VfxId.Wake;
+        [SerializeField, Min(0.05f)] private float wakeInterval = 0.2f;
+        [Tooltip("보상을 받을 때 배 위에서 반짝.")]
+        [SerializeField] private VfxId rewardVfx = VfxId.Sparkle;
+
+        [Header("소리 (+10/6, 이슈 117) — 기획 EXP-01 sfx_explore_depart")]
+        [Tooltip("파견하는 순간 출발 엔진음.")]
+        [SerializeField] private AudioClip departClip;
+        [Tooltip("돌아온 순간 뱃고동.")]
+        [SerializeField] private AudioClip returnClip;
+        [SerializeField, Range(0f, 1f)] private float clipVolume = 0.9f;
+
         [Header("떠날 때 연출 (+9/30)")]
         [Tooltip("파견하고 배가 사라질 때까지 걸리는 초.")]
         [SerializeField, Min(0f)] private float departSeconds = 2.5f;
@@ -112,6 +128,8 @@ namespace Marea.Field
                 RollReward();
                 Current = State.Returned;
                 Show();
+                if (boat != null) Vfx.Play(splashVfx, boat.transform.position, 2f);   // (+10/6) 돌아온 순간
+                SoundManager.Play(returnClip, clipVolume);   // (+10/6) 화면 밖에서 돌아와도 알게 화면 소리로
             }
 
             // 라벨은 보이고 싶은 프레임마다 부른다. 대기 중엔 안 불러서 저절로 꺼진다.
@@ -186,6 +204,7 @@ namespace Marea.Field
             _returnAt = Time.time + DurationOf(area);
             Current = State.Away;
             Show();
+            SoundManager.PlayAt(departClip, boat != null ? boat.transform.position : transform.position, clipVolume);   // (+10/6)
             return true;
         }
 
@@ -229,6 +248,7 @@ namespace Marea.Field
             _current = null;
             Current = State.Idle;
             Show();
+            if (boat != null) Vfx.Play(rewardVfx, boat.transform.position + Vector3.up * 1.5f, 1.2f);   // (+10/6)
             return true;
         }
 
@@ -259,11 +279,20 @@ namespace Marea.Field
             Vector3 dir = Vector3.ProjectOnPlane(t.forward, Vector3.up).normalized;
             float sinkFrom = Mathf.Max(0f, departSeconds - sinkSeconds);
 
+            // (+10/6) 출항 순간 물방울, 나아가는 동안 뒤에 항적.
+            Vfx.Play(splashVfx, start, 2f);
+            float nextWake = 0f;
+
             for (float e = 0f; e < departSeconds; e += Time.deltaTime)
             {
                 float k = e / departSeconds;
                 float sink = sinkSeconds > 0f ? Mathf.Clamp01((e - sinkFrom) / sinkSeconds) : 0f;
                 t.position = start + dir * (departDistance * k * k) + Vector3.down * (sinkDepth * sink * sink);
+                if (e >= nextWake)
+                {
+                    nextWake = e + wakeInterval;
+                    Vfx.Play(wakeVfx, new Vector3(t.position.x, start.y, t.position.z) - dir * 1f, 1.5f);
+                }
                 yield return null;
             }
 

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Marea.Core;
+using Marea.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -44,6 +46,39 @@ namespace Marea.Cooking
         [Tooltip("동시에 떠 있을 수 있는 최대 개수.")]
         [SerializeField, Min(1)] private int maxAlive = 4;
 
+        [Header("연출 (+10/6, 이슈 117) — 기획 「정확한 타이밍·위치 입력」 VFX_08/12 · 「보통 판정」 VFX_08")]
+        [Tooltip("맞힌 자리에 퍼지는 링. 모든 성공에.")]
+        [SerializeField] private VfxId hitRingVfx = VfxId.Ping;
+        [Tooltip("빨리 맞혀 점수가 perfectScore 이상이면 더하는 반짝임. 무작위 모드는 늘 더한다.")]
+        [SerializeField] private VfxId perfectVfx = VfxId.HitSpark;
+        [SerializeField, Range(0f, 1f)] private float perfectScore = 0.75f;
+        [Tooltip("놓쳤을 때. 기획 「잘못된 입력·입력 놓침」은 파티클 없음(—)이라 기본은 비운다.")]
+        [SerializeField] private VfxId missVfx = VfxId.None;
+        [Tooltip("(+10/7) missVfx 색 — 조개가 탈 땐 어둡게(검은 연기). 흰색이면 원래 색.")]
+        [SerializeField] private Color missTint = Color.white;
+        [SerializeField, Min(0.1f)] private float missVfxScale = 1f;
+        [SerializeField, Min(0.1f)] private float vfxScale = 1f;
+        [Tooltip("(+10/7) 맞혔을 때 그 자리에서 터지는 것 — 스튜 거품이 「터지는」 국물 방울. 비우면 링 · 반짝임만.")]
+        [SerializeField] private VfxId burstVfx = VfxId.None;
+        [SerializeField] private Color burstTint = Color.white;
+        [SerializeField, Min(0.1f)] private float burstVfxScale = 1f;
+        [Tooltip("(+10/7) 고정 슬롯 모드에서 열리는 순간 한 번 — 조개가 입 벌릴 때 뿜는 김. 「지금 누르라」는 신호.")]
+        [SerializeField] private VfxId openVfx = VfxId.None;
+        [SerializeField, Min(0.1f)] private float openVfxScale = 1f;
+
+        [Header("소리 (+10/6, 이슈 117) — 같은 부품을 스튜 · 조개가 같이 쓴다, 칸은 인스턴스마다")]
+        [Tooltip("나타날 때. 스튜 = sfx_foam_spawn(거품), 조개 = sfx_shell_open(입 벌림).")]
+        [SerializeField] private AudioClip appearClip;
+        [SerializeField, Range(0f, 1f)] private float appearVolume = 0.5f;
+        [Tooltip("눌러서 없앨 때. 스튜 = sfx_foam_remove, 조개 = sfx_shell_pickup.")]
+        [SerializeField] private AudioClip hitClip;
+        [SerializeField, Range(0f, 1f)] private float hitVolume = 0.8f;
+        [Tooltip("판정음 — 보통 성공(sfx_cook_success) / 빨리 맞힘(sfx_cook_perfect, perfectScore 이상) / 놓침 · 탐(sfx_cook_fail). 파일이 오면 꽂는다.")]
+        [SerializeField] private AudioClip successClip;
+        [SerializeField] private AudioClip perfectClip;
+        [SerializeField] private AudioClip missClip;
+        [SerializeField, Range(0f, 1f)] private float judgeVolume = 0.7f;
+
         [Header("시간")]
         [Tooltip("제한시간(초). 기획 CookingMiniGameData MG_POPUP_TOUCH = 10.")]
         [SerializeField, Min(1f)] private float timeLimit = 10f;
@@ -51,6 +86,12 @@ namespace Marea.Cooking
         [Header("고정 슬롯 모드 (+10/2) — 비우면 위 무작위 모드")]
         [Tooltip("하나씩 놓을 자리. 조개구이는 그릴 위 조개 자리.")]
         [SerializeField] private Transform[] slots;
+
+        /// <summary>(+10/6) 고정 슬롯 자리. 컨트롤러가 그릴 위치를 잡을 때 읽는다(불꽃 · 증기).</summary>
+        public IReadOnlyList<Transform> SlotAnchors => slots;
+
+        [Tooltip("(+10/6) 슬롯 모습에 곱하는 크기 — 조개구이 그릴 위 조개. 프리팹은 넓이 기준으로 맞춰 두고 자리 크기는 여기서.")]
+        [SerializeField, Min(0.01f)] private float slotScale = 1f;
 
         [Tooltip("열리기 전 모습(닫힌 조개). 비우면 임시 모양.")]
         [SerializeField] private GameObject idlePrefab;
@@ -185,6 +226,8 @@ namespace Marea.Cooking
 
                 if (p.Age >= p.Life)
                 {
+                    Vfx.Play(missVfx, p.T.position, missVfxScale, missTint);   // (+10/6, +10/7 색 · 크기)
+                    SoundManager.Play(missClip, judgeVolume);     // (+10/6)
                     Destroy(p.T.gameObject);   // 놓쳤다
                     _alive.RemoveAt(i);
                     OnProgress?.Invoke(_popped, _spawned);
@@ -211,6 +254,7 @@ namespace Marea.Cooking
                     // (+10/2, 이슈 84) 터지는 연출이 있으면 지우기 전에 튼다.
                     PopupBurst burst = _alive[i].T.GetComponentInChildren<PopupBurst>();
                     if (burst != null) burst.Burst();
+                    PlayHit(_alive[i].T.position, 1f);   // (+10/6)
                     Destroy(_alive[i].T.gameObject);
                     _alive.RemoveAt(i);
                     _popped++;
@@ -249,6 +293,7 @@ namespace Marea.Cooking
                 Life = UnityEngine.Random.Range(lifetimeRange.x, Mathf.Max(lifetimeRange.x, lifetimeRange.y)),
             });
             _spawned++;
+            SoundManager.Play(appearClip, appearVolume, 0.1f);   // (+10/6)
             OnProgress?.Invoke(_popped, _spawned);
         }
 
@@ -293,12 +338,32 @@ namespace Marea.Cooking
                 {
                     sl.State = SlotState.Open;
                     sl.OpenedAt = _elapsed;
-                    ShowSlot(sl, Pick(slotOpenPrefabs, sl.Index, popupPrefab), openColor, true);
+                    // (+10/6) 여는 연출이 있는 조개는 그 자리에서 연다 — 가리비는 뚜껑만(그대로 둠), 전복은 뒤집힌 뒤 열린 모습으로 갈아 끼운다.
+                    // 누르는 건 연출 중에도 된다(반응 시간은 지금부터 잰다).
+                    ClamOpener opener = sl.Visual != null ? sl.Visual.GetComponentInChildren<ClamOpener>() : null;
+                    if (opener != null && opener.SwapBeforeOpen)
+                    {
+                        // (+10/6) 전복 — 살 있는 열린 모습으로 먼저 갈아 끼우고, 그 모습이 뒤집힌 자세에서 튀어 오르며 제자리로.
+                        // opener는 지워질 옛 모습에 붙어 있지만 Destroy는 프레임 끝이라 이 프레임 안엔 쓸 수 있다.
+                        ShowSlot(sl, Pick(slotOpenPrefabs, sl.Index, popupPrefab), openColor, true);
+                        opener.PlayOnSwapped(sl.Visual, null);
+                    }
+                    else if (opener != null)
+                    {
+                        if (sl.Col != null) sl.Col.enabled = true;
+                        Slot opening = sl;
+                        opener.Open(opener.ReplaceWhenDone ? () => ReplaceWhenOpened(opening) : null);
+                    }
+                    else ShowSlot(sl, Pick(slotOpenPrefabs, sl.Index, popupPrefab), openColor, true);
+                    if (sl.Anchor != null) Vfx.Play(openVfx, sl.Anchor.position + Vector3.up * 0.03f, openVfxScale);   // (+10/7)
+                    SoundManager.Play(appearClip, appearVolume, 0.1f);   // (+10/6)
                 }
                 else if (sl.State == SlotState.Open && _elapsed - sl.OpenedAt > reactionWindow)
                 {
                     sl.State = SlotState.Done;   // 탔다
                     sl.Score = 0f;
+                    if (sl.Anchor != null) Vfx.Play(missVfx, sl.Anchor.position, missVfxScale, missTint);   // (+10/6, +10/7 색 · 크기)
+                    SoundManager.Play(missClip, judgeVolume);                                  // (+10/6)
                     GameObject burnt = Pick(slotBurntPrefabs, sl.Index, null);
                     if (burnt != null) ShowSlot(sl, burnt, burntColor, false);
                     else Tint(sl.Visual, burntColor);
@@ -333,11 +398,19 @@ namespace Marea.Cooking
                 float t = Mathf.Clamp01((_elapsed - sl.OpenedAt) / reactionWindow);
                 sl.Score = Mathf.Lerp(1f, minReactionScore, t);
                 sl.State = SlotState.Done;
+                PlayHit(sl.Anchor != null ? sl.Anchor.position : hit.point, sl.Score);   // (+10/6)
                 if (sl.Col != null) sl.Col.enabled = false;
                 _popped++;
                 OnProgress?.Invoke(_popped, _spawned);
                 return;
             }
+        }
+
+        /// <summary>(+10/6) 여는 연출이 끝났을 때 — 아직 열린 채(안 눌렀고 안 탔다)일 때만 열린 모습으로 갈아 끼운다.</summary>
+        private void ReplaceWhenOpened(Slot sl)
+        {
+            if (sl.State != SlotState.Open || !_slots.Contains(sl)) return;
+            ShowSlot(sl, Pick(slotOpenPrefabs, sl.Index, popupPrefab), openColor, true);
         }
 
         /// <summary>슬롯 모습을 갈아 끼운다. 프리팹이 없으면 납작한 구에 색.</summary>
@@ -349,6 +422,7 @@ namespace Marea.Cooking
             if (prefab != null)
             {
                 go = Instantiate(prefab, sl.Anchor.position, sl.Anchor.rotation, transform);
+                go.transform.localScale *= slotScale;   // (+10/6)
             }
             else
             {
@@ -381,6 +455,16 @@ namespace Marea.Cooking
         {
             if (go == null) return;
             foreach (Renderer r in go.GetComponentsInChildren<Renderer>()) r.material.color = color;
+        }
+
+        /// <summary>(+10/6) 성공 — 링은 늘, 반짝임은 점수가 perfectScore 이상일 때만(보통 판정은 링만).</summary>
+        private void PlayHit(Vector3 at, float score)
+        {
+            Vfx.Play(hitRingVfx, at, vfxScale);
+            Vfx.Play(burstVfx, at, burstVfxScale, burstTint);   // (+10/7)
+            if (score >= perfectScore) Vfx.Play(perfectVfx, at + Vector3.up * 0.05f, vfxScale);
+            SoundManager.Play(hitClip, hitVolume, 0.08f);
+            SoundManager.Play(score >= perfectScore ? perfectClip : successClip, judgeVolume);
         }
 
         private void Finish()

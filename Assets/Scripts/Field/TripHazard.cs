@@ -36,6 +36,10 @@ namespace Marea.Field
         [Tooltip("밟았는지 보는 트리거. 자식에 두고 isTrigger를 켠다. 루트 콜라이더(클릭용)와 따로 둔다.")]
         [SerializeField] private Collider stepTrigger;
 
+        [Header("연출 (+10/6, 이슈 117) — 기획 「파손 바닥 수리 완료」 VFX_10 / VFX_02")]
+        [SerializeField] private Marea.Data.VfxId repairDustVfx = Marea.Data.VfxId.Dust;
+        [SerializeField] private Marea.Data.VfxId repairSparkleVfx = Marea.Data.VfxId.Sparkle;
+
         private Collider _collider;
         private bool _repaired;
         private WorldLabelUI _labels;
@@ -113,6 +117,8 @@ namespace Marea.Field
 
             _repaired = true;
             Apply();
+            Vfx.Play(repairDustVfx, transform.position, 0.7f);
+            Vfx.Play(repairSparkleVfx, transform.position + Vector3.up * 0.4f, 0.6f);
             ShowMessage($"-{repairCost}G");
             return true;
         }

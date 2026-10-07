@@ -32,11 +32,17 @@ namespace Marea.Player
         [Tooltip("대상 콜라이더 윗면에서 이만큼 위에 띄운다(월드 단위).")]
         [SerializeField] private float heightOffset = 0.4f;
 
+        [Header("소리 (+10/6, 이슈 117) — 기획 MOV-02 ui_interact_hover")]
+        [Tooltip("상호작용할 대상이 새로 잡힐 때 아주 작게. 비우면 조용하다. 실행음은 PlayerController.")]
+        [SerializeField] private AudioClip hoverClip;
+        [SerializeField, Range(0f, 1f)] private float hoverVolume = 0.3f;
+
         private readonly Collider[] _hits = new Collider[32];
         private PlayerController _player;
         private PlayerInputReader _input;
         private Camera _cam;
         private InteractableBase _target;
+        private bool _suppressHover;   // (+10/6) E 직후 대상을 비운 프레임 — 다시 잡혀도 다가감 소리를 안 낸다
         private Bounds _targetBounds;
 
         private void Awake()
@@ -65,13 +71,19 @@ namespace Marea.Player
 
             // 미니게임 중이거나 클릭으로 걸어가는 중이면 받지 않는다. 걸어가는 중에 E로 다른 걸
             // 열면 도착했을 때 원래 대상의 Interact가 또 불린다.
+            InteractableBase was = _target;
             _target = _player.IsBusy ? null : FindNearest(out _targetBounds);
+            if (_target != null && was == null && !_suppressHover) SoundManager.Play(hoverClip, hoverVolume);   // (+10/6) 없다가 생길 때만
+            _suppressHover = false;
 
             if (_target != null && _input.InteractPressed)
             {
+                _player.PlayInteractSound();   // (+10/6)
                 _target.Interact(_player);
                 // 상호작용 뒤 상태가 바뀌었을 수 있다(심었으면 성장 중). 다음 프레임에 다시 고른다.
+                // (+10/6) 여기서 비우면 다음 프레임에 "없다가 생김"이 돼서 다가감 소리가 또 난다 — 한 프레임 막는다.
                 _target = null;
+                _suppressHover = true;
             }
         }
 
