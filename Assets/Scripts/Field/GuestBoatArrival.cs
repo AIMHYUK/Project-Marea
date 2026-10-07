@@ -26,12 +26,13 @@ namespace Marea.Field
         [SerializeField] private Transform boat;
         [Tooltip("정박 자세(위치 · 방향). 배가 여기 와서 선다.")]
         [SerializeField] private Transform dockPoint;
-        [Tooltip("정박 지점에서 이만큼 떨어진 바다에서 출발한다. 들어올 땐 이 방향의 반대로 뱃머리를 둔다. "
-               + "x · z를 같이 줘서 대각선으로 들어오게 한다 — 부두를 정면으로 향하면 들이받는 것처럼 보인다.")]
-        [SerializeField] private Vector3 approachOffset = new(-24.5f, 0f, -14.1f);   // 진행 방향 60°
+        [Tooltip("배 루트의 +Z와 모델 뱃머리 사이 각도(도). 모델이 루트보다 이만큼 틀어져 있다 — "
+               + "이걸 안 빼면 진행 방향을 바라보게 돌려도 배가 옆으로 게걸음 친다.")]
+        [SerializeField] private float bowYawOffset = 8.2f;
+        [Tooltip("정박 자세의 뱃머리 방향으로 이만큼 뒤에서 출발해 뱃머리 방향 그대로 직진해 들어온다. "
+               + "출항은 반대로 돌아서 이 거리만큼 나간다.")]
+        [SerializeField, Min(1f)] private float approachDistance = 28f;
         [SerializeField, Min(0.5f)] private float arriveSeconds = 6f;
-        [Tooltip("도착 직전 이 비율 동안 뱃머리를 정박 방향으로 돌린다.")]
-        [SerializeField, Range(0f, 1f)] private float turnPortion = 0.6f;
         [SerializeField, Min(0.5f)] private float departSeconds = 6f;
 
         [Header("정박 중 흔들림")]
@@ -128,16 +129,15 @@ namespace Marea.Field
             BeginCutscene();
             if (_customers != null) _customers.PauseSpawning(true);   // 배가 닿기 전엔 아무도 안 나온다
 
-            Vector3 from = dockPoint.position + approachOffset;
-            Quaternion heading = Quaternion.LookRotation(-Flat(approachOffset), Vector3.up);
-            boat.SetPositionAndRotation(from, heading);
+            // 정박 자세 그대로 뱃머리 뒤쪽 바다에 두고 뱃머리 방향으로 직진 — 돌지 않는다.
+            Vector3 from = dockPoint.position - Bow() * approachDistance;
+            boat.SetPositionAndRotation(from, dockPoint.rotation);
             boat.gameObject.SetActive(true);
             _state = BoatState.Arriving;
 
             for (float t = 0f; t < arriveSeconds && !_skip; t += Time.deltaTime)
             {
-                float k = t / arriveSeconds;
-                PoseBoat(from, heading, EaseOut(k), k);
+                boat.position = Vector3.Lerp(from, dockPoint.position, EaseOut(t / arriveSeconds));
                 Focus(boat.position);
                 yield return null;
             }
@@ -157,13 +157,9 @@ namespace Marea.Field
             _routine = null;
         }
 
-        private void PoseBoat(Vector3 from, Quaternion heading, float travel, float k)
-        {
-            Vector3 pos = Vector3.Lerp(from, dockPoint.position, travel);
-            float turnStart = 1f - turnPortion;
-            float turn = turnPortion <= 0f ? (k >= 1f ? 1f : 0f) : Mathf.Clamp01((k - turnStart) / turnPortion);
-            boat.SetPositionAndRotation(pos, Quaternion.Slerp(heading, dockPoint.rotation, Mathf.SmoothStep(0f, 1f, turn)));
-        }
+        /// <summary>정박 자세에서 모델 뱃머리가 향하는 수평 방향.</summary>
+        private Vector3 Bow()
+            => Flat(dockPoint.rotation * Quaternion.Euler(0f, bowYawOffset, 0f) * Vector3.forward);
 
         private void PlaceDocked()
         {
@@ -192,15 +188,19 @@ namespace Marea.Field
             _state = BoatState.Departing;
             Vector3 from = boat.position;
             Quaternion start = boat.rotation;
-            Vector3 to = dockPoint.position + approachOffset;
-            Quaternion away = Quaternion.LookRotation(Flat(approachOffset), Vector3.up);
+            // 제자리에서 뱃머리를 돌려 온 길로 나간다 — 돈 다음에야 움직여서 역시 게걸음이 없다.
+            Vector3 to = dockPoint.position - Bow() * approachDistance;
+            Quaternion away = Quaternion.Euler(0f, 180f, 0f) * start;
+            const float turnPart = 0.35f;
 
             for (float t = 0f; t < departSeconds; t += Time.deltaTime)
             {
                 float k = t / departSeconds;
+                float turn = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(k / turnPart));
+                float go = Mathf.Clamp01((k - turnPart) / (1f - turnPart));
                 boat.SetPositionAndRotation(
-                    Vector3.Lerp(from, to, k * k),   // 천천히 떠나 점점 빨라진다
-                    Quaternion.Slerp(start, away, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(k / 0.4f))));
+                    Vector3.Lerp(from, to, go * go),   // 천천히 떠나 점점 빨라진다
+                    Quaternion.Slerp(start, away, turn));
                 yield return null;
             }
             boat.gameObject.SetActive(false);
