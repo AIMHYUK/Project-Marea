@@ -134,9 +134,10 @@ namespace Marea.Player
         /// "최대한 가까이"가 맞다. 상호작용(GoInteract)은 반대로 두는 게 맞아서
         /// 여기만 켠다. (+9/8)
         /// </summary>
-        public void GoTo(Vector3 destination)
+        /// <returns>(+10/7) 출발했으면 true. 미니게임 등으로 잠겨 있으면 false — 클릭 마커가 이걸 보고 뜬다.</returns>
+        public bool GoTo(Vector3 destination)
         {
-            if (_busyHeld) return;
+            if (_busyHeld) return false;
 
             // 이동 중에 다시 불러도 된다. AgentMover.GoTo가 먼저 Stop()을 부르므로
             // 앞 목적지의 콜백은 버려지고 새 목적지로 갈아탄다.
@@ -148,6 +149,7 @@ namespace Marea.Player
                 onFailed: () => _state = State.Idle,
 
                 allowPartialPath: true);
+            return true;
         }
 
         /// <summary>(+10/6) 상호작용 실행음. E 경로(ProximityInteractor)도 여기를 불러 한 칸에서 고친다. B 계약 아님.</summary>

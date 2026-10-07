@@ -36,6 +36,9 @@ namespace Marea.Player
                + "작으면 갈 수 있는 자리인데 반응이 없다. (+9/8)")]
         [SerializeField, Min(0f)] private float navSampleRadius = 1.5f;
 
+        [Tooltip("(+10/7) 바닥을 찍으면 그 자리에 뜨는 이동 표시. 비워도 이동은 된다.")]
+        [SerializeField] private ClickMarker clickMarker;
+
         private InteractableBase _hovered;
 
         private void Awake()
@@ -98,7 +101,11 @@ namespace Marea.Player
                 bool usable = target.CanInteract(player);
                 SetHovered(usable ? target : null);
 
-                if (clicked && usable) player.GoInteract(target);
+                if (clicked && usable)
+                {
+                    player.GoInteract(target);
+                    if (clickMarker != null) clickMarker.Hide();   // (+10/7) 바닥 이동이 아니라 상호작용 — 이동 표시는 지운다
+                }
                 return;
             }
 
@@ -121,7 +128,8 @@ namespace Marea.Player
             if (!NavMesh.SamplePosition(hit.point, out NavMeshHit navHit, navSampleRadius, NavMesh.AllAreas))
                 return;
 
-            player.GoTo(navHit.position);
+            if (player.GoTo(navHit.position) && clickMarker != null)
+                clickMarker.Show(navHit.position);   // (+10/7) "갑니다" 핑
         }
 
         private void SetHovered(InteractableBase next)
