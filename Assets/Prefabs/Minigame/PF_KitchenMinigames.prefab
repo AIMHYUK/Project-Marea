@@ -179,14 +179,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.Seasoning3DQTE
   salt3DObject: {fileID: 541315552356163272}
   pepper3DObject: {fileID: 2229109801418948221}
+  seasoningClickPadding: 24
   saltParticle: {fileID: 0}
   pepperParticle: {fileID: 0}
   shakeAudioSource: {fileID: 0}
+  pepperShakeClip: {fileID: 0}
   railUI: {fileID: 8656058411952360706}
   totalNoteCount: 10
   initialDelay: 1.2
   minInterval: 0.8
   maxInterval: 1.4
+  intervalVariation: 0.25
+  doubleClickChance: 0.35
+  doubleClickInterval: {x: 0.28, y: 0.42}
 --- !u!1 &401120117634181146
 GameObject:
   m_ObjectHideFlags: 0
@@ -265,6 +270,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 3113773727607306203}
   aperture: 5.6
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &534449340766659119
 GameObject:
   m_ObjectHideFlags: 0
@@ -318,7 +329,10 @@ MonoBehaviour:
   endPoint3D: {fileID: 2502073307909733029}
   guideLineVisual: {fileID: 5661077141697691794}
   cutMarkVisual: {fileID: 5451808402935125194}
+  cutDecalReveal: {fileID: 0}
+  sliceEffect: {fileID: 0}
   cutThreshold: 0.75
+  pointerTolerancePixels: 24
 --- !u!65 &5655386284944305860
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -664,6 +678,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 3113773727607306203}
   aperture: 4
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &945654931952089542
 GameObject:
   m_ObjectHideFlags: 0
@@ -722,8 +742,11 @@ MonoBehaviour:
   step3ViewPoint: {fileID: 1021313239032041448}
   stepTransitionDelay: 1.5
   disableDuringMinigame: []
+  hideCookingDeco: 0
   seafoodSlicer: {fileID: 3313252622441121922}
   skewersAssembly: {fileID: 0}
+  ingredientController: {fileID: 0}
+  assemblyUI: {fileID: 0}
   skewersGrill: {fileID: 0}
 --- !u!1 &955336902717968121
 GameObject:
@@ -783,7 +806,7 @@ Transform:
   m_GameObject: {fileID: 972874691487952982}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.0096588135, y: -0.2300005, z: -0.01499939}
+  m_LocalPosition: {x: 0.0096588135, y: -0.272, z: -0.01499939}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -866,6 +889,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 5525053989469473134}
   aperture: 8
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &1212612752453604226
 GameObject:
   m_ObjectHideFlags: 0
@@ -1079,13 +1108,16 @@ MonoBehaviour:
   - {fileID: 6685243737215938622}
   crossSectionMaterial: {fileID: 3514935808808263199, guid: 6b18d91a958f957498e36cee9505a058, type: 3}
   knifeVisual: {fileID: 0}
+  uniformSliceSpacing: 1
   cutImpulseForce: 1.5
   sliceEffect: {fileID: 0}
   sliceAudioSource: {fileID: 0}
-  hitMaxDistance: 1.5
-  raycastLayerMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
+  knifeApproachDuration: 0.1
+  knifeCutDuration: 0.2
+  knifeReadyOffset: {x: 0, y: 0.35, z: -0.4}
+  knifeEndOffset: {x: 0, y: -0.15, z: -0.1}
+  ingredientClickPadding: 28
+  guideClickRadius: 48
 --- !u!1 &1417622212151628145
 GameObject:
   m_ObjectHideFlags: 0
@@ -1459,6 +1491,7 @@ MonoBehaviour:
   step3ViewPoint: {fileID: 7320805513827965254}
   stepTransitionDelay: 1.5
   disableDuringMinigame: []
+  hideCookingDeco: 1
   stewPot: {fileID: 3101196614948759483}
   stirZone: {fileID: 5741923044490717466}
   safeZoneMin: 0.35
@@ -1773,17 +1806,34 @@ MonoBehaviour:
   - {fileID: 3107066725223209102}
   panInsideTransform: {fileID: 6474355359585716280}
   spatulaTransform: {fileID: 914522208668918390}
+  veggieClickPadding: 48
   spatulaMoveRange: {x: 1.5, y: 1.5}
   spatulaSpeedMultiplier: 0.005
-  requiredCookProgress: 100
-  burnRate: 15
-  cookRate: 25
+  spatulaTurnSpeed: 360
+  spatulaPitchAngle: 20
+  spatulaRollAngle: 15
+  ingredientMoveRadius: 0.65
+  spatulaContactPoint: {fileID: 0}
+  spatulaContactRadius: 0.12
+  ingredientPushSpeed: 0.4
+  ingredientMaxPushDistance: 0.12
+  ingredientSpreadRatio: 0.5
+  ingredientFollowMultiplier: 0.85
+  ingredientTurnDegreesPerUnit: 70
+  ingredientMotionVariation: 0.12
+  ingredientResponseSpeed: 10
+  requiredIngredientStirSeconds: 4
+  ingredientSafePanSeconds: 12
+  ingredientOvertimePenaltyPerSecond: 10
+  stageDurationSeconds: 8
+  remainingTimeFill: {fileID: 0}
   veggieRenderer: {fileID: 0}
   rawColor: {r: 1, g: 1, b: 1, a: 1}
   cookedColor: {r: 1, g: 0.8, b: 0.4, a: 1}
   burnedColor: {r: 0, g: 0, b: 0, a: 1}
   cookingSteamEffect: {fileID: 0}
   stirAudioSource: {fileID: 0}
+  ingredientInsertAudioSource: {fileID: 0}
 --- !u!1 &2509889852005481796
 GameObject:
   m_ObjectHideFlags: 0
@@ -1861,6 +1911,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 6474355359585716280}
   aperture: 4
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &2615778681022015401
 GameObject:
   m_ObjectHideFlags: 0
@@ -1907,6 +1963,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 5266961642537523431}
   aperture: 2.8
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &2656616051147511087
 GameObject:
   m_ObjectHideFlags: 0
@@ -2061,6 +2123,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 2185284993655038593}
   aperture: 4
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &3107066725223209102
 GameObject:
   m_ObjectHideFlags: 0
@@ -2507,6 +2575,7 @@ MonoBehaviour:
   sliceGuidePoints: []
   crossSectionMaterial: {fileID: 0}
   knifeVisual: {fileID: 0}
+  uniformSliceSpacing: 1
   cutImpulseForce: 0.6
   sliceEffect: {fileID: 0}
   sliceAudioSource: {fileID: 0}
@@ -2674,6 +2743,9 @@ MonoBehaviour:
   moveSpeed: 3.25
   aboveStickClearance: 0.45
   insertionDuration: 0.5
+  sauceColor: {r: 0.95, g: 0.3, b: 0.06, a: 1}
+  sauceBlend: 0.65
+  sauceTintShader: {fileID: 0}
 --- !u!114 &6187927287900202551
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2689,6 +2761,9 @@ MonoBehaviour:
   gameRoot: {fileID: 0}
   timingBar: {fileID: 0}
   txtFeedback: {fileID: 0}
+  sauceProgressRoot: {fileID: 0}
+  sauceProgressFill: {fileID: 0}
+  sauceProgressText: {fileID: 0}
 --- !u!1 &3960860610615390371
 GameObject:
   m_ObjectHideFlags: 0
@@ -2798,6 +2873,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 3658053102473900180}
   aperture: 4
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &4240202683965510147
 GameObject:
   m_ObjectHideFlags: 0
@@ -3424,7 +3505,7 @@ Transform:
   m_GameObject: {fileID: 4837123293034713652}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.0096588135, y: -0.4300003, z: -0.01499939}
+  m_LocalPosition: {x: 0.0096588135, y: -0.449, z: -0.01499939}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3507,6 +3588,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 2616143907184312517}
   aperture: 5.6
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &5451808402935125194
 GameObject:
   m_ObjectHideFlags: 0
@@ -3658,8 +3745,13 @@ MonoBehaviour:
   step3ViewPoint: {fileID: 0}
   stepTransitionDelay: 1.5
   disableDuringMinigame: []
+  hideCookingDeco: 0
   fishVisual: {fileID: 8572592452879247606}
   minigameUI: {fileID: 0}
+  cutAudioClip: {fileID: 0}
+  cutAudioSource: {fileID: 0}
+  flipAudioClip: {fileID: 0}
+  flipAudioSource: {fileID: 0}
   cutGuides:
   - {fileID: 4957882823037637324}
   totalBakeDuration: 6.5
@@ -3671,6 +3763,7 @@ MonoBehaviour:
   badMax: 0.97
   platingItems:
   - {fileID: 2078814872008856535}
+  platingSurface: {fileID: 0}
 --- !u!1 &5656468571296993942
 GameObject:
   m_ObjectHideFlags: 0
@@ -3863,6 +3956,7 @@ MonoBehaviour:
   step3ViewPoint: {fileID: 8729226432701998643}
   stepTransitionDelay: 1.5
   disableDuringMinigame: []
+  hideCookingDeco: 1
   scrubGame: {fileID: 4544847291366714618}
   grillGame: {fileID: 3501211025678023939}
   sauceGame: {fileID: 7404134618522493232}
@@ -4225,6 +4319,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 8334515319401872229}
   aperture: 4
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &5769298683458301536
 GameObject:
   m_ObjectHideFlags: 0
@@ -4302,6 +4402,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 3113773727607306203}
   aperture: 0
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &5918115403049402990
 GameObject:
   m_ObjectHideFlags: 0
@@ -4727,6 +4833,7 @@ MonoBehaviour:
   step3ViewPoint: {fileID: 2021842890673115360}
   stepTransitionDelay: 1.5
   disableDuringMinigame: []
+  hideCookingDeco: 0
   onionSlicer: {fileID: 8684238146043283218}
   panStirController: {fileID: 6858924631111266998}
   seasoningQTE: {fileID: 2112110476941138502}
@@ -4777,6 +4884,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 7641307852396388433}
   aperture: 8
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &6597878554384457310
 GameObject:
   m_ObjectHideFlags: 0
@@ -4880,6 +4993,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 2616143907184312517}
   aperture: 5.6
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &6680247333617554123
 GameObject:
   m_ObjectHideFlags: 0
@@ -5829,6 +5948,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 2185284993655038593}
   aperture: 4
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &8073702978005167120
 GameObject:
   m_ObjectHideFlags: 0
@@ -5944,6 +6069,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.ViewPointFocus
   target: {fileID: 3113773727607306203}
   aperture: 0
+  blurMode: 0
+  backgroundStartOffset: 0.6
+  backgroundFadeDistance: 2.5
+  blurRadius: 0.8
+  highQualitySampling: 1
+  focalLength: 50
 --- !u!1 &8208426646399023553
 GameObject:
   m_ObjectHideFlags: 0
@@ -7326,8 +7457,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.MinigameDraggable
   targetPoint: {fileID: 4766156546672616545}
+  targetPoints: []
   snapDistance: 0.5
   highlightGuide: {fileID: 0}
+  highlightGuides: []
+  placeAudioSource: {fileID: 0}
 --- !u!1001 &4489046275904822097
 PrefabInstance:
   m_ObjectHideFlags: 0
