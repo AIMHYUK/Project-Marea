@@ -26,11 +26,12 @@ namespace Marea.Field
         [SerializeField] private Transform boat;
         [Tooltip("정박 자세(위치 · 방향). 배가 여기 와서 선다.")]
         [SerializeField] private Transform dockPoint;
-        [Tooltip("정박 지점에서 이만큼 떨어진 바다에서 출발한다. 들어올 땐 이 방향의 반대로 뱃머리를 둔다.")]
-        [SerializeField] private Vector3 approachOffset = new(0f, 0f, -30f);
-        [SerializeField, Min(0.5f)] private float arriveSeconds = 5f;
+        [Tooltip("정박 지점에서 이만큼 떨어진 바다에서 출발한다. 들어올 땐 이 방향의 반대로 뱃머리를 둔다. "
+               + "x · z를 같이 줘서 대각선으로 들어오게 한다 — 부두를 정면으로 향하면 들이받는 것처럼 보인다.")]
+        [SerializeField] private Vector3 approachOffset = new(-20f, 0f, -20f);
+        [SerializeField, Min(0.5f)] private float arriveSeconds = 6f;
         [Tooltip("도착 직전 이 비율 동안 뱃머리를 정박 방향으로 돌린다.")]
-        [SerializeField, Range(0f, 1f)] private float turnPortion = 0.4f;
+        [SerializeField, Range(0f, 1f)] private float turnPortion = 0.6f;
         [SerializeField, Min(0.5f)] private float departSeconds = 6f;
 
         [Header("정박 중 흔들림")]
@@ -256,6 +257,7 @@ namespace Marea.Field
             return v.sqrMagnitude < 0.0001f ? Vector3.forward : v.normalized;
         }
 
-        private static float EaseOut(float k) => 1f - (1f - k) * (1f - k);
+        // 3차 — 끝으로 갈수록 오래 미끄러지다 선다. 2차는 부두에 들이받는 느낌이었다.
+        private static float EaseOut(float k) => 1f - (1f - k) * (1f - k) * (1f - k);
     }
 }
