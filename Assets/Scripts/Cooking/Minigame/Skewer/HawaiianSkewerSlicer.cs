@@ -402,14 +402,6 @@ namespace Marea.Cooking
                 return false;
             }
 
-            if (sliceEffect != null)
-            {
-                sliceEffect.transform.position =
-                    cutPoint;
-
-                sliceEffect.Play();
-            }
-
             if (sliceAudioSource != null)
             {
                 sliceAudioSource.Play();
@@ -445,6 +437,7 @@ namespace Marea.Cooking
             if (upperHull != null &&
                 lowerHull != null)
             {
+                CookingSliceVfx.Play(sliceEffect, cutPoint, cutNormal);
                 MatchTransform(
                     upperHull,
                     originalParent,

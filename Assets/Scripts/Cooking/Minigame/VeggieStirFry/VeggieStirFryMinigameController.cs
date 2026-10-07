@@ -89,7 +89,7 @@ namespace Marea.Cooking
         {
             if (panStirController != null && panStirController.IsCookCompleted)
             {
-                float score = Mathf.Clamp01(1.0f - (panStirController.BurnProgress / 100f));
+                float score = panStirController.CookingScore;
                 CompleteStep2(score);
             }
         }

@@ -18,6 +18,8 @@ namespace Marea.Cooking
         [Header("3D 및 연출")]
         [SerializeField] private GameObject skewer3DModel;
         [SerializeField] private ParticleSystem smokeEffect;
+        [Header("꼬치 클릭 영역")]
+        [SerializeField, Min(0f)] private float skewerClickPadding = 48f;
 
         [Header("굽기 설정")]
         [SerializeField] private float cookSpeed = 0.25f;
@@ -170,15 +172,8 @@ namespace Marea.Cooking
             if (_mainCamera == null || skewer3DModel == null) return;
 
             Vector2 mousePos = Mouse.current.position.ReadValue();
-            Ray ray = _mainCamera.ScreenPointToRay(mousePos);
-
-            if (Physics.Raycast(ray, out RaycastHit hit, 100f))
-            {
-                if (hit.transform == skewer3DModel.transform || hit.transform.IsChildOf(skewer3DModel.transform))
-                {
-                    OnSkewerClicked();
-                }
-            }
+            if (CookingClickArea.Contains(_mainCamera, skewer3DModel, mousePos, skewerClickPadding, out _))
+                OnSkewerClicked();
         }
 
         private void OnSkewerClicked()
