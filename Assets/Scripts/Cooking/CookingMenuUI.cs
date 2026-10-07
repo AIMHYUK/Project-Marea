@@ -167,6 +167,22 @@ namespace Marea.Cooking
             ShowCategoryStep();
         }
 
+        /// <summary>
+        /// (+10/7, A) 영업이 끝나 정산이 뜰 때 — 요리 선택 창 · 분류 창을 닫고 돌던 미니게임을 버린다.
+        /// 미니게임은 결과 콜백 없이 멈춰서 음식이 안 나오고 재료도 안 깎인다. 플레이어는 Close가 풀어 준다.
+        /// </summary>
+        public void AbortCooking()
+        {
+            foreach (BaseCookingMinigame game in FindObjectsByType<BaseCookingMinigame>(FindObjectsSortMode.None))
+                if (game.IsRunning) game.Abort();
+
+            CookingSelectUI select = FindAnyObjectByType<CookingSelectUI>(FindObjectsInactive.Include);
+            if (select != null && select.IsOpen) select.Close();
+
+            _cookingMenu = null;
+            Close();
+        }
+
         /// <summary>(+10/7, A) CookingSelectUI에서 고른 요리로 조리를 시작한다 — 기존 [요리 시작]과 같은 길.</summary>
         public void StartCookingMenu(MenuData menu)
         {

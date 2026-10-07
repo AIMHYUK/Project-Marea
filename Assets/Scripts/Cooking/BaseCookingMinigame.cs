@@ -257,6 +257,25 @@ namespace Marea.Cooking
             nextStepAction?.Invoke();
         }
 
+        /// <summary>(+10/7, A) 1~3단계 중이다(단계 전환 대기 포함).</summary>
+        public bool IsRunning => CurrentStepIndex >= MinigameStepIndex.Step1 && CurrentStepIndex <= MinigameStepIndex.Step3;
+
+        /// <summary>
+        /// (+10/7, A) 하던 요리를 버린다 — 영업이 끝나 정산이 뜨면 부른다(CookingMenuUI.AbortCooking).
+        /// 결과 콜백을 안 불러서 음식이 안 나오고 재료도 안 깎인다. 패널 · 카메라 · 숨긴 장식을 되돌린다.
+        /// 패널 밖에서 따로 켠 것(냄비 · 불꽃 등)은 각 미니게임이 OnAborted에서 끈다.
+        /// </summary>
+        public void Abort()
+        {
+            if (!IsRunning) return;
+            ResetMinigame();
+            ReturnCameraToOriginalPosition();
+            OnAborted();
+        }
+
+        /// <summary>(+10/7, A) Abort 때 각 미니게임이 따로 정리할 것.</summary>
+        protected virtual void OnAborted() { }
+
         // --- 미니게임 완결 ---
         protected virtual void FinishMinigame()
         {
