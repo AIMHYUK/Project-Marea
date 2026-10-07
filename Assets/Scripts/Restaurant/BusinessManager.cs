@@ -21,6 +21,7 @@ namespace Marea.Restaurant
         public int perfectCount;
         public int goodCount;
         public int totalRevenue;
+        public int badCount;   // (+10/7, A) Bad · Miss — 정산 창 "Bad / Fail n 개"
 
         public void Reset()
         {
@@ -28,6 +29,7 @@ namespace Marea.Restaurant
             perfectCount = 0;
             goodCount = 0;
             totalRevenue = 0;
+            badCount = 0;
         }
 
         public void RecordSale(HitGrade grade, int price)
@@ -39,6 +41,7 @@ namespace Marea.Restaurant
             else perfectCount += 0; // Good 또는 기본 판정
 
             if (grade == HitGrade.Good) goodCount++;
+            if (grade == HitGrade.Bad || grade == HitGrade.Miss) badCount++;   // (+10/7, A)
         }
     }
 
@@ -151,11 +154,14 @@ namespace Marea.Restaurant
             // 팝업에 적힌 매출과 그 순간 화면의 보유 골드가 한 프레임 어긋난다.
             if (Wallet.Instance != null)
             {
-                Wallet.Instance.Add(TodaySales.totalRevenue);
+                // (+10/7, A) 매출 그대로가 아니라 정산 배율(영업 시설 Lv3)을 곱하고 직원 인건비를 뺀 최종 수익.
+                // 정산 창(SettlementUI)이 같은 Settlement.Calculate로 보여준다.
+                int final = Marea.Economy.Settlement.Calculate(TodaySales.totalRevenue).Final;
+                Wallet.Instance.Add(final);
 
                 // 이 씬에는 골드를 보여주는 UI가 없다(UpgradeUI는 다른 씬). 잔액을 안 찍으면
                 // 입금이 됐는지 확인할 방법이 아예 없어서 여기서 한 줄 남긴다. (+9/10)
-                Debug.Log($"[BusinessManager] 지갑 입금: +{TodaySales.totalRevenue}G → 잔액 {Wallet.Instance.Gold}G");
+                Debug.Log($"[BusinessManager] 지갑 입금: +{final}G (매출 {TodaySales.totalRevenue}G) → 잔액 {Wallet.Instance.Gold}G");
             }
             else
             {
