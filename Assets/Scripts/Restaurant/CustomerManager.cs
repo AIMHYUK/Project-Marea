@@ -49,6 +49,21 @@ namespace Marea.Restaurant
             _spawnRoutine = StartCoroutine(SpawnRoutine());
         }
 
+        /// <summary>
+        /// (+10/7, A) 주기를 기다리지 않고 지금 한 명 내보낸다. 영업 시작 연출(GuestBoatArrival)이
+        /// 배가 선착장에 닿는 순간 첫 손님을 내리게 쓴다. 주기 스폰(SpawnRoutine)은 그대로 돈다.
+        /// 빈 좌석이나 프리팹이 없으면 false.
+        /// </summary>
+        public bool SpawnNow()
+        {
+            Seat emptySeat = GetRandomEmptySeat();
+            GameObject selectedPrefab = GetRandomCustomerPrefab();
+            if (emptySeat == null || selectedPrefab == null) return false;
+
+            SpawnCustomerAtSeat(emptySeat, selectedPrefab);
+            return true;
+        }
+
         public void StopSpawning()
         {
             if (_spawnRoutine != null)
