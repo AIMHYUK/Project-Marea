@@ -31,7 +31,8 @@ namespace Marea.Restaurant
             // 좌석 리스트가 비어있다면 씬 내 좌석 컴포넌트 자동 탐색
             if (seatList == null || seatList.Count == 0)
             {
-                seatList = new List<Seat>(FindObjectsOfType<Seat>());
+                // (+10/7, A) 꺼진 좌석도 모은다 — 식당 확장 부지의 좌석은 부지가 완성될 때 켜진다.
+                seatList = new List<Seat>(FindObjectsByType<Seat>(FindObjectsInactive.Include, FindObjectsSortMode.None));
             }
         }
 
@@ -142,7 +143,8 @@ namespace Marea.Restaurant
 
         private Seat GetRandomEmptySeat()
         {
-            List<Seat> emptySeats = seatList.FindAll(seat => seat != null && !seat.IsOccupied);
+            // (+10/7, A) 꺼진 좌석(아직 부서진 확장 부지)에는 앉히지 않는다.
+            List<Seat> emptySeats = seatList.FindAll(seat => seat != null && seat.isActiveAndEnabled && !seat.IsOccupied);
             if (emptySeats.Count == 0) return null;
 
             int randomIndex = Random.Range(0, emptySeats.Count);

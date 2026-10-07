@@ -40,6 +40,11 @@ namespace Marea.Field
         [SerializeField, Min(1)] private int baseSlots = 2;
 
         // (+10/6) 식당 부지 — 영업 시설은 처음부터 열려 있어서 "해금되면 완성"으로는 못 쓴다. 레벨로 정한다.
+        // (+10/7) 식당 확장 부지 — 좌석 · 테이블은 B의 씬 오브젝트라 builtVisual(아트 모델) 밖에 있다.
+        [Header("완성일 때만 켤 것 (+10/7)")]
+        [Tooltip("builtVisual 밖에 있지만 완성돼야 쓸 수 있는 것. 식당 확장 부지의 좌석 · 테이블.")]
+        [SerializeField] private GameObject[] builtExtras;
+
         [Header("완성 조건 (+10/6)")]
         [Tooltip("0이면 해금되면 완성(농사 데크 · 탐사정). 1 이상이면 그 레벨이 돼야 폐허에서 완성으로 — "
                + "처음부터 열린 시설의 부지처럼. 기획 영업 시설 4레벨 「부지 확장」.")]
@@ -73,6 +78,10 @@ namespace Marea.Field
         [Tooltip("해금을 여러 번에 나눠 보여준다. 단계마다 카메라가 그 부품으로 가서 이펙트와 함께 켠다. "
                + "부품은 builtVisual 안의 자식이어야 한다. 밭 칸은 마지막 단계에 같이 켜진다.")]
         [SerializeField] private GameObject[] revealSteps;
+        [Tooltip("(+10/7) revealSteps와 짝 — i번 칸의 부서진 부품은 i번 단계까지 남아 있다가 그때 꺼진다. "
+               + "여기 없는 폐허 자식은 첫 단계에서 꺼진다. 비우면 첫 단계에서 폐허를 통째로 끈다. "
+               + "농사 데크: [비움, farm_Broken] — 다리 단계엔 부서진 다리만, 데크 단계에 부서진 데크가 꺼진다.")]
+        [SerializeField] private GameObject[] brokenSteps;
         [Tooltip("두 번째 단계부터 — 카메라가 도착한 뒤 켜기까지(초). 첫 단계는 lookHold + revealDelay.")]
         [SerializeField, Min(0f)] private float stepDelay = 0.5f;
         [Tooltip("단계 사이 — 앞 단계 이펙트를 보여주고 다음 부품으로 넘어가기까지(초).")]
@@ -83,6 +92,7 @@ namespace Marea.Field
         private CameraFollow _revealCam;
         private PlayerController _revealPlayer;
         private readonly List<UiPanel> _hiddenPanels = new();
+        private readonly HashSet<GameObject> _hiddenByStep = new();   // (+10/7) 단계 연출이 끈 폐허 자식 — 원래 꺼져 있던 건 안 켠다
 
         /// <summary>이 실물이 어느 시설인가. 해금 클릭(FacilityUnlockClick)이 읽는다.</summary>
         public FacilityKind Kind => kind;
@@ -102,6 +112,7 @@ namespace Marea.Field
         }
 
         private bool HasSteps => revealSteps != null && revealSteps.Length > 0;
+        private bool HasBrokenSteps => brokenSteps != null && brokenSteps.Length > 0;
 
         // FacilityLevels.Awake가 표를 만든 뒤라야 IsUnlocked가 맞는 값을 준다.
         private void Start()
@@ -258,7 +269,18 @@ namespace Marea.Field
         private void ShowStep(int i)
         {
             if (i >= revealSteps.Length - 1) { Refresh(); return; }
-            if (brokenVisual != null) brokenVisual.SetActive(false);
+            if (HasBrokenSteps && brokenVisual != null)
+            {
+                // 더 뒤 단계에 배정된 부품만 남긴다. 부품이 프리팹 안에 있어 묶을 수 없으니 폐허의 자식 단위로 본다.
+                foreach (Transform child in brokenVisual.transform)
+                {
+                    int at = System.Array.IndexOf(brokenSteps, child.gameObject);
+                    if (at > i || !child.gameObject.activeSelf) continue;
+                    child.gameObject.SetActive(false);
+                    _hiddenByStep.Add(child.gameObject);
+                }
+            }
+            else if (brokenVisual != null) brokenVisual.SetActive(false);
             if (builtVisual != null) builtVisual.SetActive(true);
             for (int j = 0; j < revealSteps.Length; j++)
                 if (revealSteps[j] != null) revealSteps[j].SetActive(j <= i);
@@ -361,6 +383,13 @@ namespace Marea.Field
             if (unlocked && revealSteps != null)
                 foreach (GameObject part in revealSteps)
                     if (part != null) part.SetActive(true);
+            // (+10/7) 폐허로 보일 땐 단계별로 끈 부서진 부품도 다 켜 둔다.
+            if (!unlocked && HasBrokenSteps && brokenVisual != null)
+                foreach (Transform child in brokenVisual.transform)
+                    if (!child.gameObject.activeSelf && _hiddenByStep.Remove(child.gameObject)) child.gameObject.SetActive(true);
+            if (builtExtras != null)
+                foreach (GameObject extra in builtExtras)
+                    if (extra != null) extra.SetActive(unlocked);
 
             if (levelSlots == null) return;
 
