@@ -174,6 +174,13 @@ namespace Marea.Cooking
             guideLabel.text = $"{what}\n<size=70%>{progress}   남은 시간 {Mathf.CeilToInt(timeLeft01 * 100f)}%</size>";
         }
 
+        /// <summary>(+10/7) 영업이 끝나 요리를 버릴 때 — 그릴 불꽃 · 연기와 안내 글자를 끈다.</summary>
+        protected override void OnAborted()
+        {
+            StopGrillAmbience();
+            if (guideRoot != null) guideRoot.SetActive(false);
+        }
+
         protected override void OnMinigameCompleted(float finalScore)
         {
             StopGrillAmbience();

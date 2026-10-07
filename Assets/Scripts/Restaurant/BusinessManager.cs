@@ -142,7 +142,8 @@ namespace Marea.Restaurant
             }
 
             // 열려 있는 요리 UI 및 미니게임 강제 닫기
-            if (cookingMenuUI != null) cookingMenuUI.Close();
+            // (+10/7, A) Close만으로는 돌던 미니게임이 계속 돌았다 — AbortCooking이 미니게임까지 멈춘다.
+            if (cookingMenuUI != null) cookingMenuUI.AbortCooking();
 
             // 오늘 번 돈을 지갑에 넣는다. 여기가 정산이 확정되는 유일한 지점이라
             // 계약 5의 "음식 하나 팔 때마다가 아니라 정산 확정 시 한 번"에 해당한다. (+9/10)

@@ -371,6 +371,12 @@ namespace Marea.Cooking
             StartCoroutine(FinishRoutine(result));
         }
 
+        /// <summary>(+10/7, A) 영업이 끝나 요리를 버릴 때(BaseCookingMinigame.Abort) — 안내 UI를 닫는다.</summary>
+        protected override void OnAborted()
+        {
+            if (minigameUI != null) minigameUI.Close();
+        }
+
         private IEnumerator FinishRoutine(CookingResult result)
         {
             if (minigameUI != null) minigameUI.ShowResult(result.bestGrade);
