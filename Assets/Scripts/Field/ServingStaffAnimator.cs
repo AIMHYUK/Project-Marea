@@ -12,6 +12,10 @@ namespace Marea.Field
     /// Animator에 넘기는 값은 ServingStaff.State의 정수값 그대로다.
     /// 컨트롤러(AC_ServingStaff)의 상태 이름도 enum과 같게 맞춰뒀다 —
     /// 둘이 어긋나면 눈으로 바로 잡을 수 있게 하려는 것이다.
+    ///
+    /// (+10/7) 발 미끄러짐 — 걷기 상태(ToPickup · ToTarget · Returning)의 배속을 MoveScale로 준다.
+    /// 지금 재생 중인 클립이 1배속에서 나아가는 거리(averageSpeed × humanScale × 모델 크기)로 실제 이동 속도를
+    /// 나눈 값이다. 상태마다 클립이 달라도(배달은 느린 Walking) 알아서 맞는다. PlayerAnimator와 같은 생각.
     /// </summary>
     [RequireComponent(typeof(ServingStaff))]
     public class ServingStaffAnimator : MonoBehaviour
@@ -22,6 +26,7 @@ namespace Marea.Field
         // "State == 4" 를 계속 만족해서 넘어짐 → 일어남으로 넘어가자마자 다시 넘어짐으로 끌려온다.
         // 들어갈 때만 이 트리거를 쏘고, State = 4 는 다른 Any 전환(0~3)을 막는 데만 쓴다.
         private const string TripParam = "Trip";
+        private const string MoveScaleParam = "MoveScale";
 
         [Tooltip("비워두면 자식에서 찾는다. 캐릭터 모델이 자식으로 들어가는 구조라 대개 자동으로 잡힌다.")]
         [SerializeField] private Animator animator;
@@ -30,12 +35,16 @@ namespace Marea.Field
         private int _stateHash;
         private int _tripHash;
         private int _lastSent = -1;
+        private int _moveScaleHash;
+        private Marea.Core.AgentMover _mover;
 
         private void Awake()
         {
             _staff = GetComponent<ServingStaff>();
             _stateHash = Animator.StringToHash(StateParam);
             _tripHash = Animator.StringToHash(TripParam);
+            _moveScaleHash = Animator.StringToHash(MoveScaleParam);
+            _mover = GetComponent<Marea.Core.AgentMover>();
 
             if (animator == null) animator = GetComponentInChildren<Animator>();
         }
@@ -68,7 +77,30 @@ namespace Marea.Field
             Push();
         }
 
-        private void Update() => Push();
+        private void Update()
+        {
+            Push();
+            UpdateMoveScale();
+        }
+
+        /// <summary>(+10/7) 걷는 동안 클립 배속을 실제 이동 속도에 맞춘다. 걷기보다 느리면 1배.</summary>
+        private void UpdateMoveScale()
+        {
+            if (_mover == null) return;
+            var s = _staff.Current;
+            bool walking = s == ServingStaff.State.ToPickup || s == ServingStaff.State.ToTarget || s == ServingStaff.State.Returning;
+            float scale = 1f;
+            if (walking)
+            {
+                AnimatorClipInfo[] clips = animator.GetCurrentAnimatorClipInfo(0);
+                if (clips.Length > 0 && clips[0].clip != null)
+                {
+                    float reference = clips[0].clip.averageSpeed.magnitude * animator.humanScale * animator.transform.lossyScale.y;
+                    if (reference > 0.01f) scale = Mathf.Max(1f, _mover.CurrentSpeed / reference);
+                }
+            }
+            animator.SetFloat(_moveScaleHash, scale);
+        }
 
         /// <summary>
         /// 바뀐 순간에만 넘긴다. Animator.SetInteger는 매 프레임 불러도 동작은 같지만,
