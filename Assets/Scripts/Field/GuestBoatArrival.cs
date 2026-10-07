@@ -129,9 +129,7 @@ namespace Marea.Field
 
             // approachYaw 방향으로 오다가 곡선을 그리며 정박 방향으로 돈다(2차 베지어).
             // 배는 늘 곡선의 접선(진행 방향)을 바라본다 — 옆으로 미끄러지지 않는다.
-            Vector3 p2 = dockPoint.position;
-            Vector3 p1 = p2 - Bow() * finalStraight;
-            Vector3 p0 = p1 - YawDir(approachYaw) * approachDistance;
+            Route(out Vector3 p0, out Vector3 p1, out Vector3 p2);
             boat.gameObject.SetActive(true);
             _state = BoatState.Arriving;
 
@@ -159,6 +157,14 @@ namespace Marea.Field
 
             EndCutscene();
             _routine = null;
+        }
+
+        /// <summary>입항 곡선의 세 점 — 바다 출발점, 곧게 들어오기 시작하는 점, 정박점. 출항은 이걸 거꾸로 간다.</summary>
+        private void Route(out Vector3 p0, out Vector3 p1, out Vector3 p2)
+        {
+            p2 = dockPoint.position;
+            p1 = p2 - Bow() * finalStraight;
+            p0 = p1 - YawDir(approachYaw) * approachDistance;
         }
 
         /// <summary>정박 자세에서 모델 뱃머리가 향하는 수평 방향.</summary>
@@ -197,21 +203,28 @@ namespace Marea.Field
         private IEnumerator DepartRoutine()
         {
             _state = BoatState.Departing;
-            Vector3 from = boat.position;
+            // (+10/7) 제자리에서 뱃머리를 돌린 뒤 들어온 곡선을 거꾸로 따라 나간다 — 정박점 → 꺾는 점 → 바다.
+            Route(out Vector3 p0, out Vector3 p1, out Vector3 p2);
             Quaternion start = boat.rotation;
-            // 제자리에서 뱃머리를 돌려 온 길로 나간다 — 돈 다음에야 움직여서 역시 게걸음이 없다.
-            Vector3 to = dockPoint.position - Bow() * approachDistance;
-            Quaternion away = Quaternion.Euler(0f, 180f, 0f) * start;
-            const float turnPart = 0.35f;
+            Quaternion away = HeadingFor(-Bow());   // 곡선을 거꾸로 탈 때 첫 진행 방향
+            const float turnPart = 0.3f;
 
             for (float t = 0f; t < departSeconds; t += Time.deltaTime)
             {
                 float k = t / departSeconds;
-                float turn = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(k / turnPart));
-                float go = Mathf.Clamp01((k - turnPart) / (1f - turnPart));
-                boat.SetPositionAndRotation(
-                    Vector3.Lerp(from, to, go * go),   // 천천히 떠나 점점 빨라진다
-                    Quaternion.Slerp(start, away, turn));
+                if (k < turnPart)
+                {
+                    boat.rotation = Quaternion.Slerp(start, away, Mathf.SmoothStep(0f, 1f, k / turnPart));
+                }
+                else
+                {
+                    float go = (k - turnPart) / (1f - turnPart);
+                    float u = 1f - go * go;   // 천천히 떠나 점점 빨라진다 — 곡선 위 위치는 끝(정박점)에서 처음(바다)으로
+                    float a = 1f - u;
+                    Vector3 pos = a * a * p0 + 2f * a * u * p1 + u * u * p2;
+                    Vector3 tangent = 2f * a * (p1 - p0) + 2f * u * (p2 - p1);
+                    boat.SetPositionAndRotation(pos, HeadingFor(-tangent));
+                }
                 yield return null;
             }
             boat.gameObject.SetActive(false);

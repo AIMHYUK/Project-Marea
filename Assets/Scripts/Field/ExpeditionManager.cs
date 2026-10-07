@@ -128,7 +128,8 @@ namespace Marea.Field
                 RollReward();
                 Current = State.Returned;
                 Show();
-                if (boat != null) Vfx.Play(splashVfx, boat.transform.position, 2f);   // (+10/6) 돌아온 순간
+                // (+10/7) 떠날 때를 거꾸로 — 가라앉았던 자리에서 떠올라 같은 길을 뒷걸음으로 되돌아온다.
+                if (boat != null && isActiveAndEnabled) _depart = StartCoroutine(Return());
                 SoundManager.Play(returnClip, clipVolume);   // (+10/6) 화면 밖에서 돌아와도 알게 화면 소리로
             }
 
@@ -277,7 +278,6 @@ namespace Marea.Field
             Transform t = boat.transform;
             Vector3 start = t.position;
             Vector3 dir = Vector3.ProjectOnPlane(t.forward, Vector3.up).normalized;
-            float sinkFrom = Mathf.Max(0f, departSeconds - sinkSeconds);
 
             // (+10/6) 출항 순간 물방울, 나아가는 동안 뒤에 항적.
             Vfx.Play(splashVfx, start, 2f);
@@ -285,9 +285,7 @@ namespace Marea.Field
 
             for (float e = 0f; e < departSeconds; e += Time.deltaTime)
             {
-                float k = e / departSeconds;
-                float sink = sinkSeconds > 0f ? Mathf.Clamp01((e - sinkFrom) / sinkSeconds) : 0f;
-                t.position = start + dir * (departDistance * k * k) + Vector3.down * (sinkDepth * sink * sink);
+                t.position = DepartPose(start, dir, e);
                 if (e >= nextWake)
                 {
                     nextWake = e + wakeInterval;
@@ -299,6 +297,47 @@ namespace Marea.Field
             boat.SetActive(false);
             t.localPosition = _boatHome;
             _depart = null;
+        }
+
+        /// <summary>(+10/7) 출항을 그대로 거꾸로 재생한다 — 가라앉은 자리에서 떠올라 뒷걸음으로 제자리에 선다.</summary>
+        private IEnumerator Return()
+        {
+            Transform t = boat.transform;
+            t.localPosition = _boatHome;
+            Vector3 home = t.position;
+            Vector3 dir = Vector3.ProjectOnPlane(t.forward, Vector3.up).normalized;
+            boat.SetActive(true);
+            float nextWake = 0f;
+            bool surfaced = false;
+            float sinkFrom = Mathf.Max(0f, departSeconds - sinkSeconds);
+
+            for (float e = departSeconds; e > 0f; e -= Time.deltaTime)
+            {
+                t.position = DepartPose(home, dir, e);
+                if (!surfaced && e <= sinkFrom)
+                {
+                    surfaced = true;
+                    Vfx.Play(splashVfx, new Vector3(t.position.x, home.y, t.position.z), 2f);   // 물 위로 올라온 순간
+                }
+                if (departSeconds - e >= nextWake)
+                {
+                    nextWake = departSeconds - e + wakeInterval;
+                    Vfx.Play(wakeVfx, new Vector3(t.position.x, home.y, t.position.z) + dir * 1f, 1.5f);
+                }
+                yield return null;
+            }
+
+            t.localPosition = _boatHome;
+            _depart = null;
+        }
+
+        /// <summary>출항 e초 뒤의 배 위치. 출항 · 귀환이 같은 길을 쓰게 한 곳에서 계산한다.</summary>
+        private Vector3 DepartPose(Vector3 start, Vector3 dir, float e)
+        {
+            float k = departSeconds > 0f ? e / departSeconds : 1f;
+            float sinkFrom = Mathf.Max(0f, departSeconds - sinkSeconds);
+            float sink = sinkSeconds > 0f ? Mathf.Clamp01((e - sinkFrom) / sinkSeconds) : 0f;
+            return start + dir * (departDistance * k * k) + Vector3.down * (sinkDepth * sink * sink);
         }
 
         private void StopDepart()
