@@ -42,6 +42,9 @@ namespace Marea.Cooking
         [SerializeField] private List<MinigameDraggable> platingItems;
         [Tooltip("재료를 자유롭게 놓을 접시 모델. 비워두면 Step3Panel의 SM_Salmon_Dish에서 찾습니다.")]
         [SerializeField] private Renderer platingSurface;
+        [Tooltip("2단계의 익힘 색상을 이어받을 플레이팅 생선 렌더러. 접시와 장식은 넣지 않습니다.")]
+        [SerializeField] private List<Renderer> platingFishRenderers = new();
+        private readonly Dictionary<Renderer, MaterialPropertyBlock> _originalPlatingBlocks = new();
         private readonly List<MinigameDraggable> _requiredPlatingItems = new();
         private int _lastPlacedCount = -1;
 
@@ -123,6 +126,8 @@ namespace Marea.Cooking
         protected override void ResetMinigame()
         {
             base.ResetMinigame();
+            foreach (var entry in _originalPlatingBlocks)
+                if (entry.Key != null) entry.Key.SetPropertyBlock(entry.Value);
             CollectPlatingItems();
             _lastPlacedCount = -1;
 
@@ -270,7 +275,28 @@ namespace Marea.Cooking
             {
                 if (item != null) item.ResetObject();
             }
+            ApplyPlatingGrillColor();
             UpdatePlatingGuide();
+        }
+
+        private void ApplyPlatingGrillColor()
+        {
+            if (fishVisual == null || platingFishRenderers == null) return;
+            foreach (Renderer renderer in platingFishRenderers)
+            {
+                if (renderer == null) continue;
+                if (!_originalPlatingBlocks.ContainsKey(renderer))
+                {
+                    var original = new MaterialPropertyBlock();
+                    renderer.GetPropertyBlock(original);
+                    _originalPlatingBlocks.Add(renderer, original);
+                }
+                var block = new MaterialPropertyBlock();
+                renderer.GetPropertyBlock(block);
+                block.SetColor("_BaseColor", fishVisual.CurrentGrillColor);
+                block.SetColor("_Color", fishVisual.CurrentGrillColor);
+                renderer.SetPropertyBlock(block);
+            }
         }
 
         protected override void OnStep3Update()

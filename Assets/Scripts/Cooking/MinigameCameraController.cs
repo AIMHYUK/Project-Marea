@@ -29,6 +29,8 @@ namespace Marea.Cooking
         private bool _hasOriginal; // 미니게임 중(시점에 가 있거나 가는 중)이면 true
         private Coroutine _moveRoutine;
 
+        public bool HasMinigameView => _hasOriginal;
+
         private void Awake()
         {
             _cam = GetComponent<Camera>();
