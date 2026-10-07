@@ -32,16 +32,21 @@ namespace Marea.Player
         [SerializeField, Min(0f)] private float dampTime = 0.1f;
 
         private const string MoveScaleParam = "MoveScale";
+        private const string CarryingParam = "Carrying";   // (+10/7) 음식을 들면 LocomotionCarry(Walking 클립)로
 
         private PlayerController _player;
         private int _speedHash;
         private int _moveScaleHash;
+        private int _carryingHash;
+        private Marea.Restaurant.PlayerServingController _serving;
 
         private void Awake()
         {
             _player = GetComponent<PlayerController>();
             _speedHash = Animator.StringToHash(SpeedParam);
             _moveScaleHash = Animator.StringToHash(MoveScaleParam);
+            _carryingHash = Animator.StringToHash(CarryingParam);
+            _serving = GetComponent<Marea.Restaurant.PlayerServingController>();
 
             if (animator == null) animator = GetComponentInChildren<Animator>();
         }
@@ -73,6 +78,7 @@ namespace Marea.Player
             // SetFloat의 dampTime 오버로드가 목표값을 향해 프레임독립적으로 따라간다.
             // 매 프레임 현재 속도를 목표로 주면 알아서 부드럽게 수렴한다.
             animator.SetFloat(_speedHash, _player.Speed, dampTime, Time.deltaTime);
+            animator.SetBool(_carryingHash, _serving != null && _serving.IsHoldingFood);   // (+10/7)
 
             // (+10/7) 블렌드와 같은 (감쇠된) 값으로 배속을 정한다. 걷기보다 느릴 땐 1배 — 출발 · 멈춤은 Idle과 섞여 넘어간다.
             float speed = animator.GetFloat(_speedHash);
