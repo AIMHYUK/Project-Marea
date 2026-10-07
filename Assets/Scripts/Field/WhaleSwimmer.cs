@@ -13,6 +13,8 @@ namespace Marea.Field
     ///
     /// 한 번 나타나는 흐름: 기다림 → 카메라 가까운 경로 고르기 → 깊은 곳에서 떠오름 → 수면을 따라 헤엄
     /// → 고개 숙여 잠수 → 숨김. 카메라 근처 경로가 없으면 그번은 건너뛴다(아무도 못 보는 등장은 의미가 없다).
+    ///
+    /// (+10/8) lap이 켜져 있으면 직선 경로 대신 데크를 감싸는 곡선(lapPoints)으로 한 바퀴 돌고 잠수해 떠난다.
     /// </summary>
     public class WhaleSwimmer : MonoBehaviour
     {
@@ -61,6 +63,23 @@ namespace Marea.Field
         [SerializeField, Range(0f, 40f)] private float finAmplitude = 20f;
         [SerializeField, Range(0f, 2f)] private float bobHeight = 0.35f;
 
+        // (+10/8) 데크를 감싸듯 한 바퀴 — 남쪽에서 떠올라 서쪽을 따라 올라가 북쪽을 돌고 잠수해 떠난다.
+        // 동쪽은 바로 땅이라 섬 전체를 도는 원은 못 만든다. 끄면 예전 paths(직선)를 쓴다.
+        [Header("데크 한 바퀴 (+10/8)")]
+        [SerializeField] private bool lap = true;
+        [Tooltip("한 바퀴 경로의 점들(월드 x, z — y는 무시). 깊은 바다로만. 곡선으로 부드럽게 잇는다.")]
+        [SerializeField] private Vector3[] lapPoints =
+        {
+            new(62f, 0f, -2f), new(30f, 0f, 4f), new(14f, 0f, 30f), new(16f, 0f, 60f),
+            new(30f, 0f, 80f), new(55f, 0f, 82f), new(80f, 0f, 79f), new(102f, 0f, 76f),
+        };
+        [Tooltip("한 바퀴 돌 때 속도(m/s). 길이가 200m쯤이라 swimSpeed보다 빠르게.")]
+        [SerializeField, Min(0.1f)] private float lapSpeed = 4f;
+        [Tooltip("도는 쪽으로 기우는 최대 각도.")]
+        [SerializeField, Range(0f, 20f)] private float bankAngle = 8f;
+        [Tooltip("굽힘을 몸 가운데(허리)에 싣는 비율. 0이면 꼬리 끝, 1이면 허리.")]
+        [SerializeField, Range(0f, 1f)] private float waistWeight = 0.65f;
+
         [Header("소리 (+10/6, 이슈 117)")]
         [Tooltip("수면까지 다 떠오른 순간 한 번 우는 소리. 고래가 멀리(최대 cameraRange) 나와서 화면 소리(2D)로 낸다.")]
         [SerializeField] private AudioClip callClip;
@@ -84,6 +103,71 @@ namespace Marea.Field
 
         private void OnEnable() => StartCoroutine(Loop());
 
+        /// <summary>
+        /// (+10/8) 데크 한 바퀴: 경로 첫 점 아래 깊은 곳에서 떠올라 곡선을 따라 헤엄치고, 끝에서 잠수해 사라진다.
+        /// 방향은 그때그때 뒤집는다. 진행 방향을 보고, 꺾이는 만큼 안쪽으로 기운다.
+        /// </summary>
+        private IEnumerator Lap()
+        {
+            if (model == null || lapPoints == null || lapPoints.Length < 2) yield break;
+
+            Vector3[] pts = (Vector3[])lapPoints.Clone();
+            if (UnityEngine.Random.value < 0.5f) Array.Reverse(pts);
+            var line = new System.Collections.Generic.List<Vector3>();
+            for (int i = 0; i < pts.Length - 1; i++)
+                for (int k = 0; k < 16; k++)
+                    line.Add(CatmullRom(pts[Mathf.Max(0, i - 1)], pts[i], pts[i + 1], pts[Mathf.Min(pts.Length - 1, i + 2)], k / 16f));
+            line.Add(pts[pts.Length - 1]);
+            var dist = new float[line.Count];
+            for (int i = 1; i < line.Count; i++) dist[i] = dist[i - 1] + Vector3.Distance(Flat(line[i - 1]), Flat(line[i]));
+            float total = dist[dist.Length - 1];
+
+            float surfaceY = seaLevel - surfaceDepth, hiddenY = seaLevel - hiddenDepth;
+            float duration = total / lapSpeed;
+            model.gameObject.SetActive(true);
+            _swimming = true;
+            bool called = false;
+            int seg = 0;
+            float roll = 0f;
+            Vector3 lastDir = Flat(line[1] - line[0]).normalized;
+
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                float d = Mathf.Min(total, t * lapSpeed);
+                while (seg < dist.Length - 2 && dist[seg + 1] < d) seg++;
+                float u = Mathf.InverseLerp(dist[seg], dist[seg + 1], d);
+                Vector3 pos = Vector3.Lerp(line[seg], line[seg + 1], u);
+                Vector3 dir = Flat(line[seg + 1] - line[seg]).normalized;
+                if (dir.sqrMagnitude < 0.001f) dir = lastDir;
+
+                // 꺾이는 정도로 기울기 — 왼쪽으로 꺾으면 왼쪽으로
+                float turn = Vector3.SignedAngle(lastDir, dir, Vector3.up) / Mathf.Max(0.0001f, Time.deltaTime);
+                roll = Mathf.Lerp(roll, Mathf.Clamp(-turn * 0.6f, -bankAngle, bankAngle), 1f - Mathf.Exp(-2f * Time.deltaTime));
+                lastDir = dir;
+
+                float rise = Mathf.Clamp01(t / riseTime);
+                float dive = Mathf.Clamp01((t - (duration - diveTime)) / diveTime);
+                if (!called && rise >= 1f) { called = true; SoundManager.Play(callClip, callVolume); }
+                float stroke = Mathf.Sin(_swimTime * strokeFrequency * Mathf.PI * 2f);
+                float y = Mathf.Lerp(hiddenY, surfaceY, Smooth(rise));
+                y = Mathf.Lerp(y, hiddenY, Smooth(dive)) + stroke * bobHeight * (1f - dive);
+
+                float pitch = -divePitch * 0.5f * (1f - rise) + divePitch * Smooth(dive) - stroke * bodyRock;
+                transform.SetPositionAndRotation(new Vector3(pos.x, y, pos.z),
+                    Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Euler(pitch, 0f, roll));
+                yield return null;
+            }
+
+            _swimming = false;
+            model.gameObject.SetActive(false);
+        }
+
+        private static Vector3 CatmullRom(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
+        {
+            float t2 = t * t, t3 = t2 * t;
+            return 0.5f * (2f * p1 + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 + (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
+        }
+
         private static Quaternion[] CaptureBase(Transform[] bones)
         {
             if (bones == null) return Array.Empty<Quaternion>();
@@ -97,7 +181,8 @@ namespace Marea.Field
             yield return new WaitForSeconds(firstDelay);
             while (true)
             {
-                if (TryPickPath(out SwimPath p)) yield return Appear(p);
+                if (lap) yield return Lap();   // (+10/8)
+                else if (TryPickPath(out SwimPath p)) yield return Appear(p);
                 yield return new WaitForSeconds(UnityEngine.Random.Range(intervalRange.x, Mathf.Max(intervalRange.x, intervalRange.y)));
             }
         }
@@ -141,6 +226,7 @@ namespace Marea.Field
         {
             if (!Application.isPlaying) return;
             StopAllCoroutines();
+            if (lap) { _swimming = false; ResetBones(); StartCoroutine(LapThenLoop()); return; }   // (+10/8)
             if (TryPickPath(out SwimPath p)) StartCoroutine(AppearThenLoop(p));
             else
             {
@@ -160,7 +246,9 @@ namespace Marea.Field
         /// </summary>
         public void AppearNearest()
         {
-            if (!Application.isPlaying || paths == null || paths.Length == 0) return;
+            if (!Application.isPlaying) return;
+            if (lap) { AppearNow(); return; }   // (+10/8) 한 바퀴 경로는 하나뿐
+            if (paths == null || paths.Length == 0) return;
             Camera cam = Camera.main;
             Vector3 eye = cam != null ? cam.transform.position : transform.position;
 
@@ -187,6 +275,12 @@ namespace Marea.Field
         {
             for (int i = 0; i < spine.Length; i++) if (spine[i] != null) spine[i].localRotation = _spineBase[i];
             for (int i = 0; i < fins.Length; i++) if (fins[i] != null) fins[i].localRotation = _finBase[i];
+        }
+
+        private IEnumerator LapThenLoop()
+        {
+            yield return Lap();
+            yield return Loop();
         }
 
         private IEnumerator AppearThenLoop(SwimPath p)
@@ -251,7 +345,10 @@ namespace Marea.Field
                 if (bone == null) continue;
                 float k = spine.Length > 1 ? (float)i / (spine.Length - 1) : 1f;   // 머리 0 → 꼬리 1
                 // (+10/2) k*k는 꼬리 끝만 움직여 12m 고래에서 끝이 0.6m밖에 안 흔들렸다 — 몸통 뒤 절반도 같이 휜다.
-                float angle = Mathf.Sin(w - i * phaseStep) * tailAmplitude * Mathf.Pow(k, 1.3f);
+                // (+10/8) 꼬리만 파닥이지 않게 — 굽힘을 몸 가운데(허리)에 싣고 꼬리 끝은 덜 움직인다. 허릿심으로 미는 느낌.
+                float tailShape = Mathf.Pow(k, 1.3f);
+                float waistShape = Mathf.Sin(Mathf.PI * Mathf.Clamp01(k * 0.9f + 0.05f));
+                float angle = Mathf.Sin(w - i * phaseStep) * tailAmplitude * Mathf.Lerp(tailShape, waistShape, waistWeight);
                 Vector3 axis = bone.parent != null ? bone.parent.InverseTransformDirection(right) : right;
                 bone.localRotation = Quaternion.AngleAxis(angle, axis) * _spineBase[i];
             }
