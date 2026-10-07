@@ -131,6 +131,26 @@ namespace Marea.Cooking
             stewLiquid.Rotate(Vector3.up, degrees, Space.Self);
         }
 
+        [Tooltip("(+10/7) 끓기 전 맑은 물 — 냄비 아래 Water(투명한 물 면 + 그 밑 냄비 바닥 원판). 1단계 동안만 켠다. "
+               + "국물 메시엔 건더기가 붙어 있고, 냄비 모델 안쪽 바닥에도 수프가 칠해져 있어서 바닥 원판으로 가린다.")]
+        [SerializeField] private GameObject water;
+
+        /// <summary>
+        /// (+10/7) 맑은 물 ↔ 수프. 물이면 국물은 그리지만 않는다(forceRenderingOff) — 꺼 버리면 bounds가 비어서
+        /// 국물 면 높이(StirCenter · CatchGame.splashSurface)를 못 잰다.
+        /// </summary>
+        public void ShowWater(bool on)
+        {
+            if (_liquidRenderer == null && stewLiquid != null) _liquidRenderer = stewLiquid.GetComponentInChildren<Renderer>();
+            if (on && water == null)
+            {
+                Debug.LogError($"{name}: StewPot.water가 비어 있다. 1단계에도 수프가 보인다.", this);
+                return;
+            }
+            if (_liquidRenderer != null) _liquidRenderer.forceRenderingOff = on;
+            if (water != null) water.SetActive(on);
+        }
+
         public void ResetPosition()
         {
             if (ladlePivot != null)

@@ -57,6 +57,12 @@ namespace Marea.Cooking
         [Header("1단계: 재료 받기 (+9/30)")]
         [SerializeField] private CatchGame catchGame;
 
+        [Header("1단계 떨어지는 모양 (+10/7)")]
+        [Tooltip("채우면 레시피 재료 모델 대신 이 모양들을 섞어 떨어뜨린다(해물 · 야채). 점수 · 재료 소모는 레시피 그대로. 비우면 레시피 재료 모델.")]
+        [SerializeField] private GameObject[] catchVisuals;
+        [Tooltip("1단계(재료 받기) 동안 국물 대신 맑은 물을 보인다(StewPot.waterSurface). 2단계가 시작될 때 수프로 돌아간다.")]
+        [SerializeField] private bool waterInStep1 = true;
+
         [Header("3단계: 거품 터뜨리기 (+9/30)")]
         [SerializeField] private PopupTouchGame popupTouch;
 
@@ -167,9 +173,21 @@ namespace Marea.Cooking
                 return;
             }
 
+            if (stewPot != null) stewPot.ShowWater(waterInStep1);   // (+10/7) 1단계는 물
+
             // 레시피 재료를 필요한 수만큼 떨어뜨린다. 재료 모델은 IngredientData.MinigamePrefab (없으면 구).
+            // (+10/7) catchVisuals가 있으면 그걸 섞어서 — CatchGame이 목록을 돌려 쓰니 순서를 섞어 넘겨 겹치는 게 매번 다르게.
             _catchItems.Clear();
-            if (_targetMenu != null && _targetMenu.Recipe != null)
+            if (catchVisuals != null && catchVisuals.Length > 0)
+            {
+                foreach (GameObject v in catchVisuals) if (v != null) _catchItems.Add(v);
+                for (int i = _catchItems.Count - 1; i > 0; i--)
+                {
+                    int j = UnityEngine.Random.Range(0, i + 1);
+                    (_catchItems[i], _catchItems[j]) = (_catchItems[j], _catchItems[i]);
+                }
+            }
+            else if (_targetMenu != null && _targetMenu.Recipe != null)
             {
                 foreach (RecipeEntry entry in _targetMenu.Recipe)
                 {
@@ -198,6 +216,8 @@ namespace Marea.Cooking
         // ==========================================
         protected override void OnStep2Start()
         {
+            if (stewPot != null) stewPot.ShowWater(false);   // (+10/7) 2단계부터 수프
+
             if (minigameUI != null)
             {
                 minigameUI.SetGaugeVisible(true);   // (+10/7) 화면 옆 세로 게이지 — 안이면 차고 밖이면 준다
@@ -316,6 +336,7 @@ namespace Marea.Cooking
         {
             base.OnDisable();
             StopAmbience();
+            if (stewPot != null) stewPot.ShowWater(false);   // (+10/7) 1단계 중에 꺼져도 물로 남지 않게
         }
 
         /// <summary>(+10/6) 화구 불꽃은 냄비 제자리 바닥 — 냄비의 부모(조리대)에 단다. 증기는 국물 면 위 — 냄비에 단다.</summary>

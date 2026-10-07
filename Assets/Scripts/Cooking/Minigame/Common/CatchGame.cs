@@ -50,6 +50,9 @@ namespace Marea.Cooking
         [Tooltip("재료 모델이 없을 때 대신 쓸 구의 지름(m).")]
         [SerializeField, Min(0.05f)] private float fallbackSize = 0.3f;
 
+        [Tooltip("(+10/7) 재료 모델의 가장 긴 변을 이 크기(m)로 맞춘다 — 통연어(1m)와 양파 조각(0.3m)처럼 제각각인 모델을 섞을 때. 0이면 모델 크기 그대로.")]
+        [SerializeField, Min(0f)] private float normalizeSize;
+
         [Tooltip("(+10/2) 떨어뜨릴 개수. 받은 재료 목록보다 크면 섞어서 반복한다. 0이면 목록 그대로.")]
         [SerializeField, Min(0)] private int dropCount;
 
@@ -339,6 +342,7 @@ namespace Marea.Cooking
                 // 재료 모델에 물리가 붙어 있어도 여기선 끈다. 떨어지는 건 이 부품이 직접 움직인다.
                 foreach (var rb in go.GetComponentsInChildren<Rigidbody>()) rb.isKinematic = true;
                 foreach (var col in go.GetComponentsInChildren<Collider>()) col.enabled = false;
+                if (normalizeSize > 0f) FitSize(go.transform, normalizeSize);   // (+10/7)
             }
             else
             {
@@ -370,6 +374,21 @@ namespace Marea.Cooking
             f.DashFrom = along;
             f.DashTo = SideStep(along, dashDistance);
             _falling.Add(f);
+        }
+
+        /// <summary>(+10/7) 렌더러 상자의 가장 긴 변이 size가 되게 루트 크기를 곱한다.</summary>
+        private static void FitSize(Transform t, float size)
+        {
+            Bounds b = default;
+            bool has = false;
+            foreach (Renderer r in t.GetComponentsInChildren<Renderer>())
+            {
+                if (r is ParticleSystemRenderer) continue;
+                if (!has) { b = r.bounds; has = true; }
+                else b.Encapsulate(r.bounds);
+            }
+            float longest = has ? Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z)) : 0f;
+            if (longest > 1e-4f) t.localScale *= size / longest;
         }
 
         /// <summary>(+10/6) 국물 면 높이 — 렌더러 상자 위쪽. 없으면 입구 높이.</summary>
