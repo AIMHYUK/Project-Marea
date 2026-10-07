@@ -28,7 +28,7 @@ namespace Marea.Field
         [SerializeField] private Transform dockPoint;
         [Tooltip("정박 지점에서 이만큼 떨어진 바다에서 출발한다. 들어올 땐 이 방향의 반대로 뱃머리를 둔다. "
                + "x · z를 같이 줘서 대각선으로 들어오게 한다 — 부두를 정면으로 향하면 들이받는 것처럼 보인다.")]
-        [SerializeField] private Vector3 approachOffset = new(-20f, 0f, -20f);
+        [SerializeField] private Vector3 approachOffset = new(-24.5f, 0f, -14.1f);   // 진행 방향 60°
         [SerializeField, Min(0.5f)] private float arriveSeconds = 6f;
         [Tooltip("도착 직전 이 비율 동안 뱃머리를 정박 방향으로 돌린다.")]
         [SerializeField, Range(0f, 1f)] private float turnPortion = 0.6f;
