@@ -32,6 +32,11 @@ namespace Marea.Cooking
         [SerializeField] private float flipDuration = 0.4f; // 뒤집히는 시간 (초)
         [SerializeField] private float liftHeight = 0.4f;   // 위로 들리는 높이
 
+        [Header("꼬치 뒤집기 효과음")]
+        [Tooltip("나중에 꼬치 뒤집기 효과음 파일을 연결하세요. 비워두면 재생하지 않습니다.")]
+        [SerializeField] private AudioClip flipAudioClip;
+        [SerializeField] private AudioSource flipAudioSource;
+
         // 앞면(시작) 회전 및 위치값
         private readonly Vector3 _frontPosition = new Vector3(1.7679f, 0.6888f, -2.922f);
         private readonly Quaternion _frontRotation = Quaternion.Euler(-90f, 0f, 0f);
@@ -179,6 +184,9 @@ namespace Marea.Cooking
         private void OnSkewerClicked()
         {
             if (!_isCooking || _isCompleted || _isAnimating) return;
+
+            if (flipAudioClip != null && flipAudioSource != null)
+                flipAudioSource.PlayOneShot(flipAudioClip);
 
             if (!_isFlipped)
             {

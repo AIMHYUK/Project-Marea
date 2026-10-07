@@ -134,6 +134,8 @@ namespace Marea.Cooking
         public void CompleteCut()
         {
             if (_isCompleted) return;
+            if (_minigame is FishGrillMinigameController fishGrill)
+                fishGrill.PlayCutSound();
             if (startPoint3D != null && endPoint3D != null)
             {
                 Vector3 stroke = endPoint3D.position - startPoint3D.position;

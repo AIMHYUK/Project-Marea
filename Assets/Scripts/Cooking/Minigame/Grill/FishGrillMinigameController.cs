@@ -17,6 +17,14 @@ namespace Marea.Cooking
         [SerializeField] private FishGrillVisual fishVisual;
         [SerializeField] private FishGrillMinigameUI minigameUI;
 
+        [Header("동작 효과음")]
+        [Tooltip("1단계 칼집 하나를 완성할 때 재생합니다. 비워두면 재생하지 않습니다.")]
+        [SerializeField] private AudioClip cutAudioClip;
+        [SerializeField] private AudioSource cutAudioSource;
+        [Tooltip("2단계 생선을 뒤집기 시작할 때 재생합니다. 비워두면 재생하지 않습니다.")]
+        [SerializeField] private AudioClip flipAudioClip;
+        [SerializeField] private AudioSource flipAudioSource;
+
         [Header("1단계: 칼집내기 가이드")]
         [SerializeField] private List<KnifeCutGuide> cutGuides;
 
@@ -148,6 +156,13 @@ namespace Marea.Cooking
             minigameUI?.SetGuide("화살표를 따라 위에서 아래로 드래그해 칼집 3개를 내세요!");
         }
 
+        public void PlayCutSound()
+        {
+            if (!_isPlaying || CurrentStepIndex != MinigameStepIndex.Step1) return;
+            if (cutAudioClip != null && cutAudioSource != null)
+                cutAudioSource.PlayOneShot(cutAudioClip);
+        }
+
         protected override void OnStep1Update()
         {
             if (!_isPlaying || cutGuides == null || cutGuides.Count == 0) return;
@@ -202,6 +217,9 @@ namespace Marea.Cooking
         private void OnFlipInput(float progress)
         {
             _hasFlipped = true;
+
+            if (flipAudioClip != null && flipAudioSource != null)
+                flipAudioSource.PlayOneShot(flipAudioClip);
 
             if (fishVisual != null)
             {
