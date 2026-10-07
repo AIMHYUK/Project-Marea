@@ -29,9 +29,12 @@ namespace Marea.Field
         [Tooltip("배 루트의 +Z와 모델 뱃머리 사이 각도(도). 모델이 루트보다 이만큼 틀어져 있다 — "
                + "이걸 안 빼면 진행 방향을 바라보게 돌려도 배가 옆으로 게걸음 친다.")]
         [SerializeField] private float bowYawOffset = 8.2f;
-        [Tooltip("정박 자세의 뱃머리 방향으로 이만큼 뒤에서 출발해 뱃머리 방향 그대로 직진해 들어온다. "
-               + "출항은 반대로 돌아서 이 거리만큼 나간다.")]
-        [SerializeField, Min(1f)] private float approachDistance = 28f;
+        [Tooltip("들어올 때 처음 뱃머리 방향(월드 yaw, 도). 이 방향으로 오다가 곡선을 그리며 정박 방향으로 돈다.")]
+        [SerializeField] private float approachYaw = 60f;
+        [Tooltip("출발점이 곡선 시작 기준점에서 처음 방향으로 이만큼 뒤.")]
+        [SerializeField, Min(1f)] private float approachDistance = 22f;
+        [Tooltip("정박 직전 정박 방향으로 곧게 들어오는 길이 — 짧으면 급하게 꺾는다.")]
+        [SerializeField, Min(0.5f)] private float finalStraight = 10f;
         [SerializeField, Min(0.5f)] private float arriveSeconds = 6f;
         [SerializeField, Min(0.5f)] private float departSeconds = 6f;
 
@@ -129,15 +132,21 @@ namespace Marea.Field
             BeginCutscene();
             if (_customers != null) _customers.PauseSpawning(true);   // 배가 닿기 전엔 아무도 안 나온다
 
-            // 정박 자세 그대로 뱃머리 뒤쪽 바다에 두고 뱃머리 방향으로 직진 — 돌지 않는다.
-            Vector3 from = dockPoint.position - Bow() * approachDistance;
-            boat.SetPositionAndRotation(from, dockPoint.rotation);
+            // approachYaw 방향으로 오다가 곡선을 그리며 정박 방향으로 돈다(2차 베지어).
+            // 배는 늘 곡선의 접선(진행 방향)을 바라본다 — 옆으로 미끄러지지 않는다.
+            Vector3 p2 = dockPoint.position;
+            Vector3 p1 = p2 - Bow() * finalStraight;
+            Vector3 p0 = p1 - YawDir(approachYaw) * approachDistance;
             boat.gameObject.SetActive(true);
             _state = BoatState.Arriving;
 
             for (float t = 0f; t < arriveSeconds && !_skip; t += Time.deltaTime)
             {
-                boat.position = Vector3.Lerp(from, dockPoint.position, EaseOut(t / arriveSeconds));
+                float u = EaseOut(t / arriveSeconds);
+                float a = 1f - u;
+                Vector3 pos = a * a * p0 + 2f * a * u * p1 + u * u * p2;
+                Vector3 tangent = 2f * a * (p1 - p0) + 2f * u * (p2 - p1);
+                boat.SetPositionAndRotation(pos, HeadingFor(tangent));
                 Focus(boat.position);
                 yield return null;
             }
@@ -160,6 +169,13 @@ namespace Marea.Field
         /// <summary>정박 자세에서 모델 뱃머리가 향하는 수평 방향.</summary>
         private Vector3 Bow()
             => Flat(dockPoint.rotation * Quaternion.Euler(0f, bowYawOffset, 0f) * Vector3.forward);
+
+        /// <summary>뱃머리가 이 수평 방향을 보게 하는 배 루트 회전.</summary>
+        private Quaternion HeadingFor(Vector3 bowDir)
+            => Quaternion.LookRotation(Flat(bowDir), Vector3.up) * Quaternion.Euler(0f, -bowYawOffset, 0f);
+
+        private static Vector3 YawDir(float yaw)
+            => new(Mathf.Sin(yaw * Mathf.Deg2Rad), 0f, Mathf.Cos(yaw * Mathf.Deg2Rad));
 
         private void PlaceDocked()
         {

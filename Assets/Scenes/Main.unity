@@ -22559,7 +22559,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 859876326265654679, guid: 93635a4a17cef044c8f2e01579c691d0, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 3.6031494
+      value: 6.7731476
       objectReference: {fileID: 0}
     - target: {fileID: 859876326265654679, guid: 93635a4a17cef044c8f2e01579c691d0, type: 3}
       propertyPath: m_LocalPosition.y
@@ -22567,11 +22567,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 859876326265654679, guid: 93635a4a17cef044c8f2e01579c691d0, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -23.063087
+      value: -17.613089
       objectReference: {fileID: 0}
     - target: {fileID: 859876326265654679, guid: 93635a4a17cef044c8f2e01579c691d0, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.8060209
+      value: 0.8038569
       objectReference: {fileID: 0}
     - target: {fileID: 859876326265654679, guid: 93635a4a17cef044c8f2e01579c691d0, type: 3}
       propertyPath: m_LocalRotation.x
@@ -22579,7 +22579,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 859876326265654679, guid: 93635a4a17cef044c8f2e01579c691d0, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.5918872
+      value: 0.59482276
       objectReference: {fileID: 0}
     - target: {fileID: 859876326265654679, guid: 93635a4a17cef044c8f2e01579c691d0, type: 3}
       propertyPath: m_LocalRotation.z
@@ -34271,7 +34271,9 @@ MonoBehaviour:
   boat: {fileID: 424167811}
   dockPoint: {fileID: 2119861492}
   bowYawOffset: 8.2
-  approachDistance: 28
+  approachYaw: 60
+  approachDistance: 22
+  finalStraight: 10
   arriveSeconds: 6
   departSeconds: 6
   bobHeight: 0.08
@@ -102410,7 +102412,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2119861491}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.4368018, z: -0, w: 0.8995578}
+  m_LocalRotation: {x: -0, y: 0.59482276, z: -0, w: 0.8038569}
   m_LocalPosition: {x: 82.5, y: 5.44, z: 17.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
