@@ -22,26 +22,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &4540171797525366346
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 373078574124041463}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: add7e096922b7614c972347e5c824ce0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Marea.Core.Footsteps
-  clips: []
-  volume: 0.35
-  pitchJitter: 0.08
-  spatial: 1
-  walkStride: 0.7
-  runStride: 1.1
-  runSpeed: 4
-  minSpeed: 0.3
 --- !u!4 &3883425429184537167
 Transform:
   m_ObjectHideFlags: 0
@@ -56,6 +36,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6783430099640931835}
+  - {fileID: 5583242642452255996}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!136 &3208621681880479664
@@ -131,11 +112,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.ServingStaff
   board: {fileID: 0}
   carriedIcon: {fileID: 0}
+  holdPoint: {fileID: 5583242642452255996}
+  counter: {fileID: 0}
   handoffRadius: 1.8
   navSampleRadius: 4
-  tripChance: 0.15
   tripPenalty: 50
   tripSeconds: 6.6
+  tripDustVfx: 10
+  tripFailVfx: 13
+  pickupClip: {fileID: 0}
+  pickupVolume: 0.8
 --- !u!114 &3907892234922634544
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -149,6 +135,57 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.ServingStaffAnimator
   animator: {fileID: 631552232356548481}
+--- !u!114 &4540171797525366346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 373078574124041463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: add7e096922b7614c972347e5c824ce0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Core.Footsteps
+  clips: []
+  volume: 0.35
+  pitchJitter: 0.08
+  spatial: 1
+  walkStride: 0.7
+  runStride: 1.1
+  runSpeed: 4
+  minSpeed: 0.3
+--- !u!1 &3026453516294917458
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5583242642452255996}
+  m_Layer: 0
+  m_Name: HoldPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5583242642452255996
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3026453516294917458}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.9928, z: 0.5}
+  m_LocalScale: {x: 1.2, y: 1.2, z: 1.2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3883425429184537167}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &6460744348844110352
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -159,15 +196,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}
       propertyPath: m_LocalScale.x
-      value: 150
+      value: 300
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}
       propertyPath: m_LocalScale.y
-      value: 150
+      value: 300
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}
       propertyPath: m_LocalScale.z
-      value: 150
+      value: 300
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}
       propertyPath: m_LocalPosition.x

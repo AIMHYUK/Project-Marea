@@ -121,7 +121,8 @@ namespace Marea.UI
 
         private void ShowSettlementPopup(DailySalesData sales)
         {
-            if (settlementPanel == null) return;
+            // (+10/7, A) 와이어프레임 정산 창(SettlementUI)이 씬에 있으면 그게 띄우고 [확인]에서 다음 날로 넘긴다.
+            if (settlementPanel == null || FindAnyObjectByType<Marea.Economy.SettlementUI>(FindObjectsInactive.Include) != null) return;
 
             settlementPanel.SetActive(true);
 
