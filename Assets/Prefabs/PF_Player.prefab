@@ -19,6 +19,8 @@ GameObject:
   - component: {fileID: 7648466230469572702}
   - component: {fileID: 7811177258580110710}
   - component: {fileID: 756875759708302614}
+  - component: {fileID: 3107363259762315445}
+  - component: {fileID: 1482449848302128871}
   m_Layer: 0
   m_Name: PF_Player
   m_TagString: Player
@@ -103,6 +105,7 @@ MonoBehaviour:
     m_Bits: 64
   maxDistance: 100
   navSampleRadius: 1.5
+  clickMarker: {fileID: 3107363259762315445}
 --- !u!114 &4408102143369635014
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -221,6 +224,40 @@ MonoBehaviour:
   tripFailVfx: 13
   tripClip: {fileID: 0}
   tripVolume: 0.8
+  emote: {fileID: 1482449848302128871}
+  surprisedEmote: {fileID: 21300000, guid: 6573d149dfe0bb8449193ac01ae892d7, type: 3}
+--- !u!114 &3107363259762315445
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5865860010280533184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c693961c628405e42bb519c0457d6d82, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Player.ClickMarker
+  markerPrefab: {fileID: 1345605961057744912, guid: 479973f4521e27c48b662eef189ad82b, type: 3}
+  heightOffset: 0.03
+  hideAfter: 1
+  scale: 0.1
+--- !u!114 &1482449848302128871
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5865860010280533184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec039de0493cbf94683d6b347d03cf32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Core.EmotePopup
+  height: 2.35
+  size: 0.7
+  defaultSeconds: 1.2
+  popSeconds: 0.18
 --- !u!1 &8430114262895805584
 GameObject:
   m_ObjectHideFlags: 0

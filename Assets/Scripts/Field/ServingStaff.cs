@@ -46,6 +46,11 @@ namespace Marea.Field
         [Tooltip("(+10/7) 음식을 집어 올 조리대. 비우면 씬에서 찾는다.")]
         [SerializeField] private Marea.Restaurant.CookingCounter counter;
 
+        [Header("놀람 이모트 (+10/8)")]
+        [Tooltip("넘어질 때 · 새 주문을 받을 때 머리 위에 띄운다.")]
+        [SerializeField] private EmotePopup emote;
+        [SerializeField] private Sprite surprisedEmote;
+
         private GameObject _carried;   // (+10/7) 조리대에서 옮겨 온 음식 모델
         private int _carriedPrice;     // (+10/7) 그 음식값 — 넘어지면 물어낸다
 
@@ -255,6 +260,7 @@ namespace Marea.Field
             if (!board.TryTake(out _task)) return;
 
             _expectTarget = _task.DeliverTarget != null;
+            if (emote != null) emote.Show(surprisedEmote);   // (+10/8) 새 주문 ❗
             _state = State.ToPickup;
             GoPickup();
         }
@@ -319,6 +325,7 @@ namespace Marea.Field
             _expectTarget = false;
             _state = State.Tripped;
             _tripEndsAt = Time.time + tripSeconds;
+            if (emote != null) emote.Show(surprisedEmote, 1.5f);   // (+10/8) 넘어짐 ❗
 
             // (+10/6) 음식이 떨어진 자리 — 직원 앞 바닥.
             Vector3 drop = transform.position + transform.forward * 0.6f;
