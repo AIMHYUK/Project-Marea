@@ -20,6 +20,8 @@ namespace Marea.Cooking
         private Action<CookingResult> _onCompleteCallback;
         private bool _isStep3Completed;
 
+        protected override bool KeepFinalPanelUntilCameraReturns => true;
+
         public void StartMinigame(MenuData menu, Action<CookingResult> onComplete)
         {
             EnsureDependencies();
@@ -129,21 +131,11 @@ namespace Marea.Cooking
 
             Debug.Log($"[VeggieStirFryMinigameController] 3단계 완료! 계산된 점수: {score}");
 
-            // 3단계 종료 시 Step3Panel 비활성화
-            if (step3Panel != null)
-            {
-                step3Panel.SetActive(false);
-            }
-
             CompleteStep3(score);
         }
 
         protected override void OnMinigameCompleted(float finalScore)
         {
-            if (step1Panel != null) step1Panel.SetActive(false);
-            if (step2Panel != null) step2Panel.SetActive(false);
-            if (step3Panel != null) step3Panel.SetActive(false);
-
             CookingResult result = new CookingResult
             {
                 isSuccess = true,
