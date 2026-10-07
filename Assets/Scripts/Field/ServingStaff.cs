@@ -64,8 +64,8 @@ namespace Marea.Field
         [SerializeField, Min(0)] private int tripPenalty = 50;
 
         [Tooltip("넘어져서 다시 움직일 때까지 초. AC_ServingStaff 의 Tripping(2.8초) + "
-               + "Standing Up(11.4초, 3배속 ≈ 3.8초)에 맞췄다.")]
-        [SerializeField, Min(0.1f)] private float tripSeconds = 6.6f;
+               + "Standing Up(11.4초, 3배속 ≈ 3.8초)에 맞췄다. (+10/7) 둘 다 2배속으로 올려 절반(3.3초).")]
+        [SerializeField, Min(0.1f)] private float tripSeconds = 3.3f;
 
         [Header("연출 (+10/6, 이슈 117) — 기획 「파손 바닥에서 음식 떨어뜨림」 VFX_10 / VFX_13")]
         [SerializeField] private Marea.Data.VfxId tripDustVfx = Marea.Data.VfxId.Dust;

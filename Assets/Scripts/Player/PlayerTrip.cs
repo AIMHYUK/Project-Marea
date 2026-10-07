@@ -21,8 +21,8 @@ namespace Marea.Player
         [SerializeField] private Animator animator;
         [Tooltip("음식값을 알 수 없을 때만 내는 골드. 보통은 들고 있던 음식값(finalPrice)이 빠진다. 모자라면 있는 만큼만.")]
         [SerializeField, Min(0)] private int tripPenalty = 50;
-        [Tooltip("넘어져서 다시 움직일 때까지 초. AC_Player의 Tripped(2.8초) + StandingUp(11.4초 ÷ 배속 3).")]
-        [SerializeField, Min(0.1f)] private float tripSeconds = 6.6f;
+        [Tooltip("넘어져서 다시 움직일 때까지 초. AC_Player의 Tripped(2.8초 ÷ 2) + StandingUp(11.4초 ÷ 6). (+10/7 2배속)")]
+        [SerializeField, Min(0.1f)] private float tripSeconds = 3.3f;
 
         [Header("연출 — 직원과 같다")]
         [SerializeField] private VfxId tripDustVfx = VfxId.Dust;
