@@ -14,6 +14,19 @@ namespace Marea.Cooking
 
         [Header("이동 설정")]
         [SerializeField] private float moveSpeed = 600f;
+        [SerializeField] private bool vertical;
+
+        private float HalfLength => gaugeBackground == null ? 0f
+            : (vertical ? gaugeBackground.rect.height : gaugeBackground.rect.width) * 0.5f;
+
+        private void SetBarPosition(float value)
+        {
+            if (movingBar == null) return;
+            Vector2 position = movingBar.anchoredPosition;
+            if (vertical) position.y = value;
+            else position.x = value;
+            movingBar.anchoredPosition = position;
+        }
 
         private float _minX;
         private float _maxX;
@@ -24,14 +37,14 @@ namespace Marea.Cooking
         {
             if (gaugeBackground != null)
             {
-                float halfWidth = gaugeBackground.rect.width * 0.5f;
+                float halfWidth = HalfLength;
                 _minX = -halfWidth;
                 _maxX = halfWidth;
             }
 
             if (movingBar != null)
             {
-                movingBar.anchoredPosition = new Vector2(_minX, movingBar.anchoredPosition.y);
+                SetBarPosition(_minX);
             }
 
             _direction = 1;
@@ -47,54 +60,49 @@ namespace Marea.Cooking
         {
             _isRunning = false;
             if (movingBar == null || gaugeBackground == null) return;
-            float halfWidth = gaugeBackground.rect.width * 0.5f;
-            movingBar.anchoredPosition = new Vector2(
-                Mathf.Lerp(-halfWidth, halfWidth, Mathf.Clamp01(normalizedPosition)), movingBar.anchoredPosition.y);
+            float halfWidth = HalfLength;
+            SetBarPosition(Mathf.Lerp(-halfWidth, halfWidth, Mathf.Clamp01(normalizedPosition)));
         }
 
         private void Update()
         {
             if (!_isRunning || movingBar == null) return;
 
-            Vector2 pos = movingBar.anchoredPosition;
-            pos.x += _direction * moveSpeed * Time.deltaTime;
+            float position = vertical ? movingBar.anchoredPosition.y : movingBar.anchoredPosition.x;
+            position += _direction * moveSpeed * Time.deltaTime;
 
-            if (pos.x >= _maxX)
+            if (position >= _maxX)
             {
-                pos.x = _maxX;
+                position = _maxX;
                 _direction = -1;
             }
-            else if (pos.x <= _minX)
+            else if (position <= _minX)
             {
-                pos.x = _minX;
+                position = _minX;
                 _direction = 1;
             }
 
-            movingBar.anchoredPosition = pos;
+            SetBarPosition(position);
         }
 
         public HitGrade EvaluateHit()
         {
             if (movingBar == null) return HitGrade.Miss;
 
-            float barWorldX = movingBar.position.x;
-
-            if (IsInsideWorldZone(barWorldX, perfectZone)) return HitGrade.Perfect;
-            if (IsInsideWorldZone(barWorldX, goodZone)) return HitGrade.Good;
+            if (IsInsideWorldZone(perfectZone)) return HitGrade.Perfect;
+            if (IsInsideWorldZone(goodZone)) return HitGrade.Good;
 
             return HitGrade.Miss;
         }
 
-        private bool IsInsideWorldZone(float barWorldX, RectTransform zone)
+        private bool IsInsideWorldZone(RectTransform zone)
         {
             if (zone == null) return false;
 
-            Vector3[] corners = new Vector3[4];
-            zone.GetWorldCorners(corners);
-            float leftX = corners[0].x;
-            float rightX = corners[2].x;
-
-            return barWorldX >= leftX && barWorldX <= rightX;
+            Vector3 localPosition = zone.InverseTransformPoint(movingBar.position);
+            return vertical
+                ? localPosition.y >= zone.rect.yMin && localPosition.y <= zone.rect.yMax
+                : localPosition.x >= zone.rect.xMin && localPosition.x <= zone.rect.xMax;
         }
     }
 }
