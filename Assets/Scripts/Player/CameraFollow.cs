@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 namespace Marea.Player
 {
@@ -10,6 +12,11 @@ namespace Marea.Player
     /// (+10/6, 이슈 117) 잠깐 다른 지점을 볼 수 있다 — FocusOn / ClearFocus. 해금 연출이 쓴다.
     /// 미니게임·고래처럼 이 컴포넌트를 꺼서 카메라를 뺏지 않는다 — 셋이 끄고 켜면 서로 꼬인다.
     /// 각도는 그대로고 바라보는 점만 바뀐다.
+    ///
+    /// (+10/9, 이슈 128) 휠로 거리, 우클릭 끌기로 Y축(좌우) 회전. 내려다보는 각도(X)는 고정.
+    /// 좌클릭은 클릭 이동 · 상호작용이라 쓰지 않는다. UI 위에서는 안 받고(창 스크롤과 안 겹치게),
+    /// 연출(FocusOn) 중에도 안 받는다. 미니게임 · 고래는 이 컴포넌트를 끄니 그동안은 저절로 안 받는다.
+    /// WASD는 PlayerController가 매 프레임 카메라 방향을 기준으로 잡아서 돌려도 화면 기준이 유지된다.
     /// </summary>
     public class CameraFollow : MonoBehaviour
     {
@@ -17,8 +24,9 @@ namespace Marea.Player
         [SerializeField] private Transform target;
 
         [Header("쿼터뷰 각도 · 거리")]
-        [Tooltip("X가 내려다보는 각도, Y가 비틀어 보는 각도.")]
+        [Tooltip("X가 내려다보는 각도, Y가 비틀어 보는 각도. (+10/9) Y는 시작 값 — 플레이 중엔 우클릭 끌기로 돈다.")]
         [SerializeField] private Vector3 eulerAngles = new(55f, 45f, 0f);
+        [Tooltip("시작 거리. (+10/9) 플레이 중엔 휠로 min~maxDistance 안에서 바뀐다.")]
         [SerializeField, Min(1f)] private float distance = 14f;
         [Tooltip("발밑 대신 상체쯤을 보게 올린다.")]
         [SerializeField] private Vector3 lookOffset = new(0f, 1f, 0f);
@@ -32,6 +40,22 @@ namespace Marea.Player
         [SerializeField, Min(0f)] private float focusSmoothTime = 0.35f;
         [Tooltip("포커스 지점과 이 거리 안이면 도착으로 본다.")]
         [SerializeField, Min(0.01f)] private float arriveDistance = 0.1f;
+
+        [Header("휠 줌 · 우클릭 회전 (+10/9)")]
+        [SerializeField, Min(1f)] private float minDistance = 5f;
+        [SerializeField, Min(1f)] private float maxDistance = 20f;
+        [Tooltip("휠 한 칸에 바뀌는 거리(m).")]
+        [SerializeField, Min(0.1f)] private float zoomStep = 1.5f;
+        [Tooltip("거리가 목표까지 따라가는 부드러움. 0이면 바로.")]
+        [SerializeField, Min(0f)] private float zoomSmoothTime = 0.12f;
+        [Tooltip("우클릭으로 끌 때 마우스 1픽셀당 Y축 회전(도).")]
+        [SerializeField, Min(0f)] private float rotateDegreesPerPixel = 0.3f;
+
+        private float _yaw;
+        private float _targetDistance;
+        private float _currentDistance;
+        private float _zoomVelocity;
+        private bool _dragging;
 
         private Vector3 _velocity;
         private bool _snapped;
@@ -55,14 +79,47 @@ namespace Marea.Player
 
         private void Awake()
         {
+            _yaw = eulerAngles.y;
+            _targetDistance = _currentDistance = Mathf.Clamp(distance, minDistance, maxDistance);
+
             if (target != null) return;
             var player = GameObject.FindGameObjectWithTag("Player");
             if (player != null) target = player.transform;
         }
 
+        private void OnDisable() => _dragging = false;   // 미니게임이 끄는 동안 버튼을 놓쳐도 끌기가 남지 않게
+
+        private void Update() => ReadZoomAndRotate();
+
+        private void ReadZoomAndRotate()
+        {
+            Mouse mouse = Mouse.current;
+            bool locked = _focus.HasValue || _returning;
+            if (mouse == null || locked)
+            {
+                _dragging = false;
+                return;
+            }
+
+            bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+
+            float scroll = mouse.scroll.ReadValue().y;
+            if (!overUi && Mathf.Abs(scroll) > 0.01f)
+                _targetDistance = Mathf.Clamp(_targetDistance - Mathf.Sign(scroll) * zoomStep, minDistance, maxDistance);
+
+            // UI 위에서 누른 건 회전으로 안 친다. 누른 뒤 UI 위로 지나가는 건 계속 돈다.
+            if (mouse.rightButton.wasPressedThisFrame && !overUi) _dragging = true;
+            if (!mouse.rightButton.isPressed) _dragging = false;
+            if (_dragging) _yaw += mouse.delta.ReadValue().x * rotateDegreesPerPixel;
+        }
+
         private void LateUpdate()
         {
             if (target == null && _focus == null) return;
+
+            _currentDistance = zoomSmoothTime > 0f
+                ? Mathf.SmoothDamp(_currentDistance, _targetDistance, ref _zoomVelocity, zoomSmoothTime)
+                : _targetDistance;
 
             Vector3 desired = PositionFor(_focus ?? target.position + lookOffset);
 
@@ -70,14 +127,17 @@ namespace Marea.Player
                 _returning = false;
             float smooth = _focus.HasValue || _returning ? focusSmoothTime : smoothTime;
 
-            transform.rotation = Quaternion.Euler(eulerAngles);
+            transform.rotation = ViewRotation;
             transform.position = _snapped
                 ? Vector3.SmoothDamp(transform.position, desired, ref _velocity, smooth)
                 : desired;   // 첫 프레임은 원점에서 날아오지 않게 곧바로 붙인다
             _snapped = true;
         }
 
+        /// <summary>내려다보는 각도(X) · 비틀기(Z)는 인스펙터 값 그대로, Y만 우클릭으로 돌린 값.</summary>
+        private Quaternion ViewRotation => Quaternion.Euler(eulerAngles.x, _yaw, eulerAngles.z);
+
         private Vector3 PositionFor(Vector3 lookAt)
-            => lookAt - Quaternion.Euler(eulerAngles) * Vector3.forward * distance;
+            => lookAt - ViewRotation * Vector3.forward * _currentDistance;
     }
 }
