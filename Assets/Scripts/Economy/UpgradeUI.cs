@@ -44,6 +44,8 @@ namespace Marea.Economy
         [Tooltip("노드가 쌓일 곳.")]
         [SerializeField] private Transform nodeParent;
         [SerializeField] private FacilityNode nodePrefab;
+        [Tooltip("노드가 칸을 넘으면 가로로 민다. 탭을 바꾸면 왼쪽 끝으로 돌아간다. (+10/8)")]
+        [SerializeField] private ScrollRect nodeScroll;
         [Tooltip("해금 전이거나 단계가 없을 때 노드 자리에 띄우는 안내.")]
         [SerializeField] private TextMeshProUGUI emptyHint;
 
@@ -166,11 +168,17 @@ namespace Marea.Economy
             for (int i = 0; i < count; i++)
             {
                 data.TryGetStep(i + 1, out FacilityUpgradeStep step);
-                _nodes[i].Bind(i + 1, step.description, Select);
+                _nodes[i].Bind(i + 1, step.description, step.icon, Select);
             }
 
             _selectedLevel = count == 0 ? 0 : Mathf.Min(_levels.LevelOf(_kind) + 1, count);
             RefreshAll();
+
+            if (nodeScroll != null)
+            {
+                Canvas.ForceUpdateCanvases();   // 노드 수가 바뀐 뒤 폭을 다시 재야 끝 위치가 맞다
+                nodeScroll.horizontalNormalizedPosition = 0f;
+            }
         }
 
         private void Select(int level)

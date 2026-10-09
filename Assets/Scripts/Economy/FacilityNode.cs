@@ -19,6 +19,8 @@ namespace Marea.Economy
         [SerializeField] private Button button;
         [SerializeField] private TextMeshProUGUI levelLabel;
         [SerializeField] private TextMeshProUGUI nameLabel;
+        [Tooltip("단계 그림. 단계에 그림이 없으면 끈다. (+10/8)")]
+        [SerializeField] private Image icon;
         [Tooltip("골랐을 때 켜는 표시.")]
         [SerializeField] private GameObject selectedMark;
         [Tooltip("산 단계 표시(체크 등).")]
@@ -28,11 +30,16 @@ namespace Marea.Economy
 
         public int Level { get; private set; }
 
-        public void Bind(int level, string title, Action<int> onSelect)
+        public void Bind(int level, string title, Sprite sprite, Action<int> onSelect)
         {
             Level = level;
             if (levelLabel != null) levelLabel.text = $"Lv.{level}";
             if (nameLabel != null) nameLabel.text = title;
+            if (icon != null)
+            {
+                icon.sprite = sprite;
+                icon.gameObject.SetActive(sprite != null);
+            }
 
             if (button == null) return;
             button.onClick.RemoveAllListeners();

@@ -32,6 +32,9 @@ namespace Marea.Data
 
         [Tooltip("성장 창에 보일 한 줄 설명. 예: 영업 시간 +30초")]
         public string description;
+
+        [Tooltip("성장 창 단계 칸에 보일 그림. 비우면 그림 없이 글자만. (+10/8)")]
+        public Sprite icon;
     }
 
     /// <summary>
