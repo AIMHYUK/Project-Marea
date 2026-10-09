@@ -37,12 +37,16 @@ namespace Marea.Data
         [Tooltip("성장 단계 모델. 씨앗 → … → 다 자람 순서. 마지막 칸이 수확 가능한 모습이다. 비우면 기본 싹이 자란다.")]
         [SerializeField] private GameObject[] stagePrefabs;
 
+        [Tooltip("(+10/9) 다 자랐을 때 밭 위 말풍선에 뜰 아이콘. 비우면 수확 재료의 아이콘.")]
+        [SerializeField] private Sprite readyIcon;
+
         public int Id => id;
         public float GrowSeconds => growSeconds;
         public IngredientData Harvest => harvest;
         public int HarvestCount => harvestCount;
         public int SeedPrice => seedPrice;
         public GameObject[] StagePrefabs => stagePrefabs;
+        public Sprite ReadyIcon => readyIcon != null ? readyIcon : harvest != null ? harvest.Icon : null;
 
         /// <summary>목록에 보일 이름. 재료 이름을 그대로 쓴다.</summary>
         public string DisplayName => harvest != null && !string.IsNullOrWhiteSpace(harvest.DisplayName)

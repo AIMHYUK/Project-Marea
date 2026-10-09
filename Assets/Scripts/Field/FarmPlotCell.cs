@@ -117,7 +117,7 @@ namespace Marea.Field
             if (readyMarker != null) readyMarker.SetActive(false);
         }
 
-        public void ShowReady(Sprite icon)
+        public void ShowReady(Sprite icon, Sprite bubble)
         {
             if (_stages.Count > 0)
             {
@@ -140,6 +140,7 @@ namespace Marea.Field
             }
             if (readyBubble != null)
             {
+                if (bubble != null) readyBubble.sprite = bubble;
                 readyBubble.gameObject.SetActive(hasIcon);
                 if (hasIcon) FitBubble();
             }
