@@ -5569,6 +5569,7 @@ MonoBehaviour:
   zoomStep: 1.5
   zoomSmoothTime: 0.12
   rotateDegreesPerPixel: 0.3
+  focusDistance: 12
 --- !u!114 &204986633
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -74049,7 +74050,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 3e7a57140301ae64c838cdc95a906403, type: 2}
+  - {fileID: 2100000, guid: 7569be1ed432d974e838c4a44fbabb61, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -74493,6 +74494,7 @@ MonoBehaviour:
   revealDelay: 0
   afterReveal: 1
   arriveTimeout: 2
+  revealDistance: 0
   revealSteps: []
   brokenSteps: []
   stepDelay: 0.5
@@ -75128,7 +75130,7 @@ PrefabInstance:
       objectReference: {fileID: 954300726}
     - target: {fileID: 5349082083212312187, guid: 847ed3062a84050458a81539a0e0b204, type: 3}
       propertyPath: m_VersionIndex
-      value: 2240
+      value: 2267
       objectReference: {fileID: 0}
     - target: {fileID: 5899319969778630038, guid: 847ed3062a84050458a81539a0e0b204, type: 3}
       propertyPath: m_Mesh
@@ -75320,7 +75322,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 3e7a57140301ae64c838cdc95a906403, type: 2}
+  - {fileID: 2100000, guid: 7569be1ed432d974e838c4a44fbabb61, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -97103,7 +97105,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 3e7a57140301ae64c838cdc95a906403, type: 2}
+  - {fileID: 2100000, guid: 7569be1ed432d974e838c4a44fbabb61, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -103699,7 +103701,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 3e7a57140301ae64c838cdc95a906403, type: 2}
+  - {fileID: 2100000, guid: 7569be1ed432d974e838c4a44fbabb61, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -120416,6 +120418,7 @@ MonoBehaviour:
   revealDelay: 0
   afterReveal: 1
   arriveTimeout: 2
+  revealDistance: 0
   revealSteps: []
   brokenSteps: []
   stepDelay: 0.5
@@ -158967,13 +158970,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 497cbfa1c04e94a4b9f07b85189c1e16, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Restaurant.CookingCounter
+  interactPoint: {fileID: 0}
   slotPoints:
   - {fileID: 424746206}
   - {fileID: 285492433}
   - {fileID: 728068628}
   - {fileID: 725312616}
   - {fileID: 182470587}
-  interactKey: 19
   defaultFoodPrefab: {fileID: 1236257643937427140, guid: 214213e0e13ff7f4f98145fd797dbdd3, type: 3}
 --- !u!65 &8164078558985977735
 BoxCollider:
