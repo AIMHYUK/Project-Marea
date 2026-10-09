@@ -101,6 +101,10 @@ namespace Marea.Data
         [Tooltip("기획 MenuData.MenuID. 변경되지 않는 고유 키.")]
         [SerializeField] private int id;
 
+        [Tooltip("(+10/9) 구글 시트 MenuData 탭의 MenuID(예: MENU_GRILLED_FISH). 시트 가져오기(Marea/데이터/시트에서 메뉴 가져오기)가 "
+               + "이걸로 행과 에셋을 잇는다. 숫자 id와 체계가 달라 따로 둔다. 비우면 가져오기에서 빠진다.")]
+        [SerializeField] private string sheetId;
+
         [Tooltip("기획 MenuData.Name. 플레이어 표시 이름.")]
         [SerializeField] private string displayName;
 
@@ -142,6 +146,7 @@ namespace Marea.Data
         [SerializeField] private Sprite icon;
 
         public int Id => id;
+        public string SheetId => sheetId;
         public string DisplayName => displayName;
         public MenuTier MenuTier => menuTier;
         public int BasePrice => basePrice;
