@@ -26,6 +26,10 @@ namespace Marea.Field
         [Tooltip("표식 안의 재료 아이콘. 재료에 아이콘이 있으면 이걸 쓴다.")]
         [SerializeField] private SpriteRenderer readyIcon;
 
+        [Tooltip("(+10/9) 수확 아이콘의 월드 크기(m, 긴 변). 재료 아이콘은 512px · PPU 100이라 그대로 그리면 5.12m가 된다 — "
+               + "스프라이트 해상도와 상관없이 이 크기로 맞춘다.")]
+        [SerializeField, Min(0.05f)] private float readyIconSize = 1.5f;
+
         [Tooltip("재료 아이콘이 없을 때 대신 보일 임시 표식.")]
         [SerializeField] private GameObject readyFallback;
 
@@ -125,8 +129,20 @@ namespace Marea.Field
             {
                 readyIcon.sprite = icon;
                 readyIcon.gameObject.SetActive(hasIcon);
+                if (hasIcon) FitIcon(icon);
             }
             if (readyFallback != null) readyFallback.SetActive(!hasIcon);
+        }
+
+        /// <summary>(+10/9) 아이콘 긴 변이 readyIconSize(월드 m)가 되게 크기를 맞춘다. 부모 크기는 나눠서 뺀다.</summary>
+        private void FitIcon(Sprite icon)
+        {
+            Vector3 size = icon.bounds.size;   // 스케일 1일 때 월드 크기(= 픽셀 / PPU)
+            float longest = Mathf.Max(size.x, size.y);
+            if (longest <= 0f) return;
+            Transform parent = readyIcon.transform.parent;
+            float parentScale = parent != null ? Mathf.Max(parent.lossyScale.x, parent.lossyScale.y) : 1f;
+            readyIcon.transform.localScale = Vector3.one * (readyIconSize / longest / Mathf.Max(parentScale, 0.0001f));
         }
 
         private void ShowStage(int index)
