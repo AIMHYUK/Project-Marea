@@ -12,15 +12,18 @@ namespace Marea.Field
     ///
     /// 손님 코드(B)를 건드리지 않고 상태(State · OrderedMenu · WaitingSince)를 지켜보다 바뀌는 순간 한마디 한다.
     /// 앉아서 주문 → 주문 대사 / 오래 기다림 → 재촉 / 음식 받음 → 기뻐함 / 못 받고 떠남 → 투덜.
-    /// 말풍선은 손님 프리팹에 붙이면 Awake에서 스스로 만든다(월드 캔버스 + 몸통 · 꼬리 + 글자).
+    /// 말풍선은 손님 프리팹에 붙이면 Awake에서 스스로 만든다(월드 캔버스 + 말풍선 그림 + 글자).
+    /// (+10/9) 그림은 꼬리가 붙은 balloon_blank 한 장 — 늘리면 꼬리도 늘어서 크기는 고정, 글자가 줄바꿈 · 축소로 맞춘다.
     /// </summary>
     [RequireComponent(typeof(CustomerController))]
     public class CustomerSpeech : MonoBehaviour
     {
         [Header("모양")]
         [SerializeField] private TMP_FontAsset font;
-        [SerializeField] private Sprite bodySprite;
-        [SerializeField] private Sprite tailSprite;
+        [Tooltip("(+10/9) 꼬리까지 그려진 말풍선 한 장(balloon_blank). 비율 그대로 bubbleWidth 폭으로 그린다.")]
+        [SerializeField] private Sprite bubbleSprite;
+        [Tooltip("(+10/9) 말풍선 폭(캔버스 px, 1px = 5mm). 글자가 길면 줄바꿈 뒤 작아진다.")]
+        [SerializeField, Min(50f)] private float bubbleWidth = 300f;
         [Tooltip("손님 원점에서 말풍선 아래 끝까지 높이(m). 주문 아이콘 말풍선보다 위.")]
         [SerializeField] private float height = 2.75f;
         [SerializeField, Min(8f)] private float fontSize = 34f;
@@ -47,7 +50,7 @@ namespace Marea.Field
         [SerializeField, Min(0f)] private float orderDelay = 0.35f;
         [SerializeField, Range(0f, 1f)] private float volume = 0.7f;
 
-        private const float TailScale = 0.45f;   // 원본 그림(8배 해상도) → 캔버스 픽셀
+        private const float TailRatio = 0.23f;   // balloon_blank 아래 꼬리 높이 / 전체 높이 (348px 중 78px)
 
         private CustomerController _customer;
         private CustomerState _last;
@@ -147,44 +150,35 @@ namespace Marea.Field
             float parentScale = Mathf.Max(0.0001f, transform.lossyScale.y);
             rt.localScale = Vector3.one * (0.005f / parentScale);   // 캔버스 1px = 5mm
 
-            // 몸통: 글자 길이에 맞춰 늘어난다. 꼬리는 몸통 아래 가운데.
-            var body = new GameObject("Body", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
+            // 말풍선: 그림 비율 그대로, 꼬리 끝이 원점(손님 머리 위 height)에 오게.
+            var body = new GameObject("Bubble", typeof(RectTransform), typeof(Image));
             body.transform.SetParent(_bubble.transform, false);
             var brt = (RectTransform)body.transform;
             brt.anchorMin = brt.anchorMax = new Vector2(0.5f, 0f);
             brt.pivot = new Vector2(0.5f, 0f);
-            brt.anchoredPosition = new Vector2(0f, 26f);
+            brt.anchoredPosition = Vector2.zero;
+            float aspect = bubbleSprite != null ? bubbleSprite.rect.height / bubbleSprite.rect.width : 1.2f;
+            brt.sizeDelta = new Vector2(bubbleWidth, bubbleWidth * aspect);
             var img = body.GetComponent<Image>();
-            img.sprite = bodySprite;
-            img.type = Image.Type.Sliced;
-            img.pixelsPerUnitMultiplier = 1f / TailScale;   // 테두리 두께를 꼬리와 같은 비율로
+            img.sprite = bubbleSprite;
             img.raycastTarget = false;
-            var layout = body.GetComponent<HorizontalLayoutGroup>();
-            layout.padding = new RectOffset(34, 34, 22, 24);
-            layout.childControlWidth = layout.childControlHeight = true;
-            var fitter = body.GetComponent<ContentSizeFitter>();
-            fitter.horizontalFit = fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
+            // 글자: 꼬리를 뺀 몸통 안쪽. 넘치면 줄바꿈하고, 그래도 넘치면 작아진다.
             var textGo = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             textGo.transform.SetParent(body.transform, false);
+            var xrt = (RectTransform)textGo.transform;
+            xrt.anchorMin = new Vector2(0.1f, TailRatio + 0.05f);
+            xrt.anchorMax = new Vector2(0.9f, 0.92f);
+            xrt.offsetMin = xrt.offsetMax = Vector2.zero;
             _text = textGo.GetComponent<TextMeshProUGUI>();
             if (font != null) _text.font = font;
-            _text.fontSize = fontSize;
             _text.color = textColor;
             _text.alignment = TextAlignmentOptions.Center;
-            _text.textWrappingMode = TextWrappingModes.NoWrap;
+            _text.textWrappingMode = TextWrappingModes.Normal;
+            _text.enableAutoSizing = true;
+            _text.fontSizeMax = fontSize;
+            _text.fontSizeMin = fontSize * 0.5f;
             _text.raycastTarget = false;
-
-            var tail = new GameObject("Tail", typeof(RectTransform), typeof(Image));
-            tail.transform.SetParent(_bubble.transform, false);
-            var trt = (RectTransform)tail.transform;
-            trt.anchorMin = trt.anchorMax = new Vector2(0.5f, 0f);
-            trt.pivot = new Vector2(0.5f, 0f);
-            trt.anchoredPosition = Vector2.zero;
-            trt.sizeDelta = tailSprite != null ? new Vector2(tailSprite.rect.width, tailSprite.rect.height) * TailScale : new Vector2(60f, 30f);
-            var timg = tail.GetComponent<Image>();
-            timg.sprite = tailSprite;
-            timg.raycastTarget = false;
 
             _bubble.SetActive(false);
         }

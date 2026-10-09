@@ -382,6 +382,7 @@ MonoBehaviour:
   angryAfterSeconds: 30
   angryShowSeconds: 1.2
   orderShowSeconds: 2.5
+  leaveAfterSeconds: 60
   coinSoundClip: {fileID: 8300000, guid: f14c67d80d1b5c842a76db4cd382de06, type: 3}
   audioSource: {fileID: 8412886963872390515}
   animator: {fileID: 7598478268969281383}
@@ -593,8 +594,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.CustomerSpeech
   font: {fileID: 11400000, guid: 147d57a14210264468d8f56acedb6dfc, type: 2}
-  bodySprite: {fileID: 21300000, guid: ec2db5dce79c5b34a92c7328a9538efb, type: 3}
-  tailSprite: {fileID: 21300000, guid: a71291d0b26b23544a0ec4c5f406772b, type: 3}
+  bubbleSprite: {fileID: 21300000, guid: 30d0c1ffcae8b7143b7c15064e93567f, type: 3}
+  bubbleWidth: 300
   height: 2.75
   fontSize: 34
   textColor: {r: 0.24, g: 0.15, b: 0.08, a: 1}
@@ -613,6 +614,10 @@ MonoBehaviour:
   - "\uC798 \uBA39\uACA0\uC2B5\uB2C8\uB2E4!"
   leaveAngryLines:
   - "\uC774\uAC74 \uB0B4\uAC00 \uC2DC\uD0A8 \uAC8C \uC544\uB2CC\uB370!"
+  waitedOutLines:
+  - "\uC815\uB9D0\uC774\uC9C0 \uB108\uBB34\uD558\uB294\uAD70!"
+  - "\uC7A5\uC0AC\uD560 \uC0DD\uAC01\uC774 \uC5C6\uB098?"
+  - "\uB098\uAC00\uC57C\uACA0\uC5B4."
   sitClip: {fileID: 8300000, guid: 8473a42e244358446adb9a6a46dad8e2, type: 3}
   orderClip: {fileID: 8300000, guid: 9de45a8118ad08743941f9f449ccbd07, type: 3}
   orderDelay: 0.35
