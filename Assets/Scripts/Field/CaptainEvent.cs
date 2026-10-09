@@ -26,8 +26,8 @@ namespace Marea.Field
         [Header("언제 · 누가")]
         [Tooltip("이 일차 영업의 첫 배로 온다. 하루 한 번.")]
         [SerializeField, Min(1)] private int eventDay = 2;
-        [Tooltip("GuestBoatArrival.boatTypes 중 몇 번 배로 오나. 1 = 중간 배(big_ship).")]
-        [SerializeField, Min(0)] private int boatTypeIndex = 1;
+        [Tooltip("GuestBoatArrival.boatTypes 중 몇 번 배로 오나. 2 = 큰 배(pirate_Ship).")]
+        [SerializeField, Min(0)] private int boatTypeIndex = 2;
         [Tooltip("선장 포함 일행 수. 빈자리만큼 앉고 나머지는 서 있는다.")]
         [SerializeField, Min(1)] private int partySize = 11;
 
@@ -66,6 +66,7 @@ namespace Marea.Field
         [SerializeField] private string[] crewFailLines = { "이딴 걸 선장님께!", "부숴 버려!", "가자, 이런 가게는 필요 없다!" };
 
         private int _doneDay = -1;
+        private bool _forceNext;   // 테스트(F10) — 일차와 상관없이 다음 배를 이벤트로
         private WorldLabelUI _labels;
         private Marea.Hud.HudAlarm _alarm;
 
@@ -73,7 +74,22 @@ namespace Marea.Field
         public int PartySize => partySize;
 
         /// <summary>오늘이 이벤트 날이고 아직 안 했는가.</summary>
-        public bool IsToday => BusinessManager.Instance != null && BusinessManager.Instance.Day == eventDay && _doneDay != eventDay;
+        public bool IsToday => _forceNext
+            || BusinessManager.Instance != null && BusinessManager.Instance.Day == eventDay && _doneDay != eventDay;
+
+        /// <summary>테스트: 영업 전이면 영업을 열어 첫 배로, 영업 중이면 다음 배로 이벤트를 부른다. 플레이 중 F10 또는 인스펙터 메뉴.</summary>
+        [ContextMenu("지금 이벤트 실행 (테스트)")]
+        public void RunNow()
+        {
+            _forceNext = true;
+            if (BusinessManager.Instance != null && BusinessManager.Instance.CurrentState == BusinessState.Ready)
+                BusinessManager.Instance.StartBusiness();
+        }
+
+        private void Update()
+        {
+            if (UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.f10Key.wasPressedThisFrame) RunNow();
+        }
 
         private static bool IsOpen => BusinessManager.Instance != null && BusinessManager.Instance.CurrentState == BusinessState.Open;
 
@@ -99,6 +115,7 @@ namespace Marea.Field
         public IEnumerator Run(IReadOnlyList<CustomerController> seated, List<GameObject> extras, Vector3 entrance)
         {
             _doneDay = eventDay;
+            _forceNext = false;
             CustomerController captain = seated.Count > 0 ? seated[0] : null;
             if (captain == null)
             {
