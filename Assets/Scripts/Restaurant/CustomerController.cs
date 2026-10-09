@@ -57,7 +57,6 @@ namespace Marea.Restaurant
         private MenuData _orderedMenu;
         private GameObject _spawnedFoodVisual;
 
-        private readonly List<MenuData> _orderCandidates = new();
         private AgentMover _mover;
         private NavMeshAgent _navAgent;
         private Rigidbody _rigidbody;
@@ -193,23 +192,14 @@ namespace Marea.Restaurant
 
         private void DecideOrder()
         {
-            if (availableMenus == null || availableMenus.Count == 0) return;
-
-            _orderCandidates.Clear();
-            for (int i = 0; i < availableMenus.Count; i++)
+            // (+10/9, A) 오늘의 메뉴 안에서 · 같은 메뉴가 이어지지 않게 고른다(OrderPicker). 오늘의 메뉴를 안 골랐으면
+            // 예전처럼 이 손님의 availableMenus에서.
+            _orderedMenu = OrderPicker.Pick(availableMenus);
+            if (_orderedMenu == null)
             {
-                MenuData menu = availableMenus[i];
-                if (menu != null && menu.IsActive) _orderCandidates.Add(menu);
-            }
-
-            if (_orderCandidates.Count == 0)
-            {
-                Debug.LogError($"{name}: availableMenus에 주문할 수 있는 메뉴가 없다. 비어 있거나 IsActive가 전부 꺼져 있다.", this);
+                Debug.LogError($"{name}: 주문할 메뉴가 없다. 오늘의 메뉴가 비었고 availableMenus도 비었거나 IsActive가 전부 꺼져 있다.", this);
                 return;
             }
-
-            int randomIndex = Random.Range(0, _orderCandidates.Count);
-            _orderedMenu = _orderCandidates[randomIndex];
 
             if (imgAngryFeedback != null) imgAngryFeedback.gameObject.SetActive(false);
             if (imgHappyFeedback != null) imgHappyFeedback.gameObject.SetActive(false);

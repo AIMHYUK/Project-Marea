@@ -1,0 +1,126 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1071913288794710355
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2467226881365158149}
+  m_Layer: 0
+  m_Name: PF_GuestShip_Small
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2467226881365158149
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1071913288794710355}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1922889352651324589}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &5662295618225160222
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 2467226881365158149}
+    m_Modifications:
+    - target: {fileID: 6069720286027480243, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.03889536
+      objectReference: {fileID: 0}
+    - target: {fileID: 6069720286027480243, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.8746774
+      objectReference: {fileID: 0}
+    - target: {fileID: 6069720286027480243, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -2.5873666
+      objectReference: {fileID: 0}
+    - target: {fileID: 6069720286027480243, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.9958043
+      objectReference: {fileID: 0}
+    - target: {fileID: 6069720286027480243, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6069720286027480243, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.09150852
+      objectReference: {fileID: 0}
+    - target: {fileID: 6069720286027480243, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6069720286027480243, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6069720286027480243, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 269.44202
+      objectReference: {fileID: 0}
+    - target: {fileID: 6069720286027480243, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6877043757055092233, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+      propertyPath: m_Name
+      value: small_Ship
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6877043757055092233, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5389254663301966029}
+  m_SourcePrefab: {fileID: 100100000, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+--- !u!1 &1289341216128362007 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6877043757055092233, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+  m_PrefabInstance: {fileID: 5662295618225160222}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5389254663301966029
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1289341216128362007}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9db222cd8d1e2a9408ea2b0160b92f78, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.FloatBob
+  heaveHeight: 0.08
+  heaveSpeed: 1.1
+  pitchDegrees: 1.5
+  pitchSpeed: 0.8
+  rollDegrees: 2.5
+  rollSpeed: 0.65
+  leanPerAccel: 3
+  maxLean: 6
+  leanResponse: 3
+  speedSmoothing: 4
+--- !u!4 &1922889352651324589 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6069720286027480243, guid: 2e745f2b918591d419b35d6d511e2d97, type: 3}
+  m_PrefabInstance: {fileID: 5662295618225160222}
+  m_PrefabAsset: {fileID: 0}

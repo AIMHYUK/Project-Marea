@@ -26,6 +26,16 @@ namespace Marea.Restaurant
 
         private Coroutine _spawnRoutine;
 
+        /// <summary>
+        /// (+10/9, A — 이슈 128 「손님 운송」) 손님 배(GuestBoatArrival)가 손님을 내린다. 켜져 있으면
+        /// spawnInterval마다 혼자 내보내던 주기 스폰을 쉰다 — 손님은 배가 닿았을 때 SpawnOne으로만 나온다.
+        /// 씬에 손님 배가 없으면 꺼진 채라 예전처럼 주기 스폰한다.
+        /// </summary>
+        public bool SpawnByBoats { get; set; }
+
+        /// <summary>(+10/9, A) 지금 앉힐 수 있는 빈 좌석 수. 배가 이걸 보고 몇 명 탄 배를 보낼지 정한다.</summary>
+        public int EmptySeatCount => seatList.FindAll(seat => seat != null && seat.isActiveAndEnabled && !seat.IsOccupied).Count;
+
         private void Awake()
         {
             // 좌석 리스트가 비어있다면 씬 내 좌석 컴포넌트 자동 탐색
@@ -55,14 +65,16 @@ namespace Marea.Restaurant
         /// 배가 선착장에 닿는 순간 첫 손님을 내리게 쓴다. 주기 스폰(SpawnRoutine)은 그대로 돈다.
         /// 빈 좌석이나 프리팹이 없으면 false.
         /// </summary>
-        public bool SpawnNow()
+        public bool SpawnNow() => SpawnOne() != null;
+
+        /// <summary>(+10/9, A) 지금 한 명 내보내고 그 손님을 돌려준다. 배가 승객을 하나씩 내릴 때 쓴다. 빈 좌석 · 프리팹이 없으면 null.</summary>
+        public CustomerController SpawnOne()
         {
             Seat emptySeat = GetRandomEmptySeat();
             GameObject selectedPrefab = GetRandomCustomerPrefab();
-            if (emptySeat == null || selectedPrefab == null) return false;
+            if (emptySeat == null || selectedPrefab == null) return null;
 
-            SpawnCustomerAtSeat(emptySeat, selectedPrefab);
-            return true;
+            return SpawnCustomerAtSeat(emptySeat, selectedPrefab);
         }
 
         public void StopSpawning()
@@ -127,6 +139,9 @@ namespace Marea.Restaurant
                     continue;
                 }
 
+                // (+10/9, A) 손님 배가 내리는 중이면 주기 스폰은 쉰다.
+                if (SpawnByBoats) continue;
+
                 Seat emptySeat = GetRandomEmptySeat();
                 GameObject selectedPrefab = GetRandomCustomerPrefab();
 
@@ -178,9 +193,9 @@ namespace Marea.Restaurant
             return null;
         }
 
-        private void SpawnCustomerAtSeat(Seat targetSeat, GameObject prefabToSpawn)
+        private CustomerController SpawnCustomerAtSeat(Seat targetSeat, GameObject prefabToSpawn)
         {
-            if (targetSeat == null || targetSeat.SitPoint == null || prefabToSpawn == null) return;
+            if (targetSeat == null || targetSeat.SitPoint == null || prefabToSpawn == null) return null;
 
             // 입구(spawnPoint) 위치가 지정되어 있으면 입구에서 생성하고, 없으면 본체 위치 사용
             Vector3 originPos = spawnPoint != null ? spawnPoint.position : transform.position;
@@ -195,6 +210,7 @@ namespace Marea.Restaurant
                 customer.Initialize(targetSeat, originPos);
                 Debug.Log($"[CustomerManager] 손님({prefabToSpawn.name})이 입구에서 생성되어 좌석({targetSeat.name})으로 이동을 시작합니다.");
             }
+            return customer;
         }
 
         public void ClearAllCustomers()
