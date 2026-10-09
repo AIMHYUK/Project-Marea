@@ -58,6 +58,7 @@ namespace Marea.Player
         private float _targetDistance;
         private float _currentDistance;
         private float _zoomVelocity;
+        private float _focusDistanceOverride;
         private bool _dragging;
 
         private Vector3 _velocity;
@@ -66,13 +67,21 @@ namespace Marea.Player
         private bool _returning;   // 포커스를 풀고 플레이어로 돌아오는 중 — 그동안은 느린 값으로 간다
 
         /// <summary>플레이어 대신 이 점을 본다. ClearFocus까지 유지된다.</summary>
-        public void FocusOn(Vector3 point) => _focus = point;
+        public void FocusOn(Vector3 point) => FocusOn(point, 0f);
+
+        /// <summary>(+10/9) 연출 거리를 이번만 정해서 본다. 0 이하면 focusDistance. 넓은 곳(농장 해금)을 한눈에 볼 때.</summary>
+        public void FocusOn(Vector3 point, float distance)
+        {
+            _focus = point;
+            _focusDistanceOverride = distance;
+        }
 
         /// <summary>다시 플레이어를 따라간다. 돌아오는 길도 부드럽게 간다.</summary>
         public void ClearFocus()
         {
             if (_focus == null) return;
             _focus = null;
+            _focusDistanceOverride = 0f;
             _returning = true;
         }
 
@@ -120,7 +129,9 @@ namespace Marea.Player
         {
             if (target == null && _focus == null) return;
 
-            float wantDistance = _focus.HasValue ? focusDistance : _targetDistance;   // (+10/9) 연출 중엔 고정 거리
+            // (+10/9) 연출 중엔 고정 거리(이번 연출이 따로 정했으면 그 거리)
+            float wantDistance = !_focus.HasValue ? _targetDistance
+                               : _focusDistanceOverride > 0f ? _focusDistanceOverride : focusDistance;
             _currentDistance = zoomSmoothTime > 0f
                 ? Mathf.SmoothDamp(_currentDistance, wantDistance, ref _zoomVelocity, zoomSmoothTime)
                 : wantDistance;
