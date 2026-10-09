@@ -75,6 +75,9 @@ namespace Marea.Restaurant
         public MenuData OrderedMenu => _orderedMenu;
         public float WaitingSince { get; private set; }
 
+        /// <summary>(+10/9, A) 음식을 너무 오래 못 받아 떠났는가. 말풍선(CustomerSpeech)이 잘못된 음식으로 떠날 때와 대사를 나눈다.</summary>
+        public bool LeftAfterLongWait { get; private set; }
+
         private void Awake()
         {
             _mover = GetComponent<AgentMover>();
@@ -304,6 +307,7 @@ namespace Marea.Restaurant
             if (_state == CustomerState.WaitingOrder && TimeToLeave())
             {
                 Debug.Log($"[Customer] {leaveAfterSeconds:F0}초 기다려도 음식이 안 와서 떠납니다.");
+                LeftAfterLongWait = true;
                 _state = CustomerState.Leaving;   // 화난 얼굴을 띄우는 1초 사이에 음식을 받지 않게 먼저 바꾼다
                 StartCoroutine(RejectAndLeaveRoutine(waitedTooLong: true));
             }

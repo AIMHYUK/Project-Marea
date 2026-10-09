@@ -37,6 +37,8 @@ namespace Marea.Field
         [SerializeField] private string[] impatientLines = { "{0} 아직인가요…?", "배고파… {0}…" };
         [SerializeField] private string[] happyLines = { "와, 맛있겠다!", "잘 먹겠습니다!" };
         [SerializeField] private string[] leaveAngryLines = { "이건 내가 시킨 게 아닌데!" };
+        [Tooltip("(+10/9) 음식을 너무 오래 못 받아 떠날 때(CustomerController.leaveAfterSeconds).")]
+        [SerializeField] private string[] waitedOutLines = { "정말이지 너무하는군!", "장사할 생각이 없나?", "나가야겠어." };
 
         [Header("소리 (+10/8) — 기획 GST-02 착석 · GST-03 주문 말풍선")]
         [SerializeField] private AudioClip sitClip;
@@ -97,7 +99,8 @@ namespace Marea.Field
                 if (orderClip != null) StartCoroutine(PlayLater(orderClip, orderDelay));
             }
             else if (to == CustomerState.Eating) Say(happyLines);
-            else if (to == CustomerState.Leaving && from == CustomerState.WaitingOrder) Say(leaveAngryLines);
+            else if (to == CustomerState.Leaving && from == CustomerState.WaitingOrder)
+                Say(_customer.LeftAfterLongWait ? waitedOutLines : leaveAngryLines);   // (+10/9) 오래 기다림 · 잘못된 음식
         }
 
         private void Say(string[] lines)
