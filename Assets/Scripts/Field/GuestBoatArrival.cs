@@ -5,6 +5,7 @@ using Marea.Player;
 using Marea.Restaurant;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Splines;
 
 namespace Marea.Field
 {
@@ -24,17 +25,12 @@ namespace Marea.Field
         [Header("배")]
         [Tooltip("움직일 배. 씬의 GuestBoat.")]
         [SerializeField] private Transform boat;
-        [Tooltip("정박 자세(위치 · 방향). 배가 여기 와서 선다.")]
-        [SerializeField] private Transform dockPoint;
+        [Tooltip("입항 경로(첫 번째 스플라인). 씬 뷰에서 점을 옮겨 편집한다. 첫 점 = 바다 출발점, "
+               + "마지막 점 = 정박 위치이고 마지막 점에서의 진행 방향이 정박 방향이다. 출항은 이걸 거꾸로 간다. (+10/9)")]
+        [SerializeField] private SplineContainer path;
         [Tooltip("배 루트의 +Z와 모델 뱃머리 사이 각도(도). 모델이 루트보다 이만큼 틀어져 있다 — "
                + "이걸 안 빼면 진행 방향을 바라보게 돌려도 배가 옆으로 게걸음 친다.")]
         [SerializeField] private float bowYawOffset = 8.2f;
-        [Tooltip("들어올 때 처음 뱃머리 방향(월드 yaw, 도). 이 방향으로 오다가 곡선을 그리며 정박 방향으로 돈다.")]
-        [SerializeField] private float approachYaw = 60f;
-        [Tooltip("출발점이 곡선 시작 기준점에서 처음 방향으로 이만큼 뒤.")]
-        [SerializeField, Min(1f)] private float approachDistance = 22f;
-        [Tooltip("정박 직전 정박 방향으로 곧게 들어오는 길이 — 짧으면 급하게 꺾는다.")]
-        [SerializeField, Min(0.5f)] private float finalStraight = 10f;
         [SerializeField, Min(0.5f)] private float arriveSeconds = 6f;
         [SerializeField, Min(0.5f)] private float departSeconds = 6f;
 
@@ -63,9 +59,9 @@ namespace Marea.Field
 
         private void Awake()
         {
-            if (boat == null || dockPoint == null)
+            if (boat == null || path == null || path.Spline == null || path.Spline.Count < 2)
             {
-                Debug.LogError($"{name}: GuestBoatArrival.boat / dockPoint가 비어 있다. 영업 시작 연출이 안 나온다.", this);
+                Debug.LogError($"{name}: GuestBoatArrival.boat가 비었거나 path 스플라인에 점이 2개 미만이다. 영업 시작 연출이 안 나온다.", this);
                 enabled = false;
                 return;
             }
@@ -127,18 +123,14 @@ namespace Marea.Field
             BeginCutscene();
             if (_customers != null) _customers.PauseSpawning(true);   // 배가 닿기 전엔 아무도 안 나온다
 
-            // approachYaw 방향으로 오다가 곡선을 그리며 정박 방향으로 돈다(2차 베지어).
-            // 배는 늘 곡선의 접선(진행 방향)을 바라본다 — 옆으로 미끄러지지 않는다.
-            Route(out Vector3 p0, out Vector3 p1, out Vector3 p2);
+            // path 스플라인을 처음 점(바다)에서 마지막 점(정박)까지 따라온다. (+10/9 — 2차 베지어 계산 → 스플라인)
+            // 배는 늘 스플라인의 접선(진행 방향)을 바라본다 — 옆으로 미끄러지지 않는다.
             boat.gameObject.SetActive(true);
             _state = BoatState.Arriving;
 
             for (float t = 0f; t < arriveSeconds && !_skip; t += Time.deltaTime)
             {
-                float u = EaseOut(t / arriveSeconds);
-                float a = 1f - u;
-                Vector3 pos = a * a * p0 + 2f * a * u * p1 + u * u * p2;
-                Vector3 tangent = 2f * a * (p1 - p0) + 2f * u * (p2 - p1);
+                Sample(EaseOut(t / arriveSeconds), out Vector3 pos, out Vector3 tangent);
                 boat.SetPositionAndRotation(pos, HeadingFor(tangent));
                 Focus(boat.position);
                 yield return null;
@@ -159,28 +151,29 @@ namespace Marea.Field
             _routine = null;
         }
 
-        /// <summary>입항 곡선의 세 점 — 바다 출발점, 곧게 들어오기 시작하는 점, 정박점. 출항은 이걸 거꾸로 간다.</summary>
-        private void Route(out Vector3 p0, out Vector3 p1, out Vector3 p2)
+        /// <summary>경로 위 u(0 = 바다 출발점, 1 = 정박점, 길이 기준)의 월드 위치와 진행 방향.</summary>
+        private void Sample(float u, out Vector3 pos, out Vector3 tangent)
         {
-            p2 = dockPoint.position;
-            p1 = p2 - Bow() * finalStraight;
-            p0 = p1 - YawDir(approachYaw) * approachDistance;
+            path.Evaluate(Mathf.Clamp01(u), out var p, out var tan, out _);
+            pos = p;
+            tangent = tan;
         }
 
-        /// <summary>정박 자세에서 모델 뱃머리가 향하는 수평 방향.</summary>
+        /// <summary>정박 자세에서 모델 뱃머리가 향하는 수평 방향 — 경로 끝의 진행 방향.</summary>
         private Vector3 Bow()
-            => Flat(dockPoint.rotation * Quaternion.Euler(0f, bowYawOffset, 0f) * Vector3.forward);
+        {
+            Sample(1f, out _, out Vector3 tangent);
+            return Flat(tangent);
+        }
 
         /// <summary>뱃머리가 이 수평 방향을 보게 하는 배 루트 회전.</summary>
         private Quaternion HeadingFor(Vector3 bowDir)
             => Quaternion.LookRotation(Flat(bowDir), Vector3.up) * Quaternion.Euler(0f, -bowYawOffset, 0f);
 
-        private static Vector3 YawDir(float yaw)
-            => new(Mathf.Sin(yaw * Mathf.Deg2Rad), 0f, Mathf.Cos(yaw * Mathf.Deg2Rad));
-
         private void PlaceDocked()
         {
-            boat.SetPositionAndRotation(dockPoint.position, dockPoint.rotation);
+            Sample(1f, out Vector3 dockPos, out _);
+            boat.SetPositionAndRotation(dockPos, HeadingFor(Bow()));
             boat.gameObject.SetActive(true);
             _state = BoatState.Docked;
         }
@@ -203,8 +196,7 @@ namespace Marea.Field
         private IEnumerator DepartRoutine()
         {
             _state = BoatState.Departing;
-            // (+10/7) 제자리에서 뱃머리를 돌린 뒤 들어온 곡선을 거꾸로 따라 나간다 — 정박점 → 꺾는 점 → 바다.
-            Route(out Vector3 p0, out Vector3 p1, out Vector3 p2);
+            // (+10/7) 제자리에서 뱃머리를 돌린 뒤 들어온 경로를 거꾸로 따라 나간다 — 정박점 → 바다.
             Quaternion start = boat.rotation;
             Quaternion away = HeadingFor(-Bow());   // 곡선을 거꾸로 탈 때 첫 진행 방향
             const float turnPart = 0.3f;
@@ -219,10 +211,8 @@ namespace Marea.Field
                 else
                 {
                     float go = (k - turnPart) / (1f - turnPart);
-                    float u = 1f - go * go;   // 천천히 떠나 점점 빨라진다 — 곡선 위 위치는 끝(정박점)에서 처음(바다)으로
-                    float a = 1f - u;
-                    Vector3 pos = a * a * p0 + 2f * a * u * p1 + u * u * p2;
-                    Vector3 tangent = 2f * a * (p1 - p0) + 2f * u * (p2 - p1);
+                    float u = 1f - go * go;   // 천천히 떠나 점점 빨라진다 — 경로 위 위치는 끝(정박점)에서 처음(바다)으로
+                    Sample(u, out Vector3 pos, out Vector3 tangent);
                     boat.SetPositionAndRotation(pos, HeadingFor(-tangent));
                 }
                 yield return null;
