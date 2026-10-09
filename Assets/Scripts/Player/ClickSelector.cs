@@ -93,7 +93,7 @@ namespace Marea.Player
             // 그래서 IInteractable만 직접 구현한 오브젝트는 여기서 안 걸린다 —
             // 상호작용 오브젝트는 반드시 InteractableBase를 상속해야 한다.
             var target = hit.collider.GetComponentInParent<InteractableBase>();
-            if (target != null)
+            if (target != null && target.AllowClick)   // (+10/9) 클릭을 안 받는 대상은 예전(InteractableBase 아니던 때)처럼 지나간다
             {
                 // 상호작용 오브젝트를 맞았으면 여기서 끝낸다.
                 // CanInteract가 false여도 바닥 이동으로 흘려보내지 않는다 — 아직 안 자란 밭을

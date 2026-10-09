@@ -15,6 +15,10 @@ namespace Marea.Restaurant
         private GameObject _currentHoldingVisual; // 실시간 생성된 음식 오브젝트 인스턴스
 
         public bool IsHoldingFood => _isHoldingFood;
+
+        /// <summary>(+10/9, A) 상호작용한 쪽(플레이어)의 서빙 컨트롤러. 조리대 · 손님이 E 상호작용에서 쓴다.</summary>
+        public static PlayerServingController Of(Marea.Core.IInteractor actor)
+            => actor is Component c ? c.transform.root.GetComponentInChildren<PlayerServingController>() : null;
         public CookingResult LastCookingResult => _lastCookingResult;
 
         private void Awake()

@@ -124,7 +124,7 @@ namespace Marea.Player
                 Collider col = _hits[i];
                 // ClickSelector와 같은 규칙 — 콜라이더에서 위로 올라가며 찾는다.
                 var candidate = col.GetComponentInParent<InteractableBase>();
-                if (candidate == null || !candidate.CanInteract(_player)) continue;
+                if (candidate == null || !candidate.AllowKey || !candidate.CanInteract(_player)) continue;
 
                 float dist = Vector3.Distance(origin, ClosestPoint(col, origin));
                 if (dist >= bestDist) continue;

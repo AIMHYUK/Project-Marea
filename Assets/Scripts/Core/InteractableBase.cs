@@ -26,6 +26,12 @@ namespace Marea.Core
         /// </summary>
         public virtual string InteractLabel(IInteractor actor) => "상호작용";
 
+        /// <summary>(+10/9) 가까이서 E로 받나. 끄면 [E] 표시도 안 뜨고 클릭으로만 — 수리 장판.</summary>
+        public virtual bool AllowKey => true;
+
+        /// <summary>(+10/9) 클릭하면 걸어가서 받나. 끄면 E로만 — 조리대 · 손님. 클릭은 예전처럼 그냥 지나간다.</summary>
+        public virtual bool AllowClick => true;
+
         public abstract void Interact(IInteractor actor);
 
         /// <summary>마우스가 올라왔을 때. 아웃라인 같은 걸 켜고 싶으면 override.</summary>
