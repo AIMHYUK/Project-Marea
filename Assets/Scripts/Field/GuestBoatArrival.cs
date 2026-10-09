@@ -21,6 +21,8 @@ namespace Marea.Field
     ///   배 크기로 몇 명 왔는지 보인다. 빈자리가 정원보다 적으면 들어가는 배 중에서 고른다.
     /// - 다음 배까지의 간격과 배 크기 비율은 일차별 표(GuestWaveData, BusinessManager.Day)에서 정한다.
     /// - 선착장은 한 자리 — 앞 배가 떠나기 시작해야 다음 배가 들어온다.
+    /// - (+10/9) 배는 내린 손님이 다 먹고 돌아와 다시 탈 때까지 정박해 기다렸다가 태우고 떠난다.
+    ///   그래서 한 번에 한 무리만 식당에 있고, 간격은 앞 배가 떠난 뒤부터 센다.
     /// - 배가 닿을 때마다 뱃고동(arriveClip). 카메라 연출(배 따라가기 → 첫 손님 보기)은 cameraOnFirstBoat를 켜면 그날 첫 배만 — 기본 끔.
     ///
     /// 배는 종류별 프리팹을 매번 만들고 떠나면 지운다. 프리팹은 뱃머리가 +Z, 원점이 뱃머리 끝이라
@@ -69,7 +71,7 @@ namespace Marea.Field
         [Header("손님 내리기 (+10/9)")]
         [Tooltip("손님 한 명씩 내리는 간격(초). 입구 한 자리에서 나와 겹치지 않게.")]
         [SerializeField, Min(0.05f)] private float unloadInterval = 0.5f;
-        [Tooltip("마지막 손님이 내린 뒤 출항까지 기다리는 초.")]
+        [Tooltip("(+10/9) 손님이 다 탄 뒤(마지막 손님이 돌아와 사라진 뒤) 출항까지 기다리는 초.")]
         [SerializeField, Min(0f)] private float dockHoldSeconds = 1.5f;
         [Tooltip("빈자리가 하나도 없을 때 다시 볼 때까지 초.")]
         [SerializeField, Min(0.1f)] private float noSeatRetrySeconds = 2f;
@@ -103,6 +105,7 @@ namespace Marea.Field
         private PlayerController _player;
         private CustomerManager _customers;
         private readonly List<UiPanel> _hiddenPanels = new();
+        private readonly List<CustomerController> _passengers = new();
         private readonly List<BoatType> _fits = new();
         private readonly List<float> _fitWeights = new();
         private bool _newDay;
@@ -282,6 +285,7 @@ namespace Marea.Field
 
             // 손님은 정원과 빈자리 중 적은 만큼. 영업이 끝났으면 아무도 안 내린다.
             int count = Mathf.Min(type.passengers, seats);
+            _passengers.Clear();
             CustomerController first = null;
             int unloaded = 0;
             float nextUnload = 0f;
@@ -296,6 +300,7 @@ namespace Marea.Field
                     else
                     {
                         unloaded++;
+                        _passengers.Add(c);
                         nextUnload = clock + unloadInterval;
                         if (first == null)
                         {
@@ -316,9 +321,22 @@ namespace Marea.Field
             }
             if (cutscene && _inCutscene) EndCutscene();
 
-            for (float t = 0f; t < dockHoldSeconds && IsOpen; t += Time.deltaTime) yield return null;
+            // (+10/9) 내린 손님이 다 먹고 선착장 출구로 돌아와 사라질 때(= 배에 탐)까지 정박해 기다린다.
+            // 음식을 잘못 받아 일찍 떠난 손님도 사라지면 탄 것으로 친다. 영업이 끝나면 BusinessManager가
+            // 손님을 한꺼번에 지우니 그때 바로 떠난다.
+            while (HasPassengersAshore()) yield return null;
+
+            for (float t = 0f; t < dockHoldSeconds; t += Time.deltaTime) yield return null;
 
             StartCoroutine(Depart(boat, type));
+        }
+
+        /// <summary>이 배가 내린 손님 중 아직 안 탄(살아 있는) 손님이 있는가.</summary>
+        private bool HasPassengersAshore()
+        {
+            foreach (CustomerController c in _passengers)
+                if (c != null) return true;
+            return false;
         }
 
         private Transform SpawnBoat(BoatType type)
