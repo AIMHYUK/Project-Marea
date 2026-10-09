@@ -38,6 +38,10 @@ namespace Marea.Field
         [SerializeField] private float bowYawOffset = 8.2f;
         [SerializeField, Min(0.5f)] private float arriveSeconds = 6f;
         [SerializeField, Min(0.5f)] private float departSeconds = 6f;
+        [Tooltip("입항 마지막 이 거리(m)에서만 고르게 감속해 정박점에서 선다. 그 앞은 등속. 0이면 감속 없이 딱 선다. (+10/9)")]
+        [SerializeField, Min(0f)] private float brakeDistance = 8f;
+        [Tooltip("출항 처음 이 거리(m)에서만 고르게 가속한다. 그 뒤는 등속. (+10/9)")]
+        [SerializeField, Min(0f)] private float launchDistance = 6f;
 
         // 출렁임 · 기울임은 배 모델 자식의 FloatBob이 맡는다 (+10/7).
 
@@ -135,10 +139,13 @@ namespace Marea.Field
             boat.gameObject.SetActive(true);
             _state = BoatState.Arriving;
 
+            float arriveLength = path.CalculateLength();
             for (float t = 0f; t < arriveSeconds && !_skip; t += Time.deltaTime)
             {
-                // (+10/9) 등속. 감속(EaseOut)은 끝 40% 시간 동안 거의 서 있다가 정박점으로 튀어 끊겨 보였다.
-                Sample(path, t / arriveSeconds, out Vector3 pos, out Vector3 tangent);
+                // (+10/9) 등속으로 오다가 끝 brakeDistance만 고르게 감속. 예전 EaseOut은 끝 40% 시간 동안
+                // 거의 서 있다가 정박점으로 튀어 끊겨 보였다 — 감속 구간을 시간이 아니라 거리로 잡는다.
+                float s = BrakeAtEnd(t, arriveSeconds, arriveLength, brakeDistance);
+                Sample(path, s / arriveLength, out Vector3 pos, out Vector3 tangent);
                 boat.SetPositionAndRotation(pos, HeadingFor(tangent));
                 Focus(boat.position);
                 yield return null;
@@ -160,6 +167,21 @@ namespace Marea.Field
         }
 
         private static bool HasSpline(SplineContainer c) => c != null && c.Spline != null && c.Spline.Count >= 2;
+
+        /// <summary>
+        /// 시간 t(0~total)에 간 거리(0~length). 등속 v로 가다가 끝 brake(m)에서 일정한 감속도로 0까지 줄인다.
+        /// 감속 구간은 같은 거리를 등속보다 두 배 시간 들여 가므로 total = (length + brake) / v.
+        /// </summary>
+        private static float BrakeAtEnd(float t, float total, float length, float brake)
+        {
+            brake = Mathf.Clamp(brake, 0f, length * 0.5f);
+            float v = (length + brake) / total;
+            float cruiseTime = (length - brake) / v;
+            if (t <= cruiseTime || brake <= 0f) return Mathf.Min(v * t, length);
+            float tau = Mathf.Min(t - cruiseTime, 2f * brake / v);
+            float decel = v * v / (2f * brake);
+            return (length - brake) + v * tau - 0.5f * decel * tau * tau;
+        }
 
         /// <summary>경로 위 u(0 = 첫 점, 1 = 마지막 점, 길이 기준)의 월드 위치와 진행 방향.</summary>
         private static void Sample(SplineContainer c, float u, out Vector3 pos, out Vector3 tangent)
@@ -224,9 +246,12 @@ namespace Marea.Field
             _state = BoatState.Departing;
             // (+10/9) 출항 경로를 등속으로 앞으로 따라 나간다 — 뱃머리는 늘 경로 방향.
             // 예전(+10/7)엔 정박점에서 제자리로 180° 돈 뒤 입항 경로를 거꾸로 탔다 — 그동안 뱃머리가 경로를 안 따랐다.
+            float departLength = departPath.CalculateLength();
             for (float t = 0f; t < departSeconds; t += Time.deltaTime)
             {
-                Sample(departPath, t / departSeconds, out Vector3 pos, out Vector3 tangent);
+                // (+10/9) 처음 launchDistance만 고르게 가속 — 입항 감속을 시간으로 뒤집은 것.
+                float s = departLength - BrakeAtEnd(departSeconds - t, departSeconds, departLength, launchDistance);
+                Sample(departPath, s / departLength, out Vector3 pos, out Vector3 tangent);
                 boat.SetPositionAndRotation(pos, HeadingFor(tangent));
                 yield return null;
             }
