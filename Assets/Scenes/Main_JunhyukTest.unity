@@ -5564,6 +5564,11 @@ MonoBehaviour:
   smoothTime: 0.15
   focusSmoothTime: 0.35
   arriveDistance: 0.1
+  minDistance: 5
+  maxDistance: 20
+  zoomStep: 1.5
+  zoomSmoothTime: 0.12
+  rotateDegreesPerPixel: 0.3
 --- !u!114 &204986633
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -120139,7 +120144,7 @@ MonoBehaviour:
   m_OverrideVoxelSize: 0
   m_VoxelSize: 0.16666667
   m_MinRegionArea: 2
-  m_NavMeshData: {fileID: 0}
+  m_NavMeshData: {fileID: 23800000, guid: 92ad588fadbd64c4c81a753bd1455acb, type: 2}
   m_BuildHeightMesh: 0
 --- !u!4 &2073563115
 Transform:
