@@ -105,6 +105,14 @@ namespace Marea.Restaurant
             }
         }
 
+        /// <summary>(+10/9, A) 손에 든 음식 모델을 떼어 넘긴다 — 넘어질 때 날리려고. 이 뒤 ClearHeldFood가 지우지 않는다.</summary>
+        public GameObject TakeHeldVisual()
+        {
+            GameObject visual = _currentHoldingVisual;
+            _currentHoldingVisual = null;
+            return visual;
+        }
+
         // 플레이어가 들고 있는 음식을 버리기
         public void ClearHeldFood()
         {

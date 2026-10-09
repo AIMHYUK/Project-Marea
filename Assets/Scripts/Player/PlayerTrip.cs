@@ -96,6 +96,7 @@ namespace Marea.Player
             _player.Interrupt();
             _player.BeginBusy();
             int price = _serving.LastCookingResult.finalPrice;   // 버리기 전에 — 들고 있던 음식값을 물어낸다
+            TossedDish.Launch(_serving.TakeHeldVisual(), transform.forward, transform.position);   // (+10/9) 든 그릇이 앞으로 날아간다
             _serving.ClearHeldFood();
             if (animator != null) animator.SetTrigger(TripHash);
             if (emote != null) emote.Show(surprisedEmote, 1.5f);   // (+10/8) 넘어짐 ❗

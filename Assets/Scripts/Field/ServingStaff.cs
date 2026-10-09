@@ -320,6 +320,11 @@ namespace Marea.Field
         private void Trip()
         {
             _mover.Stop();
+            if (_carried != null)   // (+10/9) 든 그릇은 지우지 않고 앞으로 날린다
+            {
+                TossedDish.Launch(_carried, transform.forward, transform.position);
+                _carried = null;
+            }
             ShowIcon(null);
             _task = default;
             _expectTarget = false;
