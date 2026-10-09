@@ -16,7 +16,7 @@ namespace Marea.Economy
     /// 감기고, 컴파일도 예외도 안 걸린다. 「골드 부족」이 이 시스템에서 제일 자주 밟는
     /// 경로라 하필 거기서 조용히 터진다. 음수 방지는 타입이 아니라 TrySpend가 한다.
     ///
-    /// 저장·로드는 없다. 씬을 다시 켜면 startingGold로 돌아간다 (이슈 23 범위 밖).
+    /// (+10/9) 잔액은 일차가 바뀔 때 SaveFile에 남고(BusinessManager가 씀) 켤 때 읽는다. 저장이 없으면 startingGold.
     /// </summary>
     public class Wallet : MonoBehaviour
     {
@@ -43,7 +43,7 @@ namespace Marea.Economy
             }
 
             Instance = this;
-            Gold = startingGold;
+            Gold = Marea.Core.SaveFile.GetInt("gold", startingGold);
         }
 
         private void OnDestroy()

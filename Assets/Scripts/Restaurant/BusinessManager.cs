@@ -204,6 +204,8 @@ namespace Marea.Restaurant
             {
                 Day++;
                 Marea.Core.SaveFile.Set("day", Day);
+                if (Marea.Economy.Wallet.Instance != null) Marea.Core.SaveFile.Set("gold", Marea.Economy.Wallet.Instance.Gold);
+                if (Marea.Economy.FacilityLevels.Instance != null) Marea.Economy.FacilityLevels.Instance.Save();
                 OnDayChanged?.Invoke(Day);
             }
 
