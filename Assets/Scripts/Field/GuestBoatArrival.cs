@@ -26,8 +26,13 @@ namespace Marea.Field
         [Tooltip("움직일 배. 씬의 GuestBoat.")]
         [SerializeField] private Transform boat;
         [Tooltip("입항 경로(첫 번째 스플라인). 씬 뷰에서 점을 옮겨 편집한다. 첫 점 = 바다 출발점, "
-               + "마지막 점 = 정박 위치이고 마지막 점에서의 진행 방향이 정박 방향이다. 출항은 이걸 거꾸로 간다. (+10/9)")]
+               + "마지막 점 = 정박 위치이고 마지막 점에서의 진행 방향이 정박 방향이다. (+10/9)")]
         [SerializeField] private SplineContainer path;
+        [Tooltip("출항 경로(첫 번째 스플라인). 첫 점 = 정박 위치(입항 경로 끝과 같은 자리 · 같은 방향), "
+               + "마지막 점 = 바다. 배는 제자리에서 돌지 않고 이 경로를 앞으로 따라 나간다. (+10/9)")]
+        [SerializeField] private SplineContainer departPath;
+        [Tooltip("출항 경로 첫 점이 입항 경로 끝에서 이 거리(m)보다 멀거나 방향이 10° 넘게 틀어지면 시작할 때 경고한다 — 배가 튄다.")]
+        [SerializeField, Min(0f)] private float joinTolerance = 0.3f;
         [Tooltip("배 루트의 +Z와 모델 뱃머리 사이 각도(도). 모델이 루트보다 이만큼 틀어져 있다 — "
                + "이걸 안 빼면 진행 방향을 바라보게 돌려도 배가 옆으로 게걸음 친다.")]
         [SerializeField] private float bowYawOffset = 8.2f;
@@ -59,12 +64,14 @@ namespace Marea.Field
 
         private void Awake()
         {
-            if (boat == null || path == null || path.Spline == null || path.Spline.Count < 2)
+            if (boat == null || !HasSpline(path) || !HasSpline(departPath))
             {
-                Debug.LogError($"{name}: GuestBoatArrival.boat가 비었거나 path 스플라인에 점이 2개 미만이다. 영업 시작 연출이 안 나온다.", this);
+                Debug.LogError($"{name}: GuestBoatArrival.boat가 비었거나 path / departPath 스플라인에 점이 2개 미만이다. "
+                             + "영업 시작 연출이 안 나온다.", this);
                 enabled = false;
                 return;
             }
+            WarnIfPathsDontJoin();
             boat.gameObject.SetActive(false);   // 준비 중엔 배가 없다
         }
 
@@ -130,7 +137,8 @@ namespace Marea.Field
 
             for (float t = 0f; t < arriveSeconds && !_skip; t += Time.deltaTime)
             {
-                Sample(EaseOut(t / arriveSeconds), out Vector3 pos, out Vector3 tangent);
+                // (+10/9) 등속. 감속(EaseOut)은 끝 40% 시간 동안 거의 서 있다가 정박점으로 튀어 끊겨 보였다.
+                Sample(path, t / arriveSeconds, out Vector3 pos, out Vector3 tangent);
                 boat.SetPositionAndRotation(pos, HeadingFor(tangent));
                 Focus(boat.position);
                 yield return null;
@@ -151,19 +159,33 @@ namespace Marea.Field
             _routine = null;
         }
 
-        /// <summary>경로 위 u(0 = 바다 출발점, 1 = 정박점, 길이 기준)의 월드 위치와 진행 방향.</summary>
-        private void Sample(float u, out Vector3 pos, out Vector3 tangent)
+        private static bool HasSpline(SplineContainer c) => c != null && c.Spline != null && c.Spline.Count >= 2;
+
+        /// <summary>경로 위 u(0 = 첫 점, 1 = 마지막 점, 길이 기준)의 월드 위치와 진행 방향.</summary>
+        private static void Sample(SplineContainer c, float u, out Vector3 pos, out Vector3 tangent)
         {
-            path.Evaluate(Mathf.Clamp01(u), out var p, out var tan, out _);
+            c.Evaluate(Mathf.Clamp01(u), out var p, out var tan, out _);
             pos = p;
             tangent = tan;
         }
 
-        /// <summary>정박 자세에서 모델 뱃머리가 향하는 방향 — 경로 끝의 진행 방향.</summary>
+        /// <summary>정박 자세에서 모델 뱃머리가 향하는 방향 — 입항 경로 끝의 진행 방향.</summary>
         private Vector3 Bow()
         {
-            Sample(1f, out _, out Vector3 tangent);
+            Sample(path, 1f, out _, out Vector3 tangent);
             return Dir(tangent);
+        }
+
+        /// <summary>출항 경로가 정박 자세에서 이어지지 않으면 출항 첫 프레임에 배가 튄다 — 편집 실수를 바로 알린다.</summary>
+        private void WarnIfPathsDontJoin()
+        {
+            Sample(path, 1f, out Vector3 dockPos, out _);
+            Sample(departPath, 0f, out Vector3 startPos, out Vector3 startTan);
+            float gap = Vector3.Distance(dockPos, startPos);
+            float turn = Vector3.Angle(Bow(), startTan);
+            if (gap > joinTolerance || turn > 10f)
+                Debug.LogWarning($"{name}: 출항 경로 첫 점이 입항 경로 끝과 안 맞는다 (거리 {gap:F2}m · 방향 {turn:F0}°). "
+                               + "출항 시작에 배가 튄다 — departPath 첫 점을 path 끝점에 맞춰라.", this);
         }
 
         /// <summary>
@@ -176,7 +198,7 @@ namespace Marea.Field
 
         private void PlaceDocked()
         {
-            Sample(1f, out Vector3 dockPos, out _);
+            Sample(path, 1f, out Vector3 dockPos, out _);
             boat.SetPositionAndRotation(dockPos, HeadingFor(Bow()));
             boat.gameObject.SetActive(true);
             _state = BoatState.Docked;
@@ -200,25 +222,12 @@ namespace Marea.Field
         private IEnumerator DepartRoutine()
         {
             _state = BoatState.Departing;
-            // (+10/7) 제자리에서 뱃머리를 돌린 뒤 들어온 경로를 거꾸로 따라 나간다 — 정박점 → 바다.
-            Quaternion start = boat.rotation;
-            Quaternion away = HeadingFor(-Bow());   // 곡선을 거꾸로 탈 때 첫 진행 방향
-            const float turnPart = 0.3f;
-
+            // (+10/9) 출항 경로를 등속으로 앞으로 따라 나간다 — 뱃머리는 늘 경로 방향.
+            // 예전(+10/7)엔 정박점에서 제자리로 180° 돈 뒤 입항 경로를 거꾸로 탔다 — 그동안 뱃머리가 경로를 안 따랐다.
             for (float t = 0f; t < departSeconds; t += Time.deltaTime)
             {
-                float k = t / departSeconds;
-                if (k < turnPart)
-                {
-                    boat.rotation = Quaternion.Slerp(start, away, Mathf.SmoothStep(0f, 1f, k / turnPart));
-                }
-                else
-                {
-                    float go = (k - turnPart) / (1f - turnPart);
-                    float u = 1f - go * go;   // 천천히 떠나 점점 빨라진다 — 경로 위 위치는 끝(정박점)에서 처음(바다)으로
-                    Sample(u, out Vector3 pos, out Vector3 tangent);
-                    boat.SetPositionAndRotation(pos, HeadingFor(-tangent));
-                }
+                Sample(departPath, t / departSeconds, out Vector3 pos, out Vector3 tangent);
+                boat.SetPositionAndRotation(pos, HeadingFor(tangent));
                 yield return null;
             }
             boat.gameObject.SetActive(false);
@@ -271,8 +280,5 @@ namespace Marea.Field
 
         private static Vector3 Dir(Vector3 v)
             => v.sqrMagnitude < 0.0001f ? Vector3.forward : v.normalized;
-
-        // 3차 — 끝으로 갈수록 오래 미끄러지다 선다. 2차는 부두에 들이받는 느낌이었다.
-        private static float EaseOut(float k) => 1f - (1f - k) * (1f - k) * (1f - k);
     }
 }
