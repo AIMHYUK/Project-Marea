@@ -1,4 +1,5 @@
 using Marea.Core;
+using Marea.Player;
 using UnityEngine;
 
 namespace Marea.Field
@@ -11,6 +12,9 @@ namespace Marea.Field
     /// </summary>
     public class ExpeditionDock : InteractableBase
     {
+        [Tooltip("(+10/9) 귀환 보상은 InteractPoint(배 앞)에서 이 거리(m) 안에 있어야 받는다. 멀면 배 앞으로 걸어간다.")]
+        [SerializeField, Min(0.5f)] private float collectReach = 2.5f;
+
         private ExpeditionManager _manager;
 
         private void Awake()
@@ -36,7 +40,24 @@ namespace Marea.Field
 
         public override void Interact(IInteractor actor)
         {
-            if (_manager != null) _manager.Interact();
+            if (_manager == null) return;
+
+            // (+10/9, 이슈 128 「자원 수령」) 귀환한 배의 보상은 배 앞(이 선착장의 InteractPoint)까지 와야 받는다.
+            // E는 선착장 근처 판정 범위 어디서든 눌리고 HUD 버튼은 어디서든 눌리니, 멀면 창 대신 배 앞으로 걸어가게 한다.
+            if (_manager.Current == ExpeditionManager.State.Returned && actor != null && !IsAtBoat(actor.Transform.position))
+            {
+                if (actor is PlayerController player) player.GoInteract(this);
+                return;
+            }
+            _manager.Interact();
+        }
+
+        /// <summary>(+10/9) 배 앞에 서 있는가 — InteractPoint에서 수평으로 collectReach 안.</summary>
+        public bool IsAtBoat(Vector3 position)
+        {
+            Vector3 d = position - InteractPoint;
+            d.y = 0f;
+            return d.sqrMagnitude <= collectReach * collectReach;
         }
     }
 }
