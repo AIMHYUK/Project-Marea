@@ -85,7 +85,9 @@ namespace Marea.Economy
             if (bonusLabel != null)
             {
                 bonusLabel.gameObject.SetActive(r.Bonus > 0);
-                bonusLabel.text = $"업그레이드 보너스 ×{r.Multiplier:0.##}  +{r.Bonus:N0} G";
+                // (+10/9) 선장 이벤트 성공 날은 보너스에 이벤트 배율이 섞여 있다.
+                string bonusName = Settlement.EventBonusToday ? "보너스 (선장 만족)" : "업그레이드 보너스";
+                bonusLabel.text = $"{bonusName} ×{r.Multiplier:0.##}  +{r.Bonus:N0} G";
             }
             Set(wageLabel, $"직원 인건비  -{r.Wage:N0} G");
             Set(finalLabel, "0 G");

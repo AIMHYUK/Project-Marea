@@ -294,6 +294,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3073498640120947118}
   - component: {fileID: 7370535744663089136}
+  - component: {fileID: 1877129063676763086}
   m_Layer: 0
   m_Name: PF_GuestBoatArrival
   m_TagString: Untagged
@@ -347,6 +348,7 @@ MonoBehaviour:
     pathOffset: {x: 0, y: 0.85, z: -1.5}
     bowYawOffset: 0
   waves: {fileID: 11400000, guid: c71f9325f89879843919f9e8b6d64a7c, type: 2}
+  captainEvent: {fileID: 1877129063676763086}
   path: {fileID: 7745925245793594915}
   departPath: {fileID: 237320379757393835}
   joinTolerance: 0.3
@@ -365,3 +367,53 @@ MonoBehaviour:
   lookHeight: 2
   watchCustomerSeconds: 2
   skipGuardSeconds: 0.4
+--- !u!114 &1877129063676763086
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4138576128664651201}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00bc2497974b2274f8038b55fa45ea3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.CaptainEvent
+  eventDay: 2
+  boatTypeIndex: 1
+  partySize: 11
+  patienceSeconds: 90
+  revenueMultiplier: 2
+  hazardPrefab: {fileID: 8314280620470089562, guid: adc86825b3f0c4846b7a3cdf4092c891, type: 3}
+  hazardCount: 2
+  hazardSpacing: 2
+  breakVfx: 10
+  breakClip: {fileID: 0}
+  crewStandRadius: 4.5
+  priorityLabel: "\uCD5C\uC6B0\uC120!"
+  successToast: "\uC120\uC7A5\uC774 \uD06C\uAC8C \uB9CC\uC871\uD588\uB2E4! \uC624\uB298
+    \uC218\uC775\uC774 \uB450 \uBC30\uAC00 \uB41C\uB2E4"
+  failToast: "\uC120\uC6D0\uB4E4\uC774 \uB370\uD06C\uB97C \uBD80\uC218\uACE0 \uB5A0\uB0AC\uB2E4\u2026"
+  captainOrderLines:
+  - "{0}. \uC774 \uAC00\uAC8C \uCD5C\uACE0\uC758 \uC19C\uC528\uB85C \uAC00\uC838\uC640\uB77C."
+  - "{0}. \uCD5C\uACE0\uC758 \uC19C\uC528\uB85C \uBD80\uD0C1\uD558\uC9C0."
+  crewArriveLines:
+  - "\uC6B0\uB9AC \uC120\uC7A5\uB2D8\uC740 \uCD5C\uACE0\uC758 \uC694\uB9AC\uB9CC
+    \uB4DC\uC2E0\uB2E4!"
+  - "S\uAE09\uC774 \uC544\uB2C8\uBA74 \uAC01\uC624\uD574\uB77C!"
+  - "\uC120\uC7A5\uB2D8\uC744 \uAE30\uB2E4\uB9AC\uAC8C \uD558\uC9C0 \uB9C8\uB77C!"
+  captainSuccessLines:
+  - "\uD6CC\uB96D\uD558\uAD70! \uC18C\uBB38\uB300\uB85C\uC57C."
+  crewSuccessLines:
+  - "\uC5ED\uC2DC \uC18C\uBB38\uB300\uB85C\uAD70!"
+  - "\uC120\uC7A5\uB2D8\uC774 \uC6C3\uC73C\uC168\uB2E4!"
+  - "\uC624\uB298\uC740 \uC2E4\uCEF7 \uBA39\uC790!"
+  captainFailLines:
+  - "\uC774\uAC78 \uC694\uB9AC\uB77C\uACE0 \uB0B4\uB193\uC740 \uAC74\uAC00!"
+  captainNoFoodLines:
+  - "\uAC10\uD788 \uC120\uC7A5\uC744 \uAE30\uB2E4\uB9AC\uAC8C \uD574?"
+  - "\uC774 \uAC00\uAC8C\uB294 \uC190\uB2D8\uC744 \uAD76\uAE30\uB294\uAD70!"
+  crewFailLines:
+  - "\uC774\uB534 \uAC78 \uC120\uC7A5\uB2D8\uAED8!"
+  - "\uBD80\uC234 \uBC84\uB824!"
+  - "\uAC00\uC790, \uC774\uB7F0 \uAC00\uAC8C\uB294 \uD544\uC694 \uC5C6\uB2E4!"

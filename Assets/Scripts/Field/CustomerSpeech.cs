@@ -103,6 +103,9 @@ namespace Marea.Field
                 Say(_customer.LeftAfterLongWait ? waitedOutLines : leaveAngryLines);   // (+10/9) 오래 기다림 · 잘못된 음식
         }
 
+        /// <summary>(+10/9) 정해진 대사를 바로 띄운다 — 특별 이벤트 선장 · 선원. {0}은 주문 메뉴 이름(강조), {1}은 이/가.</summary>
+        public void SayLine(string line) => Say(new[] { line });
+
         private void Say(string[] lines)
         {
             if (lines == null || lines.Length == 0) return;

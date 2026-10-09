@@ -51,6 +51,8 @@ namespace Marea.Field
         [SerializeField] private BoatType[] boatTypes;
         [Tooltip("일차별 배 간격 · 크기 비율.")]
         [SerializeField] private GuestWaveData waves;
+        [Tooltip("(+10/9) 특별 이벤트(선장). 비우면 같은 오브젝트에서 찾는다. 없으면 이벤트 없음.")]
+        [SerializeField] private CaptainEvent captainEvent;
 
         [Header("경로")]
         [Tooltip("입항 경로(첫 번째 스플라인). 씬 뷰에서 점을 옮겨 편집한다. 첫 점 = 바다 출발점, "
@@ -133,6 +135,7 @@ namespace Marea.Field
             if (waves == null)
                 Debug.LogError($"{name}: GuestBoatArrival.waves(GuestWaveData)가 비어 있다. 30초 간격 · 같은 비율로 온다.", this);
             WarnIfPathsDontJoin();
+            if (captainEvent == null) captainEvent = GetComponent<CaptainEvent>();
         }
 
         private void Start()
@@ -193,14 +196,17 @@ namespace Marea.Field
                 }
 
                 int seats = _customers != null ? _customers.EmptySeatCount : 0;
-                BoatType type = PickBoat(seats);
-                if (type == null)
+
+                // (+10/9) 특별 이벤트 날의 첫 배 — 선장과 선원.
+                CaptainEvent ev = captainEvent != null && captainEvent.IsToday ? captainEvent : null;
+                BoatType type = ev != null ? EventBoat(ev) : PickBoat(seats);
+                if (type == null || seats <= 0)
                 {
                     yield return Wait(noSeatRetrySeconds);
                     continue;
                 }
 
-                yield return ArriveAndUnload(type, cutscene, seats);   // 출항을 시작하면 돌아온다
+                yield return ArriveAndUnload(type, cutscene, seats, ev);   // 출항을 시작하면 돌아온다
                 if (cutscene) _newDay = false;   // 방금 배가 연출을 했으면 새 날 연출을 또 하지 않는다
                 cutscene = false;
 
@@ -251,6 +257,14 @@ namespace Marea.Field
             return _fits[_fits.Count - 1];
         }
 
+        private BoatType EventBoat(CaptainEvent ev)
+        {
+            int i = Mathf.Clamp(ev.BoatTypeIndex, 0, boatTypes.Length - 1);
+            if (boatTypes[i] != null && boatTypes[i].prefab != null) return boatTypes[i];
+            Debug.LogError($"{name}: 특별 이벤트 배(boatTypes[{ev.BoatTypeIndex}])가 비어 있다. 일반 배로 대신한다.", this);
+            return PickBoat(_customers != null ? _customers.EmptySeatCount : 0);
+        }
+
         private float NextInterval()
         {
             if (waves != null && BusinessManager.Instance != null
@@ -265,7 +279,7 @@ namespace Marea.Field
 
         // --- 배 한 척 ---
 
-        private IEnumerator ArriveAndUnload(BoatType type, bool cutscene, int seats)
+        private IEnumerator ArriveAndUnload(BoatType type, bool cutscene, int seats, CaptainEvent ev = null)
         {
             Transform boat = SpawnBoat(type);
             SoundManager.Play(arriveClip, arriveVolume);   // (+10/9) 배마다 들어오기 시작할 때 뱃고동
@@ -284,7 +298,9 @@ namespace Marea.Field
             Pose(boat, type, path, 1f);
 
             // 손님은 정원과 빈자리 중 적은 만큼. 영업이 끝났으면 아무도 안 내린다.
-            int count = Mathf.Min(type.passengers, seats);
+            // (+10/9) 특별 이벤트는 일행 전부 — 빈자리만큼 앉고 나머지는 서 있는 선원(엑스트라)으로 내린다.
+            int count = ev != null ? ev.PartySize : Mathf.Min(type.passengers, seats);
+            var extras = new List<GameObject>();
             _passengers.Clear();
             CustomerController first = null;
             int unloaded = 0;
@@ -296,7 +312,14 @@ namespace Marea.Field
                 if (unloaded < count && clock >= nextUnload)
                 {
                     CustomerController c = _customers != null ? _customers.SpawnOne() : null;
-                    if (c == null) count = unloaded;   // 그사이 자리가 찼다
+                    GameObject extra = c == null && ev != null && _customers != null ? _customers.SpawnExtra() : null;
+                    if (extra != null)
+                    {
+                        unloaded++;
+                        extras.Add(extra);
+                        nextUnload = clock + unloadInterval;
+                    }
+                    else if (c == null) count = unloaded;   // 그사이 자리가 찼다
                     else
                     {
                         unloaded++;
@@ -321,6 +344,8 @@ namespace Marea.Field
             }
             if (cutscene && _inCutscene) EndCutscene();
 
+            if (ev != null) yield return ev.Run(new List<CustomerController>(_passengers), extras, EntrancePoint());
+
             // (+10/9) 내린 손님이 다 먹고 선착장 출구로 돌아와 사라질 때(= 배에 탐)까지 정박해 기다린다.
             // 음식을 잘못 받아 일찍 떠난 손님도 사라지면 탄 것으로 친다. 영업이 끝나면 BusinessManager가
             // 손님을 한꺼번에 지우니 그때 바로 떠난다.
@@ -329,6 +354,14 @@ namespace Marea.Field
             for (float t = 0f; t < dockHoldSeconds; t += Time.deltaTime) yield return null;
 
             StartCoroutine(Depart(boat, type));
+        }
+
+        // 손님이 나오고 돌아가는 선착장 입구 — CustomerManager.spawnPoint.
+        private Vector3 EntrancePoint()
+        {
+            if (_customers != null) return _customers.EntrancePosition;
+            Sample(path, 1f, out Vector3 dock, out _);
+            return dock;
         }
 
         /// <summary>이 배가 내린 손님 중 아직 안 탄(살아 있는) 손님이 있는가.</summary>

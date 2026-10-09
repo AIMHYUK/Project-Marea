@@ -33,6 +33,9 @@ namespace Marea.Restaurant
         /// </summary>
         public bool SpawnByBoats { get; set; }
 
+        /// <summary>(+10/9, A) 손님이 나오고 돌아가는 입구(spawnPoint). 없으면 이 오브젝트 자리.</summary>
+        public Vector3 EntrancePosition => spawnPoint != null ? spawnPoint.position : transform.position;
+
         /// <summary>(+10/9, A) 지금 앉힐 수 있는 빈 좌석 수. 배가 이걸 보고 몇 명 탄 배를 보낼지 정한다.</summary>
         public int EmptySeatCount => seatList.FindAll(seat => seat != null && seat.isActiveAndEnabled && !seat.IsOccupied).Count;
 
@@ -77,6 +80,31 @@ namespace Marea.Restaurant
             return SpawnCustomerAtSeat(emptySeat, selectedPrefab);
         }
 
+        /// <summary>
+        /// (+10/9, A) 주문하지 않는 엑스트라 — 자리가 모자라 서 있는 선원 같은. 손님 프리팹 모습 그대로 입구에 만들되
+        /// 손님 동작(CustomerController)은 끄고 클릭 상호작용(CustomerInteractable)은 뺀다. 움직임 · 대사는 부르는 쪽이
+        /// AgentMover · CustomerSpeech.SayLine으로 한다. 다 쓰면 부르는 쪽이 Destroy.
+        /// </summary>
+        public GameObject SpawnExtra()
+        {
+            GameObject prefab = GetRandomCustomerPrefab();
+            if (prefab == null) return null;
+            Vector3 originPos = spawnPoint != null ? spawnPoint.position : transform.position;
+            Quaternion originRot = spawnPoint != null ? spawnPoint.rotation : transform.rotation;
+
+            // 꺼진 그릇 안에서 만들어 Awake 전에 손님 동작을 끈다.
+            var holder = new GameObject("__ExtraHolder");
+            holder.SetActive(false);
+            GameObject go = Instantiate(prefab, originPos, originRot, holder.transform);
+            foreach (CustomerInteractable ci in go.GetComponentsInChildren<CustomerInteractable>(true)) DestroyImmediate(ci);
+            CustomerController cc = go.GetComponent<CustomerController>();
+            if (cc != null) cc.enabled = false;
+            go.name = prefab.name + " (Extra)";
+            go.transform.SetParent(null, true);
+            Destroy(holder);
+            return go;
+        }
+
         public void StopSpawning()
         {
             if (_spawnRoutine != null)
@@ -117,7 +145,8 @@ namespace Marea.Restaurant
                 }
             }
 
-            waiting.Sort((a, b) => a.WaitingSince.CompareTo(b.WaitingSince));
+            // (+10/9, A) 최우선 손님(특별 이벤트 선장)이 맨 앞, 그다음 오래 기다린 순.
+            waiting.Sort((a, b) => a.IsPriority != b.IsPriority ? b.IsPriority.CompareTo(a.IsPriority) : a.WaitingSince.CompareTo(b.WaitingSince));
             return waiting;
         }
 

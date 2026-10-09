@@ -78,6 +78,30 @@ namespace Marea.Restaurant
         /// <summary>(+10/9, A) 음식을 너무 오래 못 받아 떠났는가. 말풍선(CustomerSpeech)이 잘못된 음식으로 떠날 때와 대사를 나눈다.</summary>
         public bool LeftAfterLongWait { get; private set; }
 
+        /// <summary>(+10/9, A) 특별 이벤트 선장처럼 먼저 챙길 손님. GetWaitingCustomers가 맨 앞에 둔다 — 완성된 요리 · 서빙 직원이 먼저 간다.</summary>
+        public bool IsPriority { get; set; }
+
+        /// <summary>(+10/9, A) 맞는 음식을 받았는가, 받았으면 그 판정(S = Perfect). 특별 이벤트가 판정에 쓴다.</summary>
+        public bool HasReceivedFood { get; private set; }
+        public HitGrade ReceivedGrade { get; private set; }
+
+        /// <summary>(+10/9, A) 이 손님만 기다리는 한도를 바꾼다(초). 0이면 안 떠난다.</summary>
+        public void SetPatience(float seconds) => leaveAfterSeconds = Mathf.Max(0f, seconds);
+
+        /// <summary>
+        /// (+10/9, A) 지금 하던 걸 멈추고 화난 채 떠난다 — 특별 이벤트 실패(선원들이 데크를 부수고 떠남).
+        /// 주문 중이었으면 말풍선이 "오래 기다려 떠남" 대사를 한다. 이미 떠나는 중이면 아무것도 안 한다.
+        /// </summary>
+        public void LeaveAngry()
+        {
+            if (_state == CustomerState.Leaving || _state == CustomerState.Finished) return;
+            StopAllCoroutines();
+            _sitAlignCoroutine = null;
+            LeftAfterLongWait = true;
+            _state = CustomerState.Leaving;
+            StartCoroutine(RejectAndLeaveRoutine(waitedTooLong: true));
+        }
+
         private void Awake()
         {
             _mover = GetComponent<AgentMover>();
@@ -244,6 +268,8 @@ namespace Marea.Restaurant
             if (_state != CustomerState.WaitingOrder) return;
 
             _state = CustomerState.Eating;
+            HasReceivedFood = true;            // (+10/9, A)
+            ReceivedGrade = food.bestGrade;
             Debug.Log("[Customer] 음식을 받았습니다. 식사를 시작합니다.");
 
             SpawnFoodVisual(food.menuData);
@@ -291,7 +317,8 @@ namespace Marea.Restaurant
         /// </summary>
         private IEnumerator ImpatientRoutine()
         {
-            while (_state == CustomerState.WaitingOrder && Time.time - WaitingSince < angryAfterSeconds)
+            // (+10/9, A) 떠날 시간이 화낼 시간보다 짧으면(특별 이벤트 선장 등) 화내기 전에도 떠난다.
+            while (_state == CustomerState.WaitingOrder && Time.time - WaitingSince < angryAfterSeconds && !TimeToLeave())
                 yield return null;
 
             while (_state == CustomerState.WaitingOrder)
