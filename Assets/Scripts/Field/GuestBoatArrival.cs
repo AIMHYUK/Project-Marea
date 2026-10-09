@@ -42,8 +42,6 @@ namespace Marea.Field
             [Min(1)] public int passengers = 2;
             [Tooltip("이 배만 경로에서 비켜 갈 거리(월드, m). 큰 배가 부두에 걸리면 바다 쪽으로. y는 흘수(물에 잠기는 깊이) 맞춤.")]
             public Vector3 pathOffset;
-            [Tooltip("프리팹 +Z와 모델 뱃머리 사이 각도(도). 프리팹을 뱃머리 +Z로 만들었으면 0.")]
-            public float bowYawOffset;
         }
 
         [Header("배 종류 (+10/9)")]
@@ -80,13 +78,6 @@ namespace Marea.Field
 
         // 출렁임 · 기울임은 배 모델 자식의 FloatBob이 맡는다 (+10/7).
 
-        [Header("숙임 (배의 FloatBob에 넣는다)")]
-        [Tooltip("감속 · 가속 1 m/s²당 뱃머리 숙임(도). 배를 만들 때 FloatBob 값을 이걸로 덮는다 — "
-               + "배 종류마다 따로 맞추지 않게 이 프리팹이 값을 들고 다닌다. (+10/9)")]
-        [SerializeField, Min(0f)] private float leanPerAccel = 0.5f;
-        [Tooltip("숙임 최대 각도(도).")]
-        [SerializeField, Min(0f)] private float maxLean = 4f;
-
         [Header("소리 (+10/9)")]
         [Tooltip("배가 바다에서 들어오기 시작할 때마다 뱃고동 — 울리면서 들어온다. 화면 밖에서 와도 알게 화면 소리로 낸다. (영업 시작 버튼 뱃고동은 뺐다)")]
         [SerializeField] private AudioClip arriveClip;
@@ -110,7 +101,6 @@ namespace Marea.Field
         private readonly List<CustomerController> _passengers = new();
         private readonly List<BoatType> _fits = new();
         private readonly List<float> _fitWeights = new();
-        private bool _newDay;
         private bool _inCutscene;
         private bool _skip;
         private float _skipAllowedAt;
@@ -178,7 +168,6 @@ namespace Marea.Field
             // 영업이 끝나면 루프는 다음 배를 안 고르고 저절로 끝난다. 오는 중인 배는 손님 없이 닿았다가 떠난다.
             if (state != BusinessState.Open) return;
             if (_loop == null) _loop = StartCoroutine(BoatLoop(cutsceneFirst: cameraOnFirstBoat));
-            else _newDay = true;   // 앞날 루프가 아직 안 끝났다(영업 종료 → 다음 날 → 시작이 한 프레임에) — 기다리던 간격을 끊고 새 날 첫 배부터
         }
 
         // --- 영업 중 배 루프 ---
@@ -186,15 +175,8 @@ namespace Marea.Field
         private IEnumerator BoatLoop(bool cutsceneFirst)
         {
             bool cutscene = cutsceneFirst;
-            _newDay = false;
             while (IsOpen)
             {
-                if (_newDay)
-                {
-                    _newDay = false;
-                    cutscene = cameraOnFirstBoat;
-                }
-
                 int seats = _customers != null ? _customers.EmptySeatCount : 0;
 
                 // (+10/9) 특별 이벤트 날의 첫 배 — 선장과 선원.
@@ -207,7 +189,6 @@ namespace Marea.Field
                 }
 
                 yield return ArriveAndUnload(type, cutscene, seats, ev);   // 출항을 시작하면 돌아온다
-                if (cutscene) _newDay = false;   // 방금 배가 연출을 했으면 새 날 연출을 또 하지 않는다
                 cutscene = false;
 
                 yield return Wait(NextInterval());
@@ -215,9 +196,9 @@ namespace Marea.Field
             _loop = null;
         }
 
-        private IEnumerator Wait(float seconds)
+        private static IEnumerator Wait(float seconds)
         {
-            for (float t = 0f; t < seconds && IsOpen && !_newDay; t += Time.deltaTime) yield return null;
+            for (float t = 0f; t < seconds && IsOpen; t += Time.deltaTime) yield return null;
         }
 
         /// <summary>오늘 단계의 가중치로 배를 고른다. 정원이 빈자리보다 많은 배는 빼고, 다 빠지면 가장 작은 배(빈자리만큼만 태움).</summary>
@@ -376,11 +357,6 @@ namespace Marea.Field
         {
             GameObject go = Instantiate(type.prefab, transform);
             go.name = $"GuestBoat ({type.label}, {type.passengers}명)";
-
-            FloatBob bob = go.GetComponentInChildren<FloatBob>(true);
-            if (bob != null) bob.SetLean(leanPerAccel, maxLean);
-            else Debug.LogWarning($"{name}: '{type.label}' 프리팹 아래에 FloatBob이 없다. 출렁임 · 숙임이 안 나온다.", type.prefab);
-
             Pose(go.transform, type, path, 0f);
             return go.transform;
         }
@@ -403,7 +379,7 @@ namespace Marea.Field
         private static void Pose(Transform boat, BoatType type, SplineContainer c, float u)
         {
             Sample(c, u, out Vector3 pos, out Vector3 tangent);
-            boat.SetPositionAndRotation(pos + type.pathOffset, HeadingFor(tangent, type.bowYawOffset));
+            boat.SetPositionAndRotation(pos + type.pathOffset, HeadingFor(tangent));
         }
 
         private bool HasBoatTypes()
@@ -455,8 +431,7 @@ namespace Marea.Field
         /// 뱃머리가 이 방향을 보게 하는 배 루트 회전. (+10/9) 수평으로 눌러 펴지 않는다 — 경로가 오르내리면
         /// 뱃머리도 들리고 숙는다. 좌우 기울기는 위쪽을 월드 위로 고정해 안 생긴다(출렁임은 모델의 FloatBob).
         /// </summary>
-        private static Quaternion HeadingFor(Vector3 bowDir, float bowYawOffset)
-            => Quaternion.LookRotation(Dir(bowDir), Vector3.up) * Quaternion.Euler(0f, -bowYawOffset, 0f);
+        private static Quaternion HeadingFor(Vector3 bowDir) => Quaternion.LookRotation(Dir(bowDir), Vector3.up);
 
         // --- 연출 시작 · 끝 (FacilitySite 해금 연출과 같은 방식) ---
 
@@ -498,29 +473,5 @@ namespace Marea.Field
 
         private static Vector3 Dir(Vector3 v)
             => v.sqrMagnitude < 0.0001f ? Vector3.forward : v.normalized;
-
-        // 종류별로 비켜 간 경로를 씬 뷰에 보인다 — pathOffset을 맞출 때 부두에 걸리는지 눈으로 본다.
-        private void OnDrawGizmosSelected()
-        {
-            if (!HasSpline(path) || boatTypes == null) return;
-            Color[] colors = { Color.green, Color.yellow, Color.red, Color.cyan };
-            for (int k = 0; k < boatTypes.Length; k++)
-            {
-                BoatType type = boatTypes[k];
-                if (type == null || type.pathOffset == Vector3.zero) continue;
-                Gizmos.color = colors[k % colors.Length];
-                foreach (SplineContainer c in new[] { path, departPath })
-                {
-                    if (!HasSpline(c)) continue;
-                    Sample(c, 0f, out Vector3 prev, out _);
-                    for (int i = 1; i <= 40; i++)
-                    {
-                        Sample(c, i / 40f, out Vector3 p, out _);
-                        Gizmos.DrawLine(prev + type.pathOffset, p + type.pathOffset);
-                        prev = p;
-                    }
-                }
-            }
-        }
     }
 }

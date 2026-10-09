@@ -156,18 +156,12 @@ namespace Marea.Field
         /// </summary>
         public void InteractFromHud()
         {
+            // 배 앞 판정은 선착장(ExpeditionDock.Interact)이 한다 — 멀면 걸어가게 하고, 가까우면 창을 연다.
+            ExpeditionDock dock = Current == State.Returned ? GetComponentInChildren<ExpeditionDock>() : null;
+            PlayerController player = dock != null ? FindAnyObjectByType<PlayerController>() : null;
+            if (player != null) { dock.Interact(player); return; }
             if (Current == State.Returned)
-            {
-                ExpeditionDock dock = GetComponentInChildren<ExpeditionDock>();
-                PlayerController player = FindAnyObjectByType<PlayerController>();
-                if (dock != null && player != null)
-                {
-                    if (dock.IsAtBoat(player.transform.position)) Interact();
-                    else player.GoInteract(dock);
-                    return;
-                }
                 Debug.LogError($"{name}: 켜진 ExpeditionDock이나 PlayerController가 없다. 배 앞으로 못 보내서 결과 창을 바로 연다.", this);
-            }
             Interact();
         }
 

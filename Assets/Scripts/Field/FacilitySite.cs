@@ -83,9 +83,6 @@ namespace Marea.Field
         [Tooltip("해금을 여러 번에 나눠 보여준다. 단계마다 카메라가 그 부품으로 가서 이펙트와 함께 켠다. "
                + "부품은 builtVisual 안의 자식이어야 한다. 밭 칸은 마지막 단계에 같이 켜진다.")]
         [SerializeField] private GameObject[] revealSteps;
-        [Tooltip("(+10/9) 켜면 예전처럼 단계마다 카메라가 그 부품으로 날아간다. 끄면(기본) 부품 · 밭 칸 전체의 가운데를 "
-               + "한 자리에서 보며 단계가 차례로 켜진다 — 작은 부품을 하나씩 가까이 보면 너무 가깝다는 피드백.")]
-        [SerializeField] private bool stepsCameraFollowsParts;
         [Tooltip("(+10/7) revealSteps와 짝 — i번 칸의 부서진 부품은 i번 단계까지 남아 있다가 그때 꺼진다. "
                + "여기 없는 폐허 자식은 첫 단계에서 꺼진다. 비우면 첫 단계에서 폐허를 통째로 끈다. "
                + "농사 데크: [비움, farm_Broken] — 다리 단계엔 부서진 다리만, 데크 단계에 부서진 데크가 꺼진다.")]
@@ -268,7 +265,7 @@ namespace Marea.Field
                 GameObject part = revealSteps[i];
                 SoundManager.Play(doneClip, doneVolume);   // (+10/8) 단계마다 카메라가 출발할 때부터
                 // (+10/9) 기본은 전체 가운데 한 자리 — 두 번째 단계부터는 이미 와 있어 바로 넘어간다.
-                yield return FlyTo(stepsCameraFollowsParts ? (part != null ? MeshBounds(part).center : transform.position) : areaCenter);
+                yield return FlyTo(areaCenter);
                 yield return new WaitForSeconds(i == 0 ? lookHold + revealDelay : stepDelay);
 
                 ShowStep(i);

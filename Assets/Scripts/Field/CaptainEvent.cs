@@ -43,7 +43,6 @@ namespace Marea.Field
         [Tooltip("파손 장판끼리 · 기존 장판 · 좌석에서 이만큼 떨어진 곳만.")]
         [SerializeField, Min(0.5f)] private float hazardSpacing = 2f;
         [SerializeField] private VfxId breakVfx = VfxId.Dust;
-        [SerializeField] private AudioClip breakClip;
 
         [Header("서 있는 선원")]
         [Tooltip("입구(손님 스폰 지점)에서 이 반경 안 빈 곳에 선다.")]
@@ -291,7 +290,6 @@ namespace Marea.Field
                 GameObject hazard = Instantiate(hazardPrefab, p, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
                 hazard.name = $"TripHazard_Captain_{made + 1}";
                 Vfx.Play(breakVfx, p + Vector3.up * 0.3f, 1.2f);
-                SoundManager.PlayAt(breakClip, p, 0.9f);
                 taken.Add(p);
                 made++;
             }
