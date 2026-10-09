@@ -346,6 +346,19 @@ namespace Marea.Cooking
             StartCoroutine(ShowResultRoutine(result));
         }
 
+        /// <summary>(+10/7) 영업이 끝나 요리를 버릴 때 — 불꽃 · 증기를 끄고 냄비를 숨긴다.</summary>
+        protected override void OnAborted()
+        {
+            StopAmbience();
+            if (minigameUI != null) minigameUI.Close();   // 안내 글자 · 게이지
+            if (stewPot != null)
+            {
+                stewPot.ShowWater(false);
+                stewPot.ResetPosition();
+            }
+            SetPotVisible(false);
+        }
+
         protected override void OnDisable()
         {
             base.OnDisable();

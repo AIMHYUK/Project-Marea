@@ -26,6 +26,33 @@ namespace Marea.Cooking
         [SerializeField] private bool highQualitySampling = true;
         [SerializeField, Range(1f, 300f)] private float focalLength = 50f;
 
+        // (+10/7, A) 거리 흐림은 대상과 같은 거리(같은 조리대 위 옆자리)를 못 흐린다 — 화면 가장자리를 따로 흐린다.
+        [Header("가장자리 블러 (+10/7) — 0이면 끔")]
+        [Tooltip("가장자리 흐림 세기 0~1. 0이면 이 시점에선 안 흐린다.")]
+        [SerializeField, Range(0f, 1f)] private float edgeBlur;
+        [Tooltip("화면 가운데(0)부터 이 반경까지는 선명. 모서리가 1.")]
+        [SerializeField, Range(0f, 1f)] private float edgeInner = 0.35f;
+        [Tooltip("이 반경에서 최대로 흐리다.")]
+        [SerializeField, Range(0f, 1.2f)] private float edgeOuter = 0.85f;
+        [Tooltip("최대 흐림 반경(1080p 기준 픽셀).")]
+        [SerializeField, Range(1f, 60f)] private float edgeRadius = 24f;
+        [Tooltip("가장자리를 이만큼 어둡게(비네트).")]
+        [SerializeField, Range(0f, 1f)] private float edgeDarken = 0.25f;
+
+        // (+10/7, A) 플레이 중 인스펙터에서 바꾸면 바로 보이게 — 지금 이 시점을 보고 있으면 카메라가 다시 건다.
+        private void OnValidate()
+        {
+            if (!Application.isPlaying) return;
+            MinigameCameraController cam = FindAnyObjectByType<MinigameCameraController>();
+            if (cam != null) cam.RefreshFocus(this);
+        }
+
+        public float EdgeBlur => edgeBlur;
+        public float EdgeInner => edgeInner;
+        public float EdgeOuter => edgeOuter;
+        public float EdgeRadius => edgeRadius;
+        public float EdgeDarken => edgeDarken;
+
         public Transform Target => target;
         public float Aperture => aperture;
         public MinigameBlurMode BlurMode => blurMode;

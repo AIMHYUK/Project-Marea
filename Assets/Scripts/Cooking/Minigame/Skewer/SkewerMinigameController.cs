@@ -274,6 +274,17 @@ namespace Marea.Cooking
         }
 
         // --- 미니게임 최종 완료 ---
+        /// <summary>(+10/7, A) 영업이 끝나 요리를 버릴 때(BaseCookingMinigame.Abort) — 완료 때와 같이 재료 · UI를 치운다.</summary>
+        protected override void OnAborted()
+        {
+            if (ingredientController != null)
+            {
+                ingredientController.StopMoving();
+                ingredientController.HideAll();
+            }
+            if (minigameUI != null) minigameUI.Close();
+        }
+
         protected override void OnMinigameCompleted(float finalScore)
         {
             slicerStep1?.ResetSlicer();

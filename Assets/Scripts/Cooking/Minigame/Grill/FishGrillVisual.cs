@@ -22,6 +22,7 @@ namespace Marea.Cooking
         private Quaternion _originalLocalRot;
         private Coroutine _flipRoutine;
         private Material _runtimeMat;
+        public Color CurrentGrillColor { get; private set; } = Color.white;
 
         private void Awake()
         {
@@ -61,8 +62,6 @@ namespace Marea.Cooking
                 _runtimeMat = fishRenderer.material;
             }
 
-            if (_runtimeMat == null) return;
-
             Color targetColor;
             if (progress01 < 0.45f)
             {
@@ -79,6 +78,9 @@ namespace Marea.Cooking
                 float t = (progress01 - 0.80f) / 0.20f;
                 targetColor = Color.Lerp(perfectColor, burntColor, t);
             }
+
+            CurrentGrillColor = targetColor;
+            if (_runtimeMat == null) return;
 
             // 머티리얼 컬러 직접 갱신 (URP _BaseColor 및 Standard _Color 동시 적용)
             _runtimeMat.color = targetColor;

@@ -257,12 +257,58 @@ namespace Marea.Cooking
             nextStepAction?.Invoke();
         }
 
+        /// <summary>(+10/7, A) 1~3단계 중이다(단계 전환 대기 포함).</summary>
+        // (+10/8, A) 전환 대기 중엔 CurrentStepIndex가 NotStarted라 빠져 있었다 — 그 사이 BGM이 끊기고 Abort도 안 먹었다.
+        public bool IsRunning => (CurrentStepIndex >= MinigameStepIndex.Step1 && CurrentStepIndex <= MinigameStepIndex.Step3)
+                                 || _stepTransitionRoutine != null;
+
+        /// <summary>
+        /// (+10/7, A) 하던 요리를 버린다 — 영업이 끝나 정산이 뜨면 부른다(CookingMenuUI.AbortCooking).
+        /// 결과 콜백을 안 불러서 음식이 안 나오고 재료도 안 깎인다. 패널 · 카메라 · 숨긴 장식을 되돌린다.
+        /// 패널 밖에서 따로 켠 것(냄비 · 불꽃 등)은 각 미니게임이 OnAborted에서 끈다.
+        /// </summary>
+        public void Abort()
+        {
+            if (!IsRunning) return;
+            ResetMinigame();
+            ReturnCameraToOriginalPosition();
+            OnAborted();
+        }
+
+        /// <summary>(+10/7, A) Abort 때 각 미니게임이 따로 정리할 것.</summary>
+        protected virtual void OnAborted() { }
+
         // --- 미니게임 완결 ---
+        protected virtual bool KeepFinalPanelUntilCameraReturns => false;
+
         protected virtual void FinishMinigame()
         {
             CurrentStepIndex = MinigameStepIndex.Completed;
             SetPhysicsRaycasterState(false);
             ReturnCameraToOriginalPosition();
+
+            if (KeepFinalPanelUntilCameraReturns)
+            {
+                _stepTransitionRoutine = StartCoroutine(FinishAfterCameraReturn());
+                return;
+            }
+
+            FinalizeMinigame();
+        }
+
+        private IEnumerator FinishAfterCameraReturn()
+        {
+            // 마지막 요리와 도구는 카메라 복귀가 끝날 때까지 보여 준다.
+            yield return null;
+            while (cameraController != null && cameraController.HasMinigameView)
+                yield return null;
+
+            _stepTransitionRoutine = null;
+            FinalizeMinigame();
+        }
+
+        private void FinalizeMinigame()
+        {
             SetStepPanelState(s1: false, s2: false, s3: false);
 
             SetDisableDuringMinigameState(true);

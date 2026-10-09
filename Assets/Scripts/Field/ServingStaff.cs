@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Marea.Core;
+using Marea.Cooking;
 using Marea.Economy;
 using UnityEngine;
 using UnityEngine.AI;
@@ -45,7 +46,13 @@ namespace Marea.Field
         [Tooltip("(+10/7) 음식을 집어 올 조리대. 비우면 씬에서 찾는다.")]
         [SerializeField] private Marea.Restaurant.CookingCounter counter;
 
+        [Header("놀람 이모트 (+10/8)")]
+        [Tooltip("넘어질 때 · 새 주문을 받을 때 머리 위에 띄운다.")]
+        [SerializeField] private EmotePopup emote;
+        [SerializeField] private Sprite surprisedEmote;
+
         private GameObject _carried;   // (+10/7) 조리대에서 옮겨 온 음식 모델
+        private int _carriedPrice;     // (+10/7) 그 음식값 — 넘어지면 물어낸다
 
         [Header("배달 판정 (+9/3)")]
         [Tooltip("대상과 이만큼 가까워지면 건넨 것으로 본다.")]
@@ -57,12 +64,13 @@ namespace Marea.Field
         // (+9/30) 넘어질 확률은 파손된 장판(TripHazard)이 든다. 예전의 "배달마다 15%"는 기획이
         // "바닥 돌출부에 걸리면 25%"로 바뀌어 지웠다.
         [Header("넘어짐 (+9/28, 이슈 76)")]
-        [Tooltip("넘어지면 지갑에서 빠지는 골드. 잔액이 모자라면 있는 만큼만 빠진다.")]
+        // (+10/7) 넘어지면 들고 있던 음식값을 물어낸다. 고정 50G는 음식을 못 집고 빈손으로 가던 경우에만.
+        [Tooltip("빈손(조리대에서 음식을 못 집음)으로 넘어졌을 때 빠지는 골드. 음식을 들었으면 그 음식값이 빠진다.")]
         [SerializeField, Min(0)] private int tripPenalty = 50;
 
         [Tooltip("넘어져서 다시 움직일 때까지 초. AC_ServingStaff 의 Tripping(2.8초) + "
-               + "Standing Up(11.4초, 3배속 ≈ 3.8초)에 맞췄다.")]
-        [SerializeField, Min(0.1f)] private float tripSeconds = 6.6f;
+               + "Standing Up(11.4초, 3배속 ≈ 3.8초)에 맞췄다. (+10/7) 둘 다 2배속으로 올려 절반(3.3초).")]
+        [SerializeField, Min(0.1f)] private float tripSeconds = 3.3f;
 
         [Header("연출 (+10/6, 이슈 117) — 기획 「파손 바닥에서 음식 떨어뜨림」 VFX_10 / VFX_13")]
         [SerializeField] private Marea.Data.VfxId tripDustVfx = Marea.Data.VfxId.Dust;
@@ -252,6 +260,7 @@ namespace Marea.Field
             if (!board.TryTake(out _task)) return;
 
             _expectTarget = _task.DeliverTarget != null;
+            if (emote != null) emote.Show(surprisedEmote);   // (+10/8) 새 주문 ❗
             _state = State.ToPickup;
             GoPickup();
         }
@@ -316,6 +325,7 @@ namespace Marea.Field
             _expectTarget = false;
             _state = State.Tripped;
             _tripEndsAt = Time.time + tripSeconds;
+            if (emote != null) emote.Show(surprisedEmote, 1.5f);   // (+10/8) 넘어짐 ❗
 
             // (+10/6) 음식이 떨어진 자리 — 직원 앞 바닥.
             Vector3 drop = transform.position + transform.forward * 0.6f;
@@ -329,7 +339,7 @@ namespace Marea.Field
                 return;
             }
 
-            int paid = Mathf.Min(wallet.Gold, tripPenalty);
+            int paid = Mathf.Min(wallet.Gold, _carriedPrice > 0 ? _carriedPrice : tripPenalty);   // (+10/7) 음식값
             if (paid > 0 && wallet.TrySpend(paid))
             {
                 _penaltyText = $"-{paid}G";
@@ -510,8 +520,11 @@ namespace Marea.Field
         private void TakeFoodFromCounter()
         {
             ReleaseCarried();
+            _carriedPrice = 0;
             if (counter == null || holdPoint == null) return;
-            if (!counter.TryTakeFood(_task.FoodIcon, out _, out GameObject visual) || visual == null) return;
+            if (!counter.TryTakeFood(_task.FoodIcon, out CookingResult food, out GameObject visual)) return;
+            _carriedPrice = food.finalPrice;   // (+10/7) 넘어지면 이 값을 물어낸다
+            if (visual == null) return;
 
             _carried = visual;
             _carried.transform.SetParent(holdPoint, false);

@@ -423,6 +423,7 @@ namespace Marea.Cooking
             {
                 go = Instantiate(prefab, sl.Anchor.position, sl.Anchor.rotation, transform);
                 go.transform.localScale *= slotScale;   // (+10/6)
+                go.transform.localScale = Vector3.Scale(go.transform.localScale, sl.Anchor.localScale);   // (+10/8) 자리별 크기 — 자리 Transform의 Scale
             }
             else
             {
@@ -454,7 +455,14 @@ namespace Marea.Cooking
         private static void Tint(GameObject go, Color color)
         {
             if (go == null) return;
-            foreach (Renderer r in go.GetComponentsInChildren<Renderer>()) r.material.color = color;
+            foreach (Renderer r in go.GetComponentsInChildren<Renderer>())
+            foreach (Material m in r.materials)
+            {
+                if (m.HasColor("_BaseColor")) m.SetColor("_BaseColor", color);
+                else if (m.HasColor("_Color")) m.SetColor("_Color", color);
+                // (+10/8) 아트 셰이더(MM_Shader)는 _BaseColor가 텍스처라 색을 못 곱한다 — 밝기로 어둡게 한다(탄 전복 · 가리비).
+                else if (m.HasFloat("_Brightness")) m.SetFloat("_Brightness", color.maxColorComponent);
+            }
         }
 
         /// <summary>(+10/6) 성공 — 링은 늘, 반짝임은 점수가 perfectScore 이상일 때만(보통 판정은 링만).</summary>

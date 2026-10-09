@@ -38,6 +38,13 @@ namespace Marea.Restaurant
         [SerializeField] private Image imgHappyFeedback;
         [SerializeField] private Image imgCoinFeedback;
 
+        // (+10/8, A) 오래 기다리면 말풍선이 주문 아이콘과 화난 얼굴을 번갈아 보여 준다. 떠나지는 않는다(연출만).
+        [Header("오래 기다리면 화남 (+10/8, A)")]
+        [Tooltip("주문하고 이만큼 지나도 음식을 못 받으면 화난 얼굴을 띄우기 시작한다. 0이면 안 띄운다.")]
+        [SerializeField, Min(0f)] private float angryAfterSeconds = 30f;
+        [SerializeField, Min(0.1f)] private float angryShowSeconds = 1.2f;
+        [SerializeField, Min(0.1f)] private float orderShowSeconds = 2.5f;
+
         [Header("효과음 설정")]
         [SerializeField] private AudioClip coinSoundClip;
         [SerializeField] private AudioSource audioSource;
@@ -175,6 +182,7 @@ namespace Marea.Restaurant
             _sitAlignCoroutine = null;
 
             DecideOrder();
+            if (angryAfterSeconds > 0f) StartCoroutine(ImpatientRoutine());   // (+10/8, A)
         }
 
         private void OnSeatPathFailed()
@@ -279,6 +287,29 @@ namespace Marea.Restaurant
                 Destroy(_spawnedFoodVisual);
                 _spawnedFoodVisual = null;
             }
+        }
+
+        /// <summary>(+10/8, A) 오래 기다리면 주문 아이콘 ↔ 화난 얼굴을 번갈아. 음식을 받거나 떠나면 끝난다.</summary>
+        private IEnumerator ImpatientRoutine()
+        {
+            while (_state == CustomerState.WaitingOrder && Time.time - WaitingSince < angryAfterSeconds)
+                yield return null;
+
+            while (_state == CustomerState.WaitingOrder)
+            {
+                SetImpatient(true);
+                yield return new WaitForSeconds(angryShowSeconds);
+                if (_state != CustomerState.WaitingOrder) break;
+                SetImpatient(false);
+                yield return new WaitForSeconds(orderShowSeconds);
+            }
+        }
+
+        private void SetImpatient(bool angry)
+        {
+            if (_state != CustomerState.WaitingOrder) return;   // 그사이 음식을 받았으면 다른 루틴이 표시를 정한다
+            if (imgOrderIcon != null) imgOrderIcon.gameObject.SetActive(!angry);
+            if (imgAngryFeedback != null) imgAngryFeedback.gameObject.SetActive(angry);
         }
 
         private IEnumerator RejectAndLeaveRoutine()

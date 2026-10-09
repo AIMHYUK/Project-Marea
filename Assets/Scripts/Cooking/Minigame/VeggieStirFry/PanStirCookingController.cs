@@ -16,6 +16,26 @@ namespace Marea.Cooking
         [Tooltip("재료 모델 가장자리에 추가할 클릭 여유 (1920×1080 기준 픽셀)")]
         [SerializeField, Min(0f)] private float veggieClickPadding = 48f;
 
+        [Header("재료 투입 애니메이션")]
+        [InspectorName("투입 이동 시간 (초)")]
+        [SerializeField, Min(0.1f)] private float ingredientInsertDuration = 0.45f;
+        [InspectorName("투입 포물선 높이")]
+        [SerializeField, Min(0f)] private float ingredientInsertArcHeight = 0.25f;
+        [Tooltip("Pan Center Point 기준으로 재료의 밑면을 올릴 월드 Y 높이입니다.")]
+        [InspectorName("팬 안 재료 높이 (Y)")]
+        [SerializeField, Min(0f)] private float ingredientPanHeightOffset = 0.075f;
+
+        private sealed class IngredientFlight
+        {
+            public Vector3 StartPosition;
+            public Quaternion StartRotation;
+            public Vector3 Offset;
+            public Vector3 TiltAxis;
+            public float Elapsed;
+        }
+        private readonly Dictionary<GameObject, IngredientFlight> _ingredientFlights = new();
+        private readonly List<GameObject> _landedIngredients = new();
+
         [Header("주걱 수평 이동 제한")]
         [SerializeField] private Vector2 spatulaMoveRange = new Vector2(1.5f, 1.5f); // 팬 안에서 주걱이 이동할 X, Z 범위
         [SerializeField] private float spatulaSpeedMultiplier = 0.005f;
@@ -167,6 +187,8 @@ namespace Marea.Cooking
 
         public void ResetStep()
         {
+            _ingredientFlights.Clear();
+            _landedIngredients.Clear();
             IsVeggieInPan = false;
             IsCookCompleted = false;
             IsBurned = false;
@@ -245,6 +267,8 @@ namespace Marea.Cooking
             {
                 _mainCamera = Camera.main;
             }
+
+            UpdateIngredientFlights();
 
             // 3D 야채 클릭 감지 (팬에 넣기 전)
             if (!IsCookCompleted &&
@@ -463,11 +487,11 @@ namespace Marea.Cooking
             movement.y = 0f;
             if (movement.sqrMagnitude <= 0.000001f) return;
             Vector3 direction = movement.normalized;
-            Vector3 rotationOffset = new Vector3(
-                -Vector3.Dot(direction, forward) * spatulaPitchAngle,
-                0f,
-                -Vector3.Dot(direction, right) * spatulaRollAngle);
-            _targetSpatulaWorldRotation = Quaternion.Euler(_referenceSpatulaWorldRotation.eulerAngles + rotationOffset);
+            // Tilt around the current camera's horizontal axes, including the sea-facing view.
+            _targetSpatulaWorldRotation =
+                Quaternion.AngleAxis(-Vector3.Dot(direction, forward) * spatulaPitchAngle, right) *
+                Quaternion.AngleAxis(-Vector3.Dot(direction, right) * spatulaRollAngle, forward) *
+                _referenceSpatulaWorldRotation;
             _isStirringThisFrame = true;
             MoveIngredientsWithSpatula(movement);
         }
@@ -625,7 +649,7 @@ namespace Marea.Cooking
             float closestScore = float.PositiveInfinity;
             foreach (var veggie in clickableVeggieObjects)
             {
-                if (veggie == null || _panIngredientOffsets.ContainsKey(veggie)) continue;
+                if (veggie == null || _panIngredientOffsets.ContainsKey(veggie) || _ingredientFlights.ContainsKey(veggie)) continue;
                 if (CookingClickArea.Contains(_mainCamera, veggie, mousePos, veggieClickPadding, out float score)
                     && score < closestScore)
                 {
@@ -642,7 +666,7 @@ namespace Marea.Cooking
             // Keep existing UnityEvent bindings, but insert only one remaining ingredient per call.
             foreach (var veggie in clickableVeggieObjects)
             {
-                if (veggie != null && !_panIngredientOffsets.ContainsKey(veggie))
+                if (veggie != null && !_panIngredientOffsets.ContainsKey(veggie) && !_ingredientFlights.ContainsKey(veggie))
                 {
                     InsertVeggie(veggie);
                     return;
@@ -653,7 +677,8 @@ namespace Marea.Cooking
         private void InsertVeggie(GameObject veggie)
         {
             if (panInsideTransform == null || veggie == null ||
-                IsCookCompleted || IsBurned || _panIngredientOffsets.ContainsKey(veggie)) return;
+                IsCookCompleted || IsBurned || _panIngredientOffsets.ContainsKey(veggie) ||
+                _ingredientFlights.ContainsKey(veggie)) return;
 
             var ingredients = new List<GameObject>();
             foreach (var candidate in clickableVeggieObjects)
@@ -667,9 +692,54 @@ namespace Marea.Cooking
                 Mathf.Cos(angle) * ingredientMoveRadius / Mathf.Max(0.001f, Mathf.Abs(panScale.x)) * ingredientSpreadRatio,
                 0f,
                 Mathf.Sin(angle) * ingredientMoveRadius / Mathf.Max(0.001f, Mathf.Abs(panScale.z)) * ingredientSpreadRatio);
-            veggie.transform.SetParent(panInsideTransform, true);
-            veggie.transform.localPosition = _panGroupOffset + offset;
-            ClampIngredientToPan(veggie);
+            // Imported meshes may have an offset pivot. Land their visible center and bottom in the pan.
+            Bounds bounds = GetIngredientBounds(veggie);
+            Vector3 destination = panInsideTransform.TransformPoint(offset);
+            Vector3 centerOffset = bounds.center - veggie.transform.position;
+            destination.x -= centerOffset.x;
+            destination.z -= centerOffset.z;
+            destination.y = panInsideTransform.position.y + veggie.transform.position.y - bounds.min.y
+                + ingredientPanHeightOffset;
+            offset = panInsideTransform.InverseTransformPoint(destination);
+            _ingredientFlights.Add(veggie, new IngredientFlight
+            {
+                StartPosition = veggie.transform.position,
+                StartRotation = veggie.transform.rotation,
+                Offset = offset,
+                TiltAxis = _mainCamera != null ? _mainCamera.transform.right : transform.right
+            });
+        }
+
+        private void UpdateIngredientFlights()
+        {
+            if (panInsideTransform == null || _ingredientFlights.Count == 0) return;
+            _landedIngredients.Clear();
+            foreach (var entry in _ingredientFlights)
+            {
+                GameObject veggie = entry.Key;
+                if (veggie == null) { _landedIngredients.Add(veggie); continue; }
+                IngredientFlight flight = entry.Value;
+                flight.Elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(flight.Elapsed / Mathf.Max(0.1f, ingredientInsertDuration));
+                float eased = Mathf.SmoothStep(0f, 1f, t);
+                Vector3 destination = panInsideTransform.TransformPoint(_panGroupOffset + flight.Offset);
+                veggie.transform.position = Vector3.Lerp(flight.StartPosition, destination, eased)
+                    + Vector3.up * (4f * t * (1f - t) * ingredientInsertArcHeight);
+                veggie.transform.rotation = Quaternion.AngleAxis(Mathf.Sin(t * Mathf.PI) * 12f, flight.TiltAxis)
+                    * flight.StartRotation;
+                if (t < 1f && !IsCookCompleted) continue;
+                veggie.transform.SetParent(panInsideTransform, true);
+                veggie.transform.localPosition = _panGroupOffset + flight.Offset;
+                veggie.transform.rotation = flight.StartRotation;
+                ClampIngredientToPan(veggie);
+                RegisterLandedIngredient(veggie, flight.Offset);
+                _landedIngredients.Add(veggie);
+            }
+            foreach (GameObject veggie in _landedIngredients) _ingredientFlights.Remove(veggie);
+        }
+
+        private void RegisterLandedIngredient(GameObject veggie, Vector3 offset)
+        {
             _panIngredientOffsets.Add(veggie, offset);
             float phase = Random.Range(0f, Mathf.PI * 2f);
             _ingredientMotions.Add(veggie, new IngredientMotion
@@ -692,6 +762,21 @@ namespace Marea.Cooking
             if (panInsideTransform != null && ingredientInsertAudioSource != null &&
                 ingredientInsertAudioSource.clip != null)
                 ingredientInsertAudioSource.PlayOneShot(ingredientInsertAudioSource.clip);
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (panInsideTransform == null) return;
+            Gizmos.color = new Color(0.3f, 1f, 0.5f, 0.9f);
+            Vector3 center = panInsideTransform.position;
+            const int segments = 48;
+            for (int i = 0; i < segments; i++)
+            {
+                float a = i * Mathf.PI * 2f / segments;
+                float b = (i + 1) * Mathf.PI * 2f / segments;
+                Gizmos.DrawLine(center + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * ingredientMoveRadius,
+                    center + new Vector3(Mathf.Cos(b), 0f, Mathf.Sin(b)) * ingredientMoveRadius);
+            }
         }
 
         private void UpdateVisualState()

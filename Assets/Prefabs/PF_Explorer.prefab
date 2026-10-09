@@ -717,6 +717,23 @@ MonoBehaviour:
   builtVisual: {fileID: 7234952333999719531}
   levelSlots: []
   baseSlots: 2
+  builtExtras: []
+  requiredLevel: 0
+  dustVfx: 10
+  doneVfx: 2
+  vfxScale: 1
+  doneClip: {fileID: 8300000, guid: b49793d5cd705254aa64a0a6e784bd9d, type: 3}
+  doneVolume: 0.9
+  unlockClip: {fileID: 8300000, guid: 6fdf477b400d282438377223e184a315, type: 3}
+  unlockVolume: 0.9
+  lookHold: 0.3
+  revealDelay: 0
+  afterReveal: 1
+  arriveTimeout: 2
+  revealSteps: []
+  brokenSteps: []
+  stepDelay: 0.5
+  stepGap: 1
 --- !u!114 &4399814203629030255
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -736,6 +753,13 @@ MonoBehaviour:
   boat: {fileID: 791515034496142603}
   labelAnchor: {fileID: 4907196999464161093}
   returnedMarker: {fileID: 6247513618611529588}
+  splashVfx: 4
+  wakeVfx: 11
+  wakeInterval: 0.2
+  rewardVfx: 2
+  departClip: {fileID: 0}
+  returnClip: {fileID: 0}
+  clipVolume: 0.9
   departSeconds: 2.5
   departDistance: 15
   sinkSeconds: 1.2

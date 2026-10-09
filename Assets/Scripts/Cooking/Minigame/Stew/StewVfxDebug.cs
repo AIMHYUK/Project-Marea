@@ -78,7 +78,8 @@ namespace Marea.Cooking
             _style ??= new GUIStyle(GUI.skin.box) { fontSize = 18, alignment = TextAnchor.UpperLeft };
             string text = $"증기 [{steamPrev}/{steamNext}]  {_steams[_steamIndex]}  ({_steamIndex + 1}/{_steams.Count})\n"
                         + $"화구 [{burnerPrev}/{burnerNext}]  {_burners[_burnerIndex]}  ({_burnerIndex + 1}/{_burners.Count})";
-            GUI.Box(new Rect(10, 10, 520, 60), text, _style);
+            // (+10/7) 왼쪽 위는 미니게임 상단 바(CookingHud) 자리라 오른쪽 아래로.
+            GUI.Box(new Rect(Screen.width - 530, Screen.height - 140, 520, 60), text, _style);
         }
     }
 }

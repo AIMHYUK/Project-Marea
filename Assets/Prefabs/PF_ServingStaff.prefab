@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 3488808261385047707}
   - component: {fileID: 3907892234922634544}
   - component: {fileID: 4540171797525366346}
+  - component: {fileID: 679294064009359279}
   m_Layer: 0
   m_Name: PF_ServingStaff
   m_TagString: Untagged
@@ -114,13 +115,15 @@ MonoBehaviour:
   carriedIcon: {fileID: 0}
   holdPoint: {fileID: 5583242642452255996}
   counter: {fileID: 0}
+  emote: {fileID: 679294064009359279}
+  surprisedEmote: {fileID: 21300000, guid: 6573d149dfe0bb8449193ac01ae892d7, type: 3}
   handoffRadius: 1.8
   navSampleRadius: 4
   tripPenalty: 50
-  tripSeconds: 6.6
+  tripSeconds: 3.3
   tripDustVfx: 10
   tripFailVfx: 13
-  pickupClip: {fileID: 0}
+  pickupClip: {fileID: 8300000, guid: fee27ff2882eb0b4fbe929bb3f38f663, type: 3}
   pickupVolume: 0.8
 --- !u!114 &3907892234922634544
 MonoBehaviour:
@@ -155,6 +158,22 @@ MonoBehaviour:
   runStride: 1.1
   runSpeed: 4
   minSpeed: 0.3
+--- !u!114 &679294064009359279
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 373078574124041463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec039de0493cbf94683d6b347d03cf32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Core.EmotePopup
+  height: 1.35
+  size: 0.7
+  defaultSeconds: 1.2
+  popSeconds: 0.18
 --- !u!1 &3026453516294917458
 GameObject:
   m_ObjectHideFlags: 0
@@ -180,7 +199,7 @@ Transform:
   m_GameObject: {fileID: 3026453516294917458}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.9928, z: 0.5}
+  m_LocalPosition: {x: 0, y: 0.49460006, z: 0.375}
   m_LocalScale: {x: 1.2, y: 1.2, z: 1.2}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -196,15 +215,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}
       propertyPath: m_LocalScale.x
-      value: 300
+      value: 225
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}
       propertyPath: m_LocalScale.y
-      value: 300
+      value: 225
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}
       propertyPath: m_LocalScale.z
-      value: 300
+      value: 225
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: bd5b5c9f064de4848b49586070a8f2e6, type: 3}
       propertyPath: m_LocalPosition.x
