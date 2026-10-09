@@ -51,6 +51,8 @@ namespace Marea.Field
 
         [Header("글 — {0}은 선장 주문 메뉴(강조), {1}은 이/가")]
         [SerializeField] private string priorityLabel = "최우선!";
+        [Tooltip("(+10/9) 메인 화면 왼쪽 알람(HudAlarm — 탐사정 귀환 알람과 같은 칸). 선장이 주문하면 뜨고 판정이 나면 내린다. {0}은 메뉴 이름.")]
+        [SerializeField] private string alarmText = "선장의 요리를 최우선으로 만들어야 한다! ({0})";
         [SerializeField] private string successToast = "선장이 크게 만족했다! 오늘 수익이 두 배가 된다";
         [SerializeField] private string failToast = "선원들이 데크를 부수고 떠났다…";
         [SerializeField] private string[] captainOrderLines = { "{0}. 이 가게 최고의 솜씨로 가져와라.", "{0}. 최고의 솜씨로 부탁하지." };
@@ -65,6 +67,7 @@ namespace Marea.Field
 
         private int _doneDay = -1;
         private WorldLabelUI _labels;
+        private Marea.Hud.HudAlarm _alarm;
 
         public int BoatTypeIndex => boatTypeIndex;
         public int PartySize => partySize;
@@ -74,9 +77,17 @@ namespace Marea.Field
 
         private static bool IsOpen => BusinessManager.Instance != null && BusinessManager.Instance.CurrentState == BusinessState.Open;
 
+        private void OnDisable()
+        {
+            if (_alarm != null) _alarm.Clear(this);
+        }
+
         private void Awake()
         {
             _labels = FindAnyObjectByType<WorldLabelUI>(FindObjectsInactive.Include);
+            _alarm = FindAnyObjectByType<Marea.Hud.HudAlarm>(FindObjectsInactive.Include);
+            if (_alarm == null)
+                Debug.LogError($"{name}: 씬에 HudAlarm이 없다. '선장의 요리를 최우선으로' 알람이 안 뜬다.", this);
             if (hazardPrefab == null)
                 Debug.LogError($"{name}: CaptainEvent.hazardPrefab이 비어 있다. 실패해도 데크가 안 부서진다.", this);
         }
@@ -108,7 +119,12 @@ namespace Marea.Field
             {
                 // 앉는 순간 말풍선(CustomerSpeech)이 일반 주문 대사를 먼저 한다 — 그 뒤에 덮어써야 선장 대사가 남는다.
                 yield return new WaitForSeconds(0.3f);
-                if (captain != null) Say(captain.gameObject, captainOrderLines);
+                if (captain != null)
+                {
+                    Say(captain.gameObject, captainOrderLines);
+                    string menu = captain.OrderedMenu != null ? captain.OrderedMenu.DisplayName : "";
+                    if (_alarm != null) _alarm.Post(this, string.Format(alarmText, menu));
+                }
                 yield return CrewSay(extras, seated, crewArriveLines, 0.8f);
             }
 
@@ -123,6 +139,7 @@ namespace Marea.Field
                     _labels.Set(captain, captain.transform.position + Vector3.up * 3.4f, priorityLabel);
                 yield return null;
             }
+            if (_alarm != null) _alarm.Clear(this);   // 판정이 났거나 영업이 끝났다
             if (!IsOpen)
             {
                 yield return ReturnExtras(extras, entrance);
