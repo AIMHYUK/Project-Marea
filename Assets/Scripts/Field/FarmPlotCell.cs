@@ -26,9 +26,9 @@ namespace Marea.Field
         [Tooltip("표식 안의 재료 아이콘. 재료에 아이콘이 있으면 이걸 쓴다.")]
         [SerializeField] private SpriteRenderer readyIcon;
 
-        [Tooltip("(+10/9) 수확 아이콘의 월드 크기(m, 긴 변). 재료 아이콘은 512px · PPU 100이라 그대로 그리면 5.12m가 된다 — "
+        [Tooltip("(+10/9) 수확 아이콘의 월드 크기(m, 긴 변). 말풍선은 이 크기 × bubblePadding. 재료 아이콘은 512px · PPU 100이라 그대로 그리면 5.12m가 된다 — "
                + "스프라이트 해상도와 상관없이 이 크기로 맞춘다.")]
-        [SerializeField, Min(0.05f)] private float readyIconSize = 1.5f;
+        [SerializeField, Min(0.05f)] private float readyIconSize = 0.75f;
 
         [Tooltip("(+10/9) 아이콘 뒤 말풍선(손님 주문 말풍선과 같은 balloon_blank). 아이콘이 있을 때만 켠다. 비우면 아이콘만.")]
         [SerializeField] private SpriteRenderer readyBubble;
