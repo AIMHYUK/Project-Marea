@@ -61,7 +61,7 @@ namespace Marea.Restaurant
 
         /// <summary>
         /// (+10/9, A) 몇 번째 영업인가. 1일차부터, 정산 뒤 다음 날 준비로 넘어갈 때(PrepareNextDay) 1 오른다.
-        /// 손님 배가 이걸 보고 일차별 표(GuestWaveData)에서 배 간격 · 크기를 고른다. 저장이 없어 씬을 다시 켜면 1일차.
+        /// 손님 배가 이걸 보고 일차별 표(GuestWaveData)에서 배 간격 · 크기를 고른다. 바뀔 때 SaveFile에 남고 켤 때 읽는다.
         /// </summary>
         public int Day { get; private set; } = 1;
 
@@ -82,6 +82,7 @@ namespace Marea.Restaurant
             else Destroy(gameObject);
 
             RemainingTime = businessDuration;
+            Day = Marea.Core.SaveFile.GetInt("day", 1);
         }
 
         private void Start()
@@ -202,6 +203,7 @@ namespace Marea.Restaurant
             if (CurrentState == BusinessState.Settlement)
             {
                 Day++;
+                Marea.Core.SaveFile.Set("day", Day);
                 OnDayChanged?.Invoke(Day);
             }
 

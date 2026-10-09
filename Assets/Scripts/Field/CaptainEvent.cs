@@ -68,6 +68,7 @@ namespace Marea.Field
         private bool _forceNext;   // 테스트(F10) — 일차와 상관없이 다음 배를 이벤트로
         private WorldLabelUI _labels;
         private Marea.Hud.HudAlarm _alarm;
+        private readonly List<TripHazard> _hazards = new();   // 이 이벤트가 부순 자리 — 고치지 않은 것만 저장한다
 
         public int BoatTypeIndex => boatTypeIndex;
         public int PartySize => partySize;
@@ -105,7 +106,43 @@ namespace Marea.Field
                 Debug.LogError($"{name}: 씬에 HudAlarm이 없다. '선장의 요리를 최우선으로' 알람이 안 뜬다.", this);
             if (hazardPrefab == null)
                 Debug.LogError($"{name}: CaptainEvent.hazardPrefab이 비어 있다. 실패해도 데크가 안 부서진다.", this);
+
+            // (+10/9) 저장 — 이벤트를 치른 날, 아직 안 고친 파손 자리. 형식 "x,y,z,yaw;..."
+            _doneDay = SaveFile.GetInt("captainDone", -1);
+            foreach (string h in SaveFile.Get("captainHazards").Split(';'))
+            {
+                string[] v = h.Split(',');
+                if (v.Length != 4) continue;
+                SpawnHazard(new Vector3(F(v[0]), F(v[1]), F(v[2])), F(v[3]));
+            }
         }
+
+        private void Start()
+        {
+            if (BusinessManager.Instance != null) BusinessManager.Instance.OnDayChanged += Save;
+            else Debug.LogError($"{name}: BusinessManager가 없다. 선장 이벤트 진행이 저장되지 않는다.", this);
+        }
+
+        private void OnDestroy()
+        {
+            if (BusinessManager.Instance != null) BusinessManager.Instance.OnDayChanged -= Save;
+        }
+
+        private void Save(int day)
+        {
+            var parts = new List<string>();
+            foreach (TripHazard h in _hazards)
+            {
+                if (h == null || h.IsRepaired) continue;
+                Vector3 p = h.transform.position;
+                parts.Add(string.Join(",", S(p.x), S(p.y), S(p.z), S(h.transform.eulerAngles.y)));
+            }
+            SaveFile.Set("captainDone", _doneDay);
+            SaveFile.Set("captainHazards", string.Join(";", parts));
+        }
+
+        private static float F(string v) => float.Parse(v, System.Globalization.CultureInfo.InvariantCulture);
+        private static string S(float v) => v.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 
         /// <summary>
         /// 배가 일행을 다 내린 뒤 GuestBoatArrival이 부른다. 판정이 나고 서 있는 선원이 배로 돌아갈 때까지 돈다.
@@ -287,14 +324,21 @@ namespace Marea.Field
                 if (taken.Exists(t => Flat(t - p) < hazardSpacing)) continue;
                 if (Blocked(p)) continue;
 
-                GameObject hazard = Instantiate(hazardPrefab, p, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
-                hazard.name = $"TripHazard_Captain_{made + 1}";
+                SpawnHazard(p, Random.Range(0f, 360f));
                 Vfx.Play(breakVfx, p + Vector3.up * 0.3f, 1.2f);
                 taken.Add(p);
                 made++;
             }
             if (made < hazardCount)
                 Debug.LogWarning($"{name}: 데크 파손 자리를 {hazardCount}곳 중 {made}곳만 찾았다 — 식당이 좁거나 물건이 많다.", this);
+        }
+
+        private void SpawnHazard(Vector3 position, float yaw)
+        {
+            if (hazardPrefab == null) return;
+            GameObject go = Instantiate(hazardPrefab, position, Quaternion.Euler(0f, yaw, 0f));
+            go.name = $"TripHazard_Captain_{_hazards.Count + 1}";
+            _hazards.Add(go.GetComponent<TripHazard>());
         }
 
         private static float Flat(Vector3 d) => new Vector2(d.x, d.z).magnitude;
