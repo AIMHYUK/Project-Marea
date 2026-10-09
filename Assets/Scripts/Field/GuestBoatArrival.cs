@@ -159,16 +159,20 @@ namespace Marea.Field
             tangent = tan;
         }
 
-        /// <summary>정박 자세에서 모델 뱃머리가 향하는 수평 방향 — 경로 끝의 진행 방향.</summary>
+        /// <summary>정박 자세에서 모델 뱃머리가 향하는 방향 — 경로 끝의 진행 방향.</summary>
         private Vector3 Bow()
         {
             Sample(1f, out _, out Vector3 tangent);
-            return Flat(tangent);
+            return Dir(tangent);
         }
 
-        /// <summary>뱃머리가 이 수평 방향을 보게 하는 배 루트 회전.</summary>
+        /// <summary>
+        /// 뱃머리가 이 방향을 보게 하는 배 루트 회전. (+10/9) 수평으로 눌러 펴지 않는다 — 경로가 오르내리면
+        /// 뱃머리도 들리고 숙는다. 좌우 기울기는 위쪽을 월드 위로 고정해 안 생긴다(출렁임은 모델의 FloatBob).
+        /// bowYawOffset은 모델 뱃머리 기준이라 모델이 제 옆축으로 기운다.
+        /// </summary>
         private Quaternion HeadingFor(Vector3 bowDir)
-            => Quaternion.LookRotation(Flat(bowDir), Vector3.up) * Quaternion.Euler(0f, -bowYawOffset, 0f);
+            => Quaternion.LookRotation(Dir(bowDir), Vector3.up) * Quaternion.Euler(0f, -bowYawOffset, 0f);
 
         private void PlaceDocked()
         {
@@ -265,11 +269,8 @@ namespace Marea.Field
             if (_cam != null) _cam.FocusOn(point + Vector3.up * lookHeight);
         }
 
-        private static Vector3 Flat(Vector3 v)
-        {
-            v.y = 0f;
-            return v.sqrMagnitude < 0.0001f ? Vector3.forward : v.normalized;
-        }
+        private static Vector3 Dir(Vector3 v)
+            => v.sqrMagnitude < 0.0001f ? Vector3.forward : v.normalized;
 
         // 3차 — 끝으로 갈수록 오래 미끄러지다 선다. 2차는 부두에 들이받는 느낌이었다.
         private static float EaseOut(float k) => 1f - (1f - k) * (1f - k) * (1f - k);
