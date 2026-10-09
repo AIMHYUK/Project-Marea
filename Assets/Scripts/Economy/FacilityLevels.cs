@@ -54,6 +54,28 @@ namespace Marea.Economy
 
             Instance = this;
             BuildTable();
+            Load();
+        }
+
+        // (+10/9) 저장 — "facilities=Kitchen:2:1,Farm:0:0" (시설:레벨:해금). 일차가 바뀔 때 BusinessManager가 Save를 부른다.
+        public void Save()
+        {
+            var parts = new List<string>();
+            foreach (FacilityKind kind in _data.Keys)
+                parts.Add($"{kind}:{LevelOf(kind)}:{(IsUnlocked(kind) ? 1 : 0)}");
+            Marea.Core.SaveFile.Set("facilities", string.Join(",", parts));
+        }
+
+        private void Load()
+        {
+            foreach (string part in Marea.Core.SaveFile.Get("facilities").Split(','))
+            {
+                string[] v = part.Split(':');
+                if (v.Length != 3 || !Enum.TryParse(v[0], out FacilityKind kind) || !_data.ContainsKey(kind)) continue;
+                _levels[kind] = Mathf.Clamp(int.Parse(v[1]), FacilityData.MinLevel, _data[kind].MaxLevel);
+                if (v[2] == "1") _unlocked.Add(kind);
+                else _unlocked.Remove(kind);
+            }
         }
 
         private void OnDestroy()

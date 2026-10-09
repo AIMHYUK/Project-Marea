@@ -58,6 +58,15 @@ namespace Marea.Restaurant
         [SerializeField] private CookingMenuUI cookingMenuUI;
 
         public BusinessState CurrentState { get; private set; } = BusinessState.Ready;
+
+        /// <summary>
+        /// (+10/9, A) 몇 번째 영업인가. 1일차부터, 정산 뒤 다음 날 준비로 넘어갈 때(PrepareNextDay) 1 오른다.
+        /// 손님 배가 이걸 보고 일차별 표(GuestWaveData)에서 배 간격 · 크기를 고른다. 바뀔 때 SaveFile에 남고 켤 때 읽는다.
+        /// </summary>
+        public int Day { get; private set; } = 1;
+
+        /// <summary>(+10/9, A) 일차가 바뀔 때.</summary>
+        public event Action<int> OnDayChanged;
         public float RemainingTime { get; private set; }
         public DailySalesData TodaySales { get; private set; } = new();
 
@@ -73,6 +82,7 @@ namespace Marea.Restaurant
             else Destroy(gameObject);
 
             RemainingTime = businessDuration;
+            Day = Marea.Core.SaveFile.GetInt("day", 1);
         }
 
         private void Start()
@@ -189,6 +199,16 @@ namespace Marea.Restaurant
         // 정산 확인 후 다음 날 준비 단계로 전환
         public void PrepareNextDay()
         {
+            // (+10/9, A) 정산에서 넘어올 때만 센다 — 부르는 곳이 둘(SettlementUI · 옛 정산 팝업)이라 겹쳐도 한 번.
+            if (CurrentState == BusinessState.Settlement)
+            {
+                Day++;
+                Marea.Core.SaveFile.Set("day", Day);
+                if (Marea.Economy.Wallet.Instance != null) Marea.Core.SaveFile.Set("gold", Marea.Economy.Wallet.Instance.Gold);
+                if (Marea.Economy.FacilityLevels.Instance != null) Marea.Economy.FacilityLevels.Instance.Save();
+                OnDayChanged?.Invoke(Day);
+            }
+
             CurrentState = BusinessState.Ready;
             RemainingTime = businessDuration;
             OnTimerUpdated?.Invoke(RemainingTime);

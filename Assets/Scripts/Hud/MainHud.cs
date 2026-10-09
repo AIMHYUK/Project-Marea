@@ -118,11 +118,12 @@ namespace Marea.Hud
         /// <summary>
         /// 대기면 지역 선택, 탐사 중이면 남은 시간, 귀환이면 결과 창 — 월드의 탐사정을 누른 것과 같다.
         /// (+10/2) 1묶음에선 대기 중에만 열었다. 탐사 중 · 귀환 창이 생겨서 막을 이유가 없어졌다.
+        /// (+10/9, 이슈 128) 귀환이면 창 대신 플레이어가 배 앞으로 걸어간다 — 보상은 배 앞에서만 받는다.
         /// </summary>
         private void OpenExpedition()
         {
             if (expedition == null || !ExplorerUnlocked) return;
-            expedition.Interact();
+            expedition.InteractFromHud();
         }
 
         private void HandleGoldChanged(int gold)

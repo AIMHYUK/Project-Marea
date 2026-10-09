@@ -32,10 +32,34 @@ namespace Marea.Economy
             }
         }
 
+        // (+10/9, 이슈 128) 특별 이벤트(선장) 성공 — 그날만 수익 배율을 더 곱한다. 일차로 묶어서 다음 날엔 저절로 풀린다.
+        private static int _eventDay = -1;
+        private static float _eventMultiplier = 1f;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            _eventDay = -1;
+            _eventMultiplier = 1f;
+        }
+
+        /// <summary>(+10/9) 오늘 정산에 이벤트 배율이 들어갔는가 — 정산 창이 보너스 이름을 바꾼다.</summary>
+        public static bool EventBonusToday => Marea.Restaurant.BusinessManager.Instance != null
+                                              && Marea.Restaurant.BusinessManager.Instance.Day == _eventDay && _eventMultiplier != 1f;
+
+        /// <summary>(+10/9) 이 일차의 정산에만 배율을 더 곱한다. 예: 선장 이벤트 성공 → ×2.</summary>
+        public static void SetEventMultiplier(int day, float multiplier)
+        {
+            _eventDay = day;
+            _eventMultiplier = Mathf.Max(0f, multiplier);
+        }
+
         public static Result Calculate(int revenue)
         {
             FacilityLevels levels = FacilityLevels.Instance;
             float m = levels != null ? levels.SettlementBonus : 1f;
+            if (Marea.Restaurant.BusinessManager.Instance != null && Marea.Restaurant.BusinessManager.Instance.Day == _eventDay)
+                m *= _eventMultiplier;
             int bonus = Mathf.RoundToInt(revenue * (m - 1f));
             bool hired = levels != null && levels.EffectValue(FacilityKind.Staff, FacilityEffectType.AutoServe) >= 1f;
             return new Result(revenue, bonus, m, hired ? StaffDailyWage : 0);

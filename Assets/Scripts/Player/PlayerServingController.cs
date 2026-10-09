@@ -15,6 +15,10 @@ namespace Marea.Restaurant
         private GameObject _currentHoldingVisual; // 실시간 생성된 음식 오브젝트 인스턴스
 
         public bool IsHoldingFood => _isHoldingFood;
+
+        /// <summary>(+10/9, A) 상호작용한 쪽(플레이어)의 서빙 컨트롤러. 조리대 · 손님이 E 상호작용에서 쓴다.</summary>
+        public static PlayerServingController Of(Marea.Core.IInteractor actor)
+            => actor is Component c ? c.transform.root.GetComponentInChildren<PlayerServingController>() : null;
         public CookingResult LastCookingResult => _lastCookingResult;
 
         private void Awake()
@@ -99,6 +103,14 @@ namespace Marea.Restaurant
                 Destroy(_currentHoldingVisual);
                 _currentHoldingVisual = null;
             }
+        }
+
+        /// <summary>(+10/9, A) 손에 든 음식 모델을 떼어 넘긴다 — 넘어질 때 날리려고. 이 뒤 ClearHeldFood가 지우지 않는다.</summary>
+        public GameObject TakeHeldVisual()
+        {
+            GameObject visual = _currentHoldingVisual;
+            _currentHoldingVisual = null;
+            return visual;
         }
 
         // 플레이어가 들고 있는 음식을 버리기

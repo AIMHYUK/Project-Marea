@@ -2,24 +2,24 @@ using System.Collections.Generic;
 using Marea.Cooking;
 using Marea.Restaurant;
 using UnityEngine;
-using UnityEngine.InputSystem;
+using Marea.Core;
 
 namespace Marea.Restaurant
 {
-    public class CookingCounter : MonoBehaviour
+    /// <summary>
+    /// (+10/9, A) 음식을 집는 건 근접 E 경로(ProximityInteractor)로 — 가까이 가면 "[E] 집기"가 뜬다.
+    /// 예전엔 여기서 트리거 + E를 직접 읽어 표시가 없었다. 클릭은 안 받는다.
+    /// </summary>
+    public class CookingCounter : InteractableBase
     {
         [Header("음식 거치 슬롯 위치 (최대 5개)")]
         [SerializeField] private Transform[] slotPoints;
 
         [Header("상호작용 설정")]
-        [SerializeField] private Key interactKey = Key.E;
         [SerializeField] private GameObject defaultFoodPrefab;
 
         private readonly Queue<CookingResult> _foodQueue = new();
         private readonly List<GameObject> _spawnedVisuals = new();
-
-        private bool _isPlayerInRange;
-        private PlayerServingController _playerServing;
 
         public int MaxCapacity => slotPoints != null ? slotPoints.Length : 5;
         public int CurrentCount => _foodQueue.Count;
@@ -67,21 +67,28 @@ namespace Marea.Restaurant
             return true;
         }
 
-        private void Update()
-        {
-            if (!_isPlayerInRange || _playerServing == null) return;
+        public override bool AllowClick => false;
 
-            if (Keyboard.current != null && Keyboard.current[interactKey].wasPressedThisFrame)
-            {
-                TryGiveFoodToPlayer();
-            }
+        public override string InteractLabel(IInteractor actor) => "집기";
+
+        // 빈손 + 집을 음식(직원 몫 빼고)이 있을 때만 [E] 집기가 뜬다.
+        public override bool CanInteract(IInteractor actor)
+        {
+            PlayerServingController serving = PlayerServingController.Of(actor);
+            return serving != null && !serving.IsHoldingFood && HasFood && FindPlayerPickIndex() >= 0;
         }
 
-        private void TryGiveFoodToPlayer()
+        public override void Interact(IInteractor actor)
+        {
+            PlayerServingController serving = PlayerServingController.Of(actor);
+            if (serving != null) TryGiveFoodToPlayer(serving);
+        }
+
+        private void TryGiveFoodToPlayer(PlayerServingController serving)
         {
             if (!HasFood) return;
 
-            if (_playerServing.IsHoldingFood)
+            if (serving.IsHoldingFood)
             {
                 Debug.LogWarning("[CookingCounter] 플레이어가 이미 음식을 들고 있어 수령할 수 없습니다.");
                 return;
@@ -103,7 +110,7 @@ namespace Marea.Restaurant
 
             RearrangeVisuals();
 
-            _playerServing.PickUpFood(food);
+            serving.PickUpFood(food);
             Debug.Log($"[CookingCounter] 플레이어가 조리대에서 음식을 수령했습니다: {food.menuData?.DisplayName}");
         }
 
@@ -190,28 +197,6 @@ namespace Marea.Restaurant
                     _spawnedVisuals[i].transform.position = slotPoints[i].position;
                     _spawnedVisuals[i].transform.rotation = slotPoints[i].rotation;
                 }
-            }
-        }
-
-        private void OnTriggerEnter(Collider other)
-        {
-            if (other.CompareTag("Player") || (other.transform.root != null && other.transform.root.CompareTag("Player")))
-            {
-                _isPlayerInRange = true;
-                _playerServing = other.GetComponentInParent<PlayerServingController>();
-                if (_playerServing == null && other.transform.root != null)
-                {
-                    _playerServing = other.transform.root.GetComponentInChildren<PlayerServingController>();
-                }
-            }
-        }
-
-        private void OnTriggerExit(Collider other)
-        {
-            if (other.CompareTag("Player") || (other.transform.root != null && other.transform.root.CompareTag("Player")))
-            {
-                _isPlayerInRange = false;
-                _playerServing = null;
             }
         }
 

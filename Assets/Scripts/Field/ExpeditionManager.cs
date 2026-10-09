@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Marea.Core;
 using Marea.Data;
 using Marea.Economy;
+using Marea.Player;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -148,6 +149,21 @@ namespace Marea.Field
         /// (+10/2) 예전엔 탐사 중 클릭을 막았다 — 결과창이 생기면서 탐사 중 창이 같이 생겼다.
         /// </summary>
         public bool CanInteract => true;
+
+        /// <summary>
+        /// (+10/9, 이슈 128 「자원 수령」) 메인 HUD 탐사 버튼. 귀환이면 결과 창 대신 플레이어를 배 앞으로 걸어가게 한다 —
+        /// 도착하면 선착장 상호작용으로 결과 창이 열린다. 대기 · 탐사 중은 예전처럼 바로 창을 연다.
+        /// </summary>
+        public void InteractFromHud()
+        {
+            // 배 앞 판정은 선착장(ExpeditionDock.Interact)이 한다 — 멀면 걸어가게 하고, 가까우면 창을 연다.
+            ExpeditionDock dock = Current == State.Returned ? GetComponentInChildren<ExpeditionDock>() : null;
+            PlayerController player = dock != null ? FindAnyObjectByType<PlayerController>() : null;
+            if (player != null) { dock.Interact(player); return; }
+            if (Current == State.Returned)
+                Debug.LogError($"{name}: 켜진 ExpeditionDock이나 PlayerController가 없다. 배 앞으로 못 보내서 결과 창을 바로 연다.", this);
+            Interact();
+        }
 
         /// <summary>대기면 지역 창, 탐사 중이면 남은 시간 창, 귀환이면 결과 창.</summary>
         public void Interact()

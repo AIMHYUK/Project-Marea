@@ -29,6 +29,9 @@ namespace Marea.Field
         [Tooltip("관리할 밭 칸. 비워두면 자식에서 전부 찾는다.")]
         [SerializeField] private FarmPlotCell[] plots;
 
+        [Tooltip("(+10/9) 수확 말풍선 그림. 이 데크의 밭 칸 전부에 쓴다. 비우면 칸마다 Bubble에 들어 있는 그림 그대로.")]
+        [SerializeField] private Sprite readyBubble;
+
         [Header("연출 (+10/6, 이슈 117) — 기획 「작물 수확」 VFX_10 / VFX_02")]
         [SerializeField] private VfxId harvestDustVfx = VfxId.Dust;
         [SerializeField] private VfxId harvestSparkleVfx = VfxId.Sparkle;
@@ -131,7 +134,7 @@ namespace Marea.Field
                 }
 
                 plot.State = PlotState.Ready;
-                pair.Key.ShowReady(plot.Crop.Harvest != null ? plot.Crop.Harvest.Icon : null);
+                pair.Key.ShowReady(plot.Crop.ReadyIcon, readyBubble);
             }
         }
 

@@ -12,7 +12,7 @@ namespace Marea.Field
     ///
     /// 손님 코드(B)를 건드리지 않고 상태(State · OrderedMenu · WaitingSince)를 지켜보다 바뀌는 순간 한마디 한다.
     /// 앉아서 주문 → 주문 대사 / 오래 기다림 → 재촉 / 음식 받음 → 기뻐함 / 못 받고 떠남 → 투덜.
-    /// 말풍선은 손님 프리팹에 붙이면 Awake에서 스스로 만든다(월드 캔버스 + 몸통 · 꼬리 + 글자).
+    /// 말풍선은 손님 프리팹에 붙이면 Awake에서 스스로 만든다(월드 캔버스 + 몸통 + 글자). (+10/9) 꼬리는 뺐다.
     /// </summary>
     [RequireComponent(typeof(CustomerController))]
     public class CustomerSpeech : MonoBehaviour
@@ -20,7 +20,6 @@ namespace Marea.Field
         [Header("모양")]
         [SerializeField] private TMP_FontAsset font;
         [SerializeField] private Sprite bodySprite;
-        [SerializeField] private Sprite tailSprite;
         [Tooltip("손님 원점에서 말풍선 아래 끝까지 높이(m). 주문 아이콘 말풍선보다 위.")]
         [SerializeField] private float height = 2.75f;
         [SerializeField, Min(8f)] private float fontSize = 34f;
@@ -37,6 +36,8 @@ namespace Marea.Field
         [SerializeField] private string[] impatientLines = { "{0} 아직인가요…?", "배고파… {0}…" };
         [SerializeField] private string[] happyLines = { "와, 맛있겠다!", "잘 먹겠습니다!" };
         [SerializeField] private string[] leaveAngryLines = { "이건 내가 시킨 게 아닌데!" };
+        [Tooltip("(+10/9) 음식을 너무 오래 못 받아 떠날 때(CustomerController.leaveAfterSeconds).")]
+        [SerializeField] private string[] waitedOutLines = { "정말이지 너무하는군!", "장사할 생각이 없나?", "나가야겠어." };
 
         [Header("소리 (+10/8) — 기획 GST-02 착석 · GST-03 주문 말풍선")]
         [SerializeField] private AudioClip sitClip;
@@ -45,7 +46,7 @@ namespace Marea.Field
         [SerializeField, Min(0f)] private float orderDelay = 0.35f;
         [SerializeField, Range(0f, 1f)] private float volume = 0.7f;
 
-        private const float TailScale = 0.45f;   // 원본 그림(8배 해상도) → 캔버스 픽셀
+        private const float BorderScale = 0.45f;   // 원본 그림(8배 해상도) → 캔버스 픽셀
 
         private CustomerController _customer;
         private CustomerState _last;
@@ -97,8 +98,12 @@ namespace Marea.Field
                 if (orderClip != null) StartCoroutine(PlayLater(orderClip, orderDelay));
             }
             else if (to == CustomerState.Eating) Say(happyLines);
-            else if (to == CustomerState.Leaving && from == CustomerState.WaitingOrder) Say(leaveAngryLines);
+            else if (to == CustomerState.Leaving && from == CustomerState.WaitingOrder)
+                Say(_customer.LeftAfterLongWait ? waitedOutLines : leaveAngryLines);   // (+10/9) 오래 기다림 · 잘못된 음식
         }
+
+        /// <summary>(+10/9) 정해진 대사를 바로 띄운다 — 특별 이벤트 선장 · 선원. {0}은 주문 메뉴 이름(강조), {1}은 이/가.</summary>
+        public void SayLine(string line) => Say(new[] { line });
 
         private void Say(string[] lines)
         {
@@ -141,17 +146,17 @@ namespace Marea.Field
             float parentScale = Mathf.Max(0.0001f, transform.lossyScale.y);
             rt.localScale = Vector3.one * (0.005f / parentScale);   // 캔버스 1px = 5mm
 
-            // 몸통: 글자 길이에 맞춰 늘어난다. 꼬리는 몸통 아래 가운데.
+            // 몸통: 글자 길이에 맞춰 늘어난다. 아래 끝이 손님 머리 위 height.
             var body = new GameObject("Body", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
             body.transform.SetParent(_bubble.transform, false);
             var brt = (RectTransform)body.transform;
             brt.anchorMin = brt.anchorMax = new Vector2(0.5f, 0f);
             brt.pivot = new Vector2(0.5f, 0f);
-            brt.anchoredPosition = new Vector2(0f, 26f);
+            brt.anchoredPosition = Vector2.zero;
             var img = body.GetComponent<Image>();
             img.sprite = bodySprite;
             img.type = Image.Type.Sliced;
-            img.pixelsPerUnitMultiplier = 1f / TailScale;   // 테두리 두께를 꼬리와 같은 비율로
+            img.pixelsPerUnitMultiplier = 1f / BorderScale;   // 원본이 고해상도라 테두리가 두꺼워지지 않게
             img.raycastTarget = false;
             var layout = body.GetComponent<HorizontalLayoutGroup>();
             layout.padding = new RectOffset(34, 34, 22, 24);
@@ -168,17 +173,6 @@ namespace Marea.Field
             _text.alignment = TextAlignmentOptions.Center;
             _text.textWrappingMode = TextWrappingModes.NoWrap;
             _text.raycastTarget = false;
-
-            var tail = new GameObject("Tail", typeof(RectTransform), typeof(Image));
-            tail.transform.SetParent(_bubble.transform, false);
-            var trt = (RectTransform)tail.transform;
-            trt.anchorMin = trt.anchorMax = new Vector2(0.5f, 0f);
-            trt.pivot = new Vector2(0.5f, 0f);
-            trt.anchoredPosition = Vector2.zero;
-            trt.sizeDelta = tailSprite != null ? new Vector2(tailSprite.rect.width, tailSprite.rect.height) * TailScale : new Vector2(60f, 30f);
-            var timg = tail.GetComponent<Image>();
-            timg.sprite = tailSprite;
-            timg.raycastTarget = false;
 
             _bubble.SetActive(false);
         }

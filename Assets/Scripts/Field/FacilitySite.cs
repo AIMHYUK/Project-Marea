@@ -75,6 +75,8 @@ namespace Marea.Field
         [SerializeField, Min(0f)] private float afterReveal = 1f;
         [Tooltip("카메라가 이 시간 안에 못 오면(카메라가 다른 데 붙잡혀 있는 등) 기다리지 않고 진행한다.")]
         [SerializeField, Min(0.1f)] private float arriveTimeout = 2f;
+        [Tooltip("(+10/9) 이 시설 연출의 카메라 거리(m). 0이면 카메라 기본(CameraFollow.focusDistance). 넓은 시설을 한눈에 볼 때 키운다.")]
+        [SerializeField, Min(0f)] private float revealDistance;
 
         // (+10/6) 농사 데크 — 다리에서 한 번, 열린 데크에서 한 번. 비우면 예전처럼 한 번에 바뀐다.
         [Header("해금 단계 (+10/6) — 비우면 한 번에")]
@@ -233,7 +235,7 @@ namespace Marea.Field
         // 날아가는 시간은 1초에 안 넣는다 — 도착부터 잰다.
         private IEnumerator FlyTo(Vector3 point)
         {
-            _revealCam.FocusOn(point);
+            _revealCam.FocusOn(point, revealDistance);   // (+10/9) 0이면 카메라 기본 거리
             for (float t = 0f; !_revealCam.IsAtFocus && t < arriveTimeout; t += Time.deltaTime)
                 yield return null;
         }
@@ -257,11 +259,13 @@ namespace Marea.Field
         private IEnumerator RevealSteps()
         {
             int last = revealSteps.Length - 1;
+            Vector3 areaCenter = StepsAreaCenter();
             for (int i = 0; i <= last; i++)
             {
                 GameObject part = revealSteps[i];
                 SoundManager.Play(doneClip, doneVolume);   // (+10/8) 단계마다 카메라가 출발할 때부터
-                yield return FlyTo(part != null ? MeshBounds(part).center : transform.position);
+                // (+10/9) 기본은 전체 가운데 한 자리 — 두 번째 단계부터는 이미 와 있어 바로 넘어간다.
+                yield return FlyTo(areaCenter);
                 yield return new WaitForSeconds(i == 0 ? lookHold + revealDelay : stepDelay);
 
                 ShowStep(i);
@@ -332,6 +336,40 @@ namespace Marea.Field
                 else b.Encapsulate(r.bounds);
             }
             return b;
+        }
+
+        /// <summary>(+10/9) 단계 부품 · 밭 칸 전체를 감싸는 상자의 가운데 — 해금 단계를 한 자리에서 볼 곳.</summary>
+        private Vector3 StepsAreaCenter()
+        {
+            bool any = false;
+            Bounds area = default;
+            void Add(GameObject go)
+            {
+                if (go == null) return;
+                Bounds b = MeshBounds(go);
+                if (b.size == Vector3.zero) return;
+                if (!any) { area = b; any = true; }
+                else area.Encapsulate(b);
+            }
+            foreach (GameObject part in revealSteps) Add(part);
+
+            // 높이는 밭 칸 바닥(= 데크 높이)으로 — 전체 상자 가운데는 물속 기둥까지 들어가 카메라가 낮게 깔린다.
+            bool anySlot = false;
+            float floorY = 0f;
+            if (levelSlots != null)
+                foreach (GameObject slot in levelSlots)
+                {
+                    if (slot == null) continue;
+                    Bounds b = MeshBounds(slot);
+                    if (b.size == Vector3.zero) continue;
+                    Add(slot);
+                    floorY = anySlot ? Mathf.Min(floorY, b.min.y) : b.min.y;
+                    anySlot = true;
+                }
+            if (!any) return transform.position;
+            Vector3 c = area.center;
+            if (anySlot) c.y = floorY;
+            return c;
         }
 
         /// <summary>(+10/6) 꺼져 있어도 되는 상자 — 메시 상자를 월드로 옮겨 감싼다. 메시가 없으면 그 자리.</summary>

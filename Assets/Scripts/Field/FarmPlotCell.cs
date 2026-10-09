@@ -26,6 +26,17 @@ namespace Marea.Field
         [Tooltip("표식 안의 재료 아이콘. 재료에 아이콘이 있으면 이걸 쓴다.")]
         [SerializeField] private SpriteRenderer readyIcon;
 
+        [Tooltip("(+10/9) 수확 아이콘의 월드 크기(m, 긴 변). 말풍선은 이 크기 × bubblePadding. 재료 아이콘은 512px · PPU 100이라 그대로 그리면 5.12m가 된다 — "
+               + "스프라이트 해상도와 상관없이 이 크기로 맞춘다.")]
+        [SerializeField, Min(0.05f)] private float readyIconSize = 0.75f;
+
+        [Tooltip("(+10/9) 아이콘 뒤 말풍선(손님 주문 말풍선과 같은 balloon_blank). 아이콘이 있을 때만 켠다. 비우면 아이콘만.")]
+        [SerializeField] private SpriteRenderer readyBubble;
+        [Tooltip("말풍선 폭 = 아이콘 크기 × 이 값.")]
+        [SerializeField, Min(1f)] private float bubblePadding = 1.45f;
+        [Tooltip("말풍선 아래 꼬리 높이 비율(그림 높이 대비). 아이콘을 꼬리 뺀 몸통 가운데로 올린다.")]
+        [SerializeField, Range(0f, 0.5f)] private float bubbleTailRatio = 0.18f;
+
         [Tooltip("재료 아이콘이 없을 때 대신 보일 임시 표식.")]
         [SerializeField] private GameObject readyFallback;
 
@@ -106,7 +117,7 @@ namespace Marea.Field
             if (readyMarker != null) readyMarker.SetActive(false);
         }
 
-        public void ShowReady(Sprite icon)
+        public void ShowReady(Sprite icon, Sprite bubble)
         {
             if (_stages.Count > 0)
             {
@@ -125,8 +136,55 @@ namespace Marea.Field
             {
                 readyIcon.sprite = icon;
                 readyIcon.gameObject.SetActive(hasIcon);
+                if (hasIcon) FitIcon(icon);
+            }
+            if (readyBubble != null)
+            {
+                if (bubble != null) readyBubble.sprite = bubble;
+                readyBubble.gameObject.SetActive(hasIcon);
+                if (hasIcon) FitBubble();
             }
             if (readyFallback != null) readyFallback.SetActive(!hasIcon);
+        }
+
+        /// <summary>(+10/9) 아이콘 긴 변이 readyIconSize(월드 m)가 되게 크기를 맞춘다. 부모 크기는 나눠서 뺀다.</summary>
+        private void FitIcon(Sprite icon)
+        {
+            Vector3 size = icon.bounds.size;   // 스케일 1일 때 월드 크기(= 픽셀 / PPU)
+            float longest = Mathf.Max(size.x, size.y);
+            if (longest <= 0f) return;
+            Transform parent = readyIcon.transform.parent;
+            float parentScale = parent != null ? Mathf.Max(parent.lossyScale.x, parent.lossyScale.y) : 1f;
+            readyIcon.transform.localScale = Vector3.one * (readyIconSize / longest / Mathf.Max(parentScale, 0.0001f));
+        }
+
+        /// <summary>
+        /// (+10/9) 말풍선을 아이콘보다 bubblePadding배 크게, 꼬리를 뺀 몸통 가운데에 아이콘이 오게 놓는다.
+        /// 말풍선이 아이콘 뒤에 그려지게 정렬 순서를 하나 낮추고 살짝 뒤로 뺀다.
+        /// </summary>
+        private void FitBubble()
+        {
+            Sprite bubble = readyBubble.sprite;
+            if (bubble == null) return;
+            Vector3 size = bubble.bounds.size;
+            if (size.x <= 0f) return;
+            Transform parent = readyBubble.transform.parent;
+            float parentScale = parent != null ? Mathf.Max(parent.lossyScale.x, parent.lossyScale.y) : 1f;
+            float scale = readyIconSize * bubblePadding / size.x / Mathf.Max(parentScale, 0.0001f);
+            readyBubble.transform.localScale = Vector3.one * scale;
+
+            float worldHeight = size.y * scale * parentScale;
+            // 그림 가운데가 원점이라 꼬리 절반만큼 올리면 몸통 가운데가 아이콘 자리(원점)에 온다.
+            readyBubble.transform.localPosition = new Vector3(0f, -worldHeight * bubbleTailRatio * 0.5f / parentScale, 0.02f);
+            if (readyIcon != null) readyBubble.sortingOrder = readyIcon.sortingOrder - 1;
+        }
+
+        // (+10/9) 카메라를 돌릴 수 있게 돼서 고정 방향 그림은 옆에서 얇아진다 — 수확 표시는 늘 카메라를 본다.
+        private void LateUpdate()
+        {
+            if (readyMarker == null || !readyMarker.activeInHierarchy) return;
+            Camera cam = Camera.main;
+            if (cam != null) readyMarker.transform.rotation = Quaternion.LookRotation(cam.transform.forward, cam.transform.up);
         }
 
         private void ShowStage(int index)

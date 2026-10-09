@@ -87,6 +87,8 @@ namespace Marea.Field
 
         public override string InteractLabel(IInteractor actor) => $"수리 ({repairCost}G)";
 
+        public override bool AllowKey => false;   // (+10/9) 수리 창은 클릭해야만 — 지나가다 E로 열리지 않게
+
         public override void Interact(IInteractor actor)
         {
             if (_repaired || _confirm == null) return;
