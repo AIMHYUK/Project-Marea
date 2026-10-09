@@ -220,18 +220,16 @@ namespace Marea.Field
             if (anim != null && anim.runtimeAnimatorController != null) anim.SetBool(ParamIsMoving, moving);
         }
 
-        /// <summary>서 있는 선원을 입구로 걸려 보내고, 닿으면(= 배에 탐) 지운다. 다 탈 때까지 기다린다.</summary>
-        private IEnumerator ReturnExtras(List<GameObject> extras, Vector3 entrance)
+        /// <summary>서 있는 선원을 입구로 걸려 보내고, 닿으면(= 배에 탐) 지운다. 다 없어질 때까지 기다린다.</summary>
+        private static IEnumerator ReturnExtras(List<GameObject> extras, Vector3 entrance)
         {
-            int left = 0;
             foreach (GameObject x in extras)
             {
-                if (x == null) continue;
-                left++;
                 GameObject captured = x;
-                MoveExtra(x, entrance, () => { if (captured != null) Destroy(captured); left--; });
+                MoveExtra(x, entrance, () => { if (captured != null) Destroy(captured); });
             }
-            for (float t = 0f; left > 0 && t < 20f; t += Time.deltaTime) yield return null;
+            // 영업 종료(ClearAllCustomers)로 먼저 지워져도 도착 콜백 없이 바로 끝난다.
+            for (float t = 0f; extras.Exists(x => x != null) && t < 20f; t += Time.deltaTime) yield return null;
             foreach (GameObject x in extras) if (x != null) Destroy(x);   // 길이 막혀 못 닿은 선원도 정리
             extras.Clear();
         }
