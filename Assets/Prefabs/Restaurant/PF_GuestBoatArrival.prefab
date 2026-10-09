@@ -85,21 +85,21 @@ MonoBehaviour:
       TangentIn:
         x: -0
         y: -0
-        z: -9.37266
+        z: -9.627909
       TangentOut:
         x: 0
         y: 0
-        z: 4.019507
+        z: 4.2408853
       Rotation:
         value:
-          x: 0.000000008236806
-          y: 0.65867263
-          z: -0.000000004818557
-          w: 0.7524296
+          x: 0.0000000012709154
+          y: 0.5958308
+          z: 0.0000000017130448
+          w: 0.80310994
     - Position:
         x: 84.3
         y: 5.44
-        z: 13.83
+        z: 16.74
       TangentIn:
         x: 0
         y: 0
@@ -111,9 +111,9 @@ MonoBehaviour:
       Rotation:
         value:
           x: 0
-          y: 0.70710677
+          y: 0.70710665
           z: 0
-          w: 0.70710677
+          w: 0.7071069
     m_MetaData:
     - Mode: 0
       Tension: 0.5
@@ -195,7 +195,7 @@ MonoBehaviour:
     - Position:
         x: 84.3
         y: 5.44
-        z: 13.83
+        z: 16.74
       TangentIn:
         x: 0
         y: 0
@@ -217,17 +217,17 @@ MonoBehaviour:
       TangentIn:
         x: -0
         y: -0
-        z: -3.8974762
+        z: -4.491672
       TangentOut:
         x: 0
         y: 0
-        z: 5.2004013
+        z: 5.6342
       Rotation:
         value:
-          x: 0
-          y: 0.94527125
-          z: 0
-          w: 0.32628536
+          x: 0.0000000010716217
+          y: 0.9607211
+          z: -0.0000000037098067
+          w: 0.2775157
     - Position:
         x: 98.6713
         y: 5.44
@@ -337,6 +337,10 @@ MonoBehaviour:
   bowYawOffset: 47.199997
   arriveSeconds: 6
   departSeconds: 9
+  brakeDistance: 8
+  launchDistance: 6
+  leanPerAccel: 0.5
+  maxLean: 4
   lookHeight: 2
   watchCustomerSeconds: 2
   skipGuardSeconds: 0.4

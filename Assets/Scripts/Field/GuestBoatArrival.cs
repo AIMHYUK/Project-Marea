@@ -45,6 +45,13 @@ namespace Marea.Field
 
         // 출렁임 · 기울임은 배 모델 자식의 FloatBob이 맡는다 (+10/7).
 
+        [Header("숙임 (배의 FloatBob에 넣는다)")]
+        [Tooltip("감속 · 가속 1 m/s²당 뱃머리 숙임(도). 시작할 때 배의 FloatBob 값을 이걸로 덮는다 — "
+               + "FloatBob은 씬에서 붙은 컴포넌트라 이 프리팹이 값을 들고 다닌다. (+10/9)")]
+        [SerializeField, Min(0f)] private float leanPerAccel = 0.5f;
+        [Tooltip("숙임 최대 각도(도).")]
+        [SerializeField, Min(0f)] private float maxLean = 4f;
+
         [Header("카메라")]
         [Tooltip("배를 볼 때 배 원점에서 올려 볼 높이.")]
         [SerializeField] private float lookHeight = 2f;
@@ -76,6 +83,11 @@ namespace Marea.Field
                 return;
             }
             WarnIfPathsDontJoin();
+
+            FloatBob bob = boat.GetComponentInChildren<FloatBob>(true);
+            if (bob != null) bob.SetLean(leanPerAccel, maxLean);
+            else Debug.LogWarning($"{name}: 배({boat.name}) 아래에 FloatBob이 없다. 정박 · 출발 때 숙임이 안 나온다.", this);
+
             boat.gameObject.SetActive(false);   // 준비 중엔 배가 없다
         }
 

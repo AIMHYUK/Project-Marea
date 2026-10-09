@@ -54,6 +54,16 @@ namespace Marea.Field
         // 껐다 켜면 순간이동한 걸 가속으로 읽지 않는다. 켜질 때 이미 달리고 있으면(입항) 그 빠르기에서 시작한다.
         private void OnEnable() => _hasLast = _hasSpeed = false;
 
+        /// <summary>
+        /// 움직일 때 숙임 세기를 바깥에서 정한다. (+10/9) 손님 배처럼 FloatBob이 씬에서 붙은 컴포넌트라
+        /// 프리팹으로 못 옮길 때, 배를 움직이는 쪽(GuestBoatArrival) 프리팹이 값을 들고 있다가 넣는다.
+        /// </summary>
+        public void SetLean(float perAccel, float max)
+        {
+            leanPerAccel = Mathf.Max(0f, perAccel);
+            maxLean = Mathf.Max(0f, max);
+        }
+
         private void LateUpdate()
         {
             Transform parent = transform.parent;
