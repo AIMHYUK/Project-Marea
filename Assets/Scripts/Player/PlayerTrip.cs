@@ -55,7 +55,15 @@ namespace Marea.Player
             if (_serving == null)
                 Debug.LogError($"{name}: PlayerTrip — PlayerServingController가 없다. 음식을 들었는지 몰라 안 넘어진다.", this);
             if (animator == null)
+            {
                 Debug.LogError($"{name}: PlayerTrip.animator가 비어 있다. 넘어져도 넘어지는 동작이 안 나온다.", this);
+                return;
+            }
+
+            // (+10/9) 넘어질 때 직원처럼 앞으로 쏠리게 — 씬(Main 포함)을 안 건드리려고 여기서 붙인다.
+            PlayerTripRootMotion rootMotion = animator.GetComponent<PlayerTripRootMotion>();
+            if (rootMotion == null) rootMotion = animator.gameObject.AddComponent<PlayerTripRootMotion>();
+            rootMotion.Init(this, GetComponent<UnityEngine.AI.NavMeshAgent>());
         }
 
         private void Update()
