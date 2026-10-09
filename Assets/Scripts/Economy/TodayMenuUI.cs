@@ -42,8 +42,6 @@ namespace Marea.Economy
         [SerializeField] private AudioClip deselectClip;
         [Tooltip("못 고를 때 — 재료 부족 · 한도 · 잠김 (ui_error_soft).")]
         [SerializeField] private AudioClip errorClip;
-        [Tooltip("[영업 시작]을 눌러 영업이 열리는 순간 뱃고동 (sfx_sys_open).")]
-        [SerializeField] private AudioClip openBusinessClip;
         [SerializeField, Range(0f, 1f)] private float clipVolume = 0.8f;
 
         private readonly List<MenuCard> _cards = new();
@@ -158,7 +156,7 @@ namespace Marea.Economy
             else
             {
                 business.StartBusiness();
-                SoundManager.Play(openBusinessClip, clipVolume);   // (+10/6)
+                // (+10/9) 영업 시작 뱃고동은 뺐다 — 첫 손님 배가 들어오기 시작할 때 GuestBoatArrival이 울린다(겹치면 두 번 운다).
             }
 
             Close();

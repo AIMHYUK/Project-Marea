@@ -23,7 +23,7 @@ namespace Marea.Field
     /// - 선착장은 한 자리 — 앞 배가 떠나기 시작해야 다음 배가 들어온다.
     /// - (+10/9) 배는 내린 손님이 다 먹고 돌아와 다시 탈 때까지 정박해 기다렸다가 태우고 떠난다.
     ///   그래서 한 번에 한 무리만 식당에 있고, 간격은 앞 배가 떠난 뒤부터 센다.
-    /// - 배가 닿을 때마다 뱃고동(arriveClip). 카메라 연출(배 따라가기 → 첫 손님 보기)은 cameraOnFirstBoat를 켜면 그날 첫 배만 — 기본 끔.
+    /// - 배마다 바다에서 들어오기 시작할 때 뱃고동(arriveClip). 카메라 연출(배 따라가기 → 첫 손님 보기)은 cameraOnFirstBoat를 켜면 그날 첫 배만.
     ///
     /// 배는 종류별 프리팹을 매번 만들고 떠나면 지운다. 프리팹은 뱃머리가 +Z, 원점이 뱃머리 끝이라
     /// 경로가 곧 뱃머리 자리다(정박점 = 뱃머리가 서는 곳). 크기가 달라 부두에 걸리면 종류별 pathOffset으로 비킨다.
@@ -86,7 +86,7 @@ namespace Marea.Field
         [SerializeField, Min(0f)] private float maxLean = 4f;
 
         [Header("소리 (+10/9)")]
-        [Tooltip("배가 선착장에 닿을 때마다 뱃고동. 화면 밖에서 와도 알게 화면 소리로 낸다. 영업 시작 버튼 뱃고동과 겹치지 않게 출발이 아니라 정박 때.")]
+        [Tooltip("배가 바다에서 들어오기 시작할 때마다 뱃고동 — 울리면서 들어온다. 화면 밖에서 와도 알게 화면 소리로 낸다. (영업 시작 버튼 뱃고동은 뺐다)")]
         [SerializeField] private AudioClip arriveClip;
         [SerializeField, Range(0f, 1f)] private float arriveVolume = 0.8f;
 
@@ -268,6 +268,7 @@ namespace Marea.Field
         private IEnumerator ArriveAndUnload(BoatType type, bool cutscene, int seats)
         {
             Transform boat = SpawnBoat(type);
+            SoundManager.Play(arriveClip, arriveVolume);   // (+10/9) 배마다 들어오기 시작할 때 뱃고동
             if (cutscene) BeginCutscene();
 
             float arriveLength = path.CalculateLength();
@@ -281,7 +282,6 @@ namespace Marea.Field
                 yield return null;
             }
             Pose(boat, type, path, 1f);
-            SoundManager.Play(arriveClip, arriveVolume);   // (+10/9) 배마다 닿을 때 뱃고동
 
             // 손님은 정원과 빈자리 중 적은 만큼. 영업이 끝났으면 아무도 안 내린다.
             int count = Mathf.Min(type.passengers, seats);
