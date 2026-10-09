@@ -17,6 +17,7 @@ namespace Marea.Player
     /// 좌클릭은 클릭 이동 · 상호작용이라 쓰지 않는다. UI 위에서는 안 받고(창 스크롤과 안 겹치게),
     /// 연출(FocusOn) 중에도 안 받는다. 미니게임 · 고래는 이 컴포넌트를 끄니 그동안은 저절로 안 받는다.
     /// WASD는 PlayerController가 매 프레임 카메라 방향을 기준으로 잡아서 돌려도 화면 기준이 유지된다.
+    /// 연출(FocusOn) 중엔 거리를 focusDistance로 맞춘다 — 휠로 당겨 둔 정도와 상관없이 연출이 같게 보인다.
     /// </summary>
     public class CameraFollow : MonoBehaviour
     {
@@ -50,6 +51,8 @@ namespace Marea.Player
         [SerializeField, Min(0f)] private float zoomSmoothTime = 0.12f;
         [Tooltip("우클릭으로 끌 때 마우스 1픽셀당 Y축 회전(도).")]
         [SerializeField, Min(0f)] private float rotateDegreesPerPixel = 0.3f;
+        [Tooltip("(+10/9) 연출(FocusOn — 해금 · 새로 등장) 동안 쓰는 거리. 휠로 얼마나 당겼든 연출은 같은 거리로 보이고, 끝나면 휠 거리로 돌아간다.")]
+        [SerializeField, Min(1f)] private float focusDistance = 12f;
 
         private float _yaw;
         private float _targetDistance;
@@ -117,9 +120,10 @@ namespace Marea.Player
         {
             if (target == null && _focus == null) return;
 
+            float wantDistance = _focus.HasValue ? focusDistance : _targetDistance;   // (+10/9) 연출 중엔 고정 거리
             _currentDistance = zoomSmoothTime > 0f
-                ? Mathf.SmoothDamp(_currentDistance, _targetDistance, ref _zoomVelocity, zoomSmoothTime)
-                : _targetDistance;
+                ? Mathf.SmoothDamp(_currentDistance, wantDistance, ref _zoomVelocity, zoomSmoothTime)
+                : wantDistance;
 
             Vector3 desired = PositionFor(_focus ?? target.position + lookOffset);
 
