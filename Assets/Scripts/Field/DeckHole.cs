@@ -18,8 +18,11 @@ namespace Marea.Field
         [Tooltip("이 오브젝트 높이 위아래 이만큼만 뚫는다 — 데크 윗면만, 아래 기둥 · 물은 그대로.")]
         [SerializeField, Min(0.01f)] private float heightTolerance = 0.15f;
 
-        [Tooltip("구멍에 놓인 뜯긴 판자. 폭을 데크 판자 폭에 맞춰 늘린다(X).")]
+        [Tooltip("구멍에 놓인 뜯긴 판자. 폭(X)을 데크 판자 폭 × plankWidthRatio로 맞춘다. 기울기 · 길이는 프리팹 그대로.")]
         [SerializeField] private Transform plank;
+
+        [Tooltip("뜯긴 판자 폭 = 데크 판자 폭 × 이 값. 1보다 크면 구멍 가장자리에 걸친다.")]
+        [SerializeField, Min(0.1f)] private float plankWidthRatio = 1.27f;
 
         private const string HoleShader = "Shader Graphs/MM_Shader_DeckHole";
         private const float PlanksPerTexture = 16f;   // 데크 나무 텍스처(Wood_01 BaseColor) 가로에 판자 16장
@@ -74,7 +77,7 @@ namespace Marea.Field
                 {
                     MeshFilter mf = plank.GetComponentInChildren<MeshFilter>();
                     float meshWidth = mf != null && mf.sharedMesh != null ? mf.sharedMesh.bounds.size.x : 0f;
-                    if (meshWidth > 0f) plank.localScale = new Vector3(_width / meshWidth, 1f, 1f);
+                    if (meshWidth > 0f) plank.localScale = new Vector3(_width / meshWidth * plankWidthRatio, plank.localScale.y, plank.localScale.z);
                 }
                 return;
             }
