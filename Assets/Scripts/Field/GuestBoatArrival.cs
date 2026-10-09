@@ -21,7 +21,7 @@ namespace Marea.Field
     ///   배 크기로 몇 명 왔는지 보인다. 빈자리가 정원보다 적으면 들어가는 배 중에서 고른다.
     /// - 다음 배까지의 간격과 배 크기 비율은 일차별 표(GuestWaveData, BusinessManager.Day)에서 정한다.
     /// - 선착장은 한 자리 — 앞 배가 떠나기 시작해야 다음 배가 들어온다.
-    /// - 카메라 연출(배 따라가기 → 첫 손님 보기)은 그날 첫 배만. 클릭이나 E로 건너뛴다.
+    /// - 배가 닿을 때마다 뱃고동(arriveClip). 카메라 연출(배 따라가기 → 첫 손님 보기)은 cameraOnFirstBoat를 켜면 그날 첫 배만 — 기본 끔.
     ///
     /// 배는 종류별 프리팹을 매번 만들고 떠나면 지운다. 프리팹은 뱃머리가 +Z, 원점이 뱃머리 끝이라
     /// 경로가 곧 뱃머리 자리다(정박점 = 뱃머리가 서는 곳). 크기가 달라 부두에 걸리면 종류별 pathOffset으로 비킨다.
@@ -83,7 +83,14 @@ namespace Marea.Field
         [Tooltip("숙임 최대 각도(도).")]
         [SerializeField, Min(0f)] private float maxLean = 4f;
 
+        [Header("소리 (+10/9)")]
+        [Tooltip("배가 선착장에 닿을 때마다 뱃고동. 화면 밖에서 와도 알게 화면 소리로 낸다. 영업 시작 버튼 뱃고동과 겹치지 않게 출발이 아니라 정박 때.")]
+        [SerializeField] private AudioClip arriveClip;
+        [SerializeField, Range(0f, 1f)] private float arriveVolume = 0.8f;
+
         [Header("카메라 (그날 첫 배만)")]
+        [Tooltip("(+10/9) 끄면 연출 없이 배만 온다 — 기본은 끔(배가 계속 오니 소리로 알린다). 켜면 그날 첫 배를 카메라가 따라가고 첫 손님을 본다.")]
+        [SerializeField] private bool cameraOnFirstBoat;
         [Tooltip("배를 볼 때 배 원점에서 올려 볼 높이.")]
         [SerializeField] private float lookHeight = 2f;
         [Tooltip("첫 손님이 내린 뒤 그 손님을 보는 시간.")]
@@ -164,7 +171,7 @@ namespace Marea.Field
         {
             // 영업이 끝나면 루프는 다음 배를 안 고르고 저절로 끝난다. 오는 중인 배는 손님 없이 닿았다가 떠난다.
             if (state != BusinessState.Open) return;
-            if (_loop == null) _loop = StartCoroutine(BoatLoop(cutsceneFirst: true));
+            if (_loop == null) _loop = StartCoroutine(BoatLoop(cutsceneFirst: cameraOnFirstBoat));
             else _newDay = true;   // 앞날 루프가 아직 안 끝났다(영업 종료 → 다음 날 → 시작이 한 프레임에) — 기다리던 간격을 끊고 새 날 첫 배부터
         }
 
@@ -179,7 +186,7 @@ namespace Marea.Field
                 if (_newDay)
                 {
                     _newDay = false;
-                    cutscene = true;
+                    cutscene = cameraOnFirstBoat;
                 }
 
                 int seats = _customers != null ? _customers.EmptySeatCount : 0;
@@ -271,6 +278,7 @@ namespace Marea.Field
                 yield return null;
             }
             Pose(boat, type, path, 1f);
+            SoundManager.Play(arriveClip, arriveVolume);   // (+10/9) 배마다 닿을 때 뱃고동
 
             // 손님은 정원과 빈자리 중 적은 만큼. 영업이 끝났으면 아무도 안 내린다.
             int count = Mathf.Min(type.passengers, seats);
