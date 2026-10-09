@@ -44,6 +44,9 @@ namespace Marea.Restaurant
         [SerializeField, Min(0f)] private float angryAfterSeconds = 30f;
         [SerializeField, Min(0.1f)] private float angryShowSeconds = 1.2f;
         [SerializeField, Min(0.1f)] private float orderShowSeconds = 2.5f;
+        [Tooltip("(+10/9, A) 주문하고 이만큼 지나도 음식을 못 받으면 화난 채 떠난다. 0이면 안 떠난다(화만 낸다). "
+               + "손님 배는 내린 손님이 다 떠나야 출항하니, 안 떠나면 배가 그날 끝날 때까지 선다.")]
+        [SerializeField, Min(0f)] private float leaveAfterSeconds = 60f;
 
         [Header("효과음 설정")]
         [SerializeField] private AudioClip coinSoundClip;
@@ -279,7 +282,10 @@ namespace Marea.Restaurant
             }
         }
 
-        /// <summary>(+10/8, A) 오래 기다리면 주문 아이콘 ↔ 화난 얼굴을 번갈아. 음식을 받거나 떠나면 끝난다.</summary>
+        /// <summary>
+        /// (+10/8, A) 오래 기다리면 주문 아이콘 ↔ 화난 얼굴을 번갈아. 음식을 받거나 떠나면 끝난다.
+        /// (+10/9, A) leaveAfterSeconds가 지나면 화난 얼굴로 떠난다(잘못된 음식을 받았을 때와 같은 퇴장).
+        /// </summary>
         private IEnumerator ImpatientRoutine()
         {
             while (_state == CustomerState.WaitingOrder && Time.time - WaitingSince < angryAfterSeconds)
@@ -287,12 +293,29 @@ namespace Marea.Restaurant
 
             while (_state == CustomerState.WaitingOrder)
             {
+                if (TimeToLeave()) break;
                 SetImpatient(true);
-                yield return new WaitForSeconds(angryShowSeconds);
-                if (_state != CustomerState.WaitingOrder) break;
+                yield return WaitWhileWaiting(angryShowSeconds);
+                if (_state != CustomerState.WaitingOrder || TimeToLeave()) break;
                 SetImpatient(false);
-                yield return new WaitForSeconds(orderShowSeconds);
+                yield return WaitWhileWaiting(orderShowSeconds);
             }
+
+            if (_state == CustomerState.WaitingOrder && TimeToLeave())
+            {
+                Debug.Log($"[Customer] {leaveAfterSeconds:F0}초 기다려도 음식이 안 와서 떠납니다.");
+                _state = CustomerState.Leaving;   // 화난 얼굴을 띄우는 1초 사이에 음식을 받지 않게 먼저 바꾼다
+                StartCoroutine(RejectAndLeaveRoutine(waitedTooLong: true));
+            }
+        }
+
+        private bool TimeToLeave() => leaveAfterSeconds > 0f && Time.time - WaitingSince >= leaveAfterSeconds;
+
+        /// <summary>기다리는 동안만 센다 — 떠날 때가 되면 화남 깜빡임 중간이라도 바로 끝낸다.</summary>
+        private IEnumerator WaitWhileWaiting(float seconds)
+        {
+            for (float t = 0f; t < seconds && _state == CustomerState.WaitingOrder && !TimeToLeave(); t += Time.deltaTime)
+                yield return null;
         }
 
         private void SetImpatient(bool angry)
@@ -302,14 +325,14 @@ namespace Marea.Restaurant
             if (imgAngryFeedback != null) imgAngryFeedback.gameObject.SetActive(angry);
         }
 
-        private IEnumerator RejectAndLeaveRoutine()
+        private IEnumerator RejectAndLeaveRoutine(bool waitedTooLong = false)
         {
             if (imgOrderIcon != null) imgOrderIcon.gameObject.SetActive(false);
             if (imgHappyFeedback != null) imgHappyFeedback.gameObject.SetActive(false);
             if (imgCoinFeedback != null) imgCoinFeedback.gameObject.SetActive(false);
             if (imgAngryFeedback != null) imgAngryFeedback.gameObject.SetActive(true);
 
-            Debug.LogWarning("[Customer] 잘못된 음식을 받았습니다. 불만을 품고 즉시 퇴장합니다.");
+            if (!waitedTooLong) Debug.LogWarning("[Customer] 잘못된 음식을 받았습니다. 불만을 품고 즉시 퇴장합니다.");
 
             yield return new WaitForSeconds(1.0f);
 
