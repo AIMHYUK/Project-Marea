@@ -10,11 +10,15 @@ namespace Marea.Field
     /// 평소 등장은 20초 뒤 · 60~150초 간격 · 경로가 화면에 들어올 때만이라 움직임을 확인하려면 오래 기다려야 했다.
     /// 카메라는 그동안 CameraFollow를 꺼서 뺏는다 — 끝나면 다시 켜고 CameraFollow가 플레이어 쪽으로 부드럽게 돌아간다.
     /// 릴리스 빌드(Debug.isDebugBuild = false)에선 꺼진다.
+    /// (+10/10) 헤엄치는 중 F10 = 높은 점프, F11 = 낮은 점프(헤엄 클립이 한 바퀴 도는 순간에 뛴다).
     /// </summary>
     [DefaultExecutionOrder(1000)] // 다른 카메라 스크립트 뒤에 카메라를 놓는다
     public class WhaleDebugKey : MonoBehaviour
     {
         [SerializeField] private Key key = Key.F9;
+        [Tooltip("(+10/10) 헤엄치는 중 누르면 높은 점프 · 낮은 점프.")]
+        [SerializeField] private Key jumpKey = Key.F10;
+        [SerializeField] private Key lowJumpKey = Key.F11;
 
         [Header("따라가는 카메라")]
         [Tooltip("고래 옆으로 떨어진 거리(m). 고래 길이가 약 12m.")]
@@ -47,7 +51,10 @@ namespace Marea.Field
         private void Update()
         {
             Keyboard kb = Keyboard.current;
-            if (kb == null || !kb[key].wasPressedThisFrame) return;
+            if (kb == null) return;
+            if (kb[jumpKey].wasPressedThisFrame) _whale.JumpNow(false);     // (+10/10)
+            if (kb[lowJumpKey].wasPressedThisFrame) _whale.JumpNow(true);
+            if (!kb[key].wasPressedThisFrame) return;
 
             if (_watching) { StopWatching(); return; }
             _whale.AppearNearest();
@@ -88,7 +95,8 @@ namespace Marea.Field
             Vector3 forward = Vector3.ProjectOnPlane(w.forward, Vector3.up).normalized;
             Vector3 side = Vector3.Cross(Vector3.up, forward);
             // 떠오르기 전엔 14m 물속이라 높이는 해수면 기준으로 — 카메라가 물에 잠기지 않게.
-            Vector3 look = w.position;
+            // (+10/10) 점프하면 몸이 오브젝트보다 한참 위로 간다 — 몸 중심을 본다.
+            Vector3 look = _whale.VisualCenter;
             look.y = Mathf.Max(look.y + lookUp, _whale.SeaLevel);
             Vector3 goal = new Vector3(w.position.x, _whale.SeaLevel + height, w.position.z) + side * sideDistance;
 

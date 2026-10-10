@@ -188,7 +188,8 @@ namespace Marea.Cooking
             nameLabel.text = menu.DisplayName;
             if (picture != null && menu.Icon != null) picture.sprite = menu.Icon;
 
-            var lines = new System.Text.StringBuilder("재료 필요량 / 보유량\n");
+            // (+10/9) 숫자는 보유 / 필요 순이다 — 제목이 "필요량 / 보유량"이라 거꾸로 읽혔다.
+            var lines = new System.Text.StringBuilder("재료 보유 / 필요\n");
             var missing = new List<string>();
             foreach (var (ingredient, need) in Needs(menu))
             {

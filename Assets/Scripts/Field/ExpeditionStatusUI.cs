@@ -28,6 +28,11 @@ namespace Marea.Field
         [SerializeField] private TextMeshProUGUI resultText;
         [SerializeField] private Button confirmButton;
 
+        // (+10/9) 얻은 아이템 아이콘 칸. 템플릿(꺼둔 자식)을 복제한다 — 자식 Icon · Name · Count.
+        // 아이콘이 없는 아이템은 Name 글자로 대신한다.
+        [SerializeField] private Transform iconGrid;
+        [SerializeField] private GameObject slotTemplate;
+
         private ExpeditionManager _manager;
 
         protected override void Awake()
@@ -39,6 +44,10 @@ namespace Marea.Field
                 Debug.LogError($"{name}: ExpeditionStatusUI.confirmButton이 비어 있다. 보상을 받을 수 없다.", this);
             else
                 confirmButton.onClick.AddListener(HandleConfirm);
+            if (iconGrid == null || slotTemplate == null)
+                Debug.LogError($"{name}: ExpeditionStatusUI의 iconGrid·slotTemplate 중 비어 있는 게 있다. 결과 아이콘이 안 뜬다.", this);
+            else
+                slotTemplate.SetActive(false);
         }
 
         public void Open(ExpeditionManager manager)
@@ -91,6 +100,35 @@ namespace Marea.Field
             }
 
             if (returned && resultText != null) resultText.text = ResultText(_manager);
+            if (returned) RefreshIcons();
+        }
+
+        private void RefreshIcons()
+        {
+            if (iconGrid == null || slotTemplate == null) return;
+
+            // 템플릿만 남기고 지운다. 결과는 한 번에 몇 개 안 돼서 풀링하지 않는다.
+            for (int i = iconGrid.childCount - 1; i >= 0; i--)
+            {
+                GameObject child = iconGrid.GetChild(i).gameObject;
+                if (child != slotTemplate) Destroy(child);
+            }
+
+            foreach (var (item, amount) in _manager.PendingReward)
+            {
+                if (item == null) continue;
+                GameObject slot = Instantiate(slotTemplate, iconGrid);
+                slot.SetActive(true);
+
+                var icon = slot.transform.Find("Icon")?.GetComponent<Image>();
+                var label = slot.transform.Find("Name")?.GetComponent<TextMeshProUGUI>();
+                var count = slot.transform.Find("Count")?.GetComponent<TextMeshProUGUI>();
+
+                bool hasIcon = item.Icon != null;
+                if (icon != null) { icon.sprite = item.Icon; icon.enabled = hasIcon; }
+                if (label != null) { label.text = item.DisplayName; label.enabled = !hasIcon; }
+                if (count != null) count.text = $"x{amount}";
+            }
         }
 
         private void HandleConfirm()
@@ -112,7 +150,10 @@ namespace Marea.Field
             }
 
             if (food.Length == 0 && special.Length == 0) return "빈손으로 돌아왔습니다";
-            return $"식재료\n{(food.Length > 0 ? food.ToString() : "없음\n")}\n특수 자원\n{(special.Length > 0 ? special.ToString() : "없음\n")}".TrimEnd();
+            // (+10/9) 분류 이름은 작고 옅게 — 양피지 위에서 항목이 먼저 읽히게.
+            const string head = "<size=80%><color=#8A6A45>";
+            const string tail = "</color></size>";
+            return $"{head}식재료{tail}\n{(food.Length > 0 ? food.ToString() : "없음\n")}\n{head}특수 자원{tail}\n{(special.Length > 0 ? special.ToString() : "없음\n")}".TrimEnd();
         }
     }
 }
