@@ -103,7 +103,8 @@ namespace Marea.Player
 
                 if (clicked && usable)
                 {
-                    player.GoInteract(target);
+                    if (target.ClickFromAfar) target.Interact(player);   // (+10/10) 걸어가지 않고 바로 — 수확 마커
+                    else player.GoInteract(target);
                     if (clickMarker != null) clickMarker.Hide();   // (+10/7) 바닥 이동이 아니라 상호작용 — 이동 표시는 지운다
                 }
                 return;

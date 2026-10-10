@@ -41,12 +41,44 @@ namespace Marea.EditorTools
             Capture(prefab, idle, OutDir + "Icon_Fac_StaffModel_Close.png", topFraction: 0.34f, yaw: 25f, pitch: 8f);
         }
 
-        private static void Capture(GameObject prefab, AnimationClip pose, string outPath,
-                                    float topFraction, float yaw, float pitch)
+        // (+10/9) 야채볶음 간 맞추기 리듬 노트 — 씬의 소금통 · 후추통 모델을 그대로 찍는다.
+        private const string ShakerRoot = "Object/Restaurant/PF_Kitchen/CookingTable_MinigameView 1 1/VeggieStirFryStation/Step3Panel";
+        private const string RhythmDir = "Assets/Art/UI/Minigame/Rhythm/";
+
+        [MenuItem("Marea/아이콘 캡처/양념통 (소금 · 후추)")]
+        private static void CaptureShakers()
         {
-            var root = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            // 패널이 꺼져 있어 GameObject.Find 로는 못 찾는다
+            Transform panel = Resources.FindObjectsOfTypeAll<Transform>()
+                .FirstOrDefault(t => t.gameObject.scene.IsValid() && GetPath(t) == ShakerRoot);
+            if (panel == null) { Debug.LogError($"[IconCapture] 없음: {ShakerRoot}"); return; }
+            Directory.CreateDirectory(RhythmDir);
+            foreach (var (child, file) in new[] { ("salt", "Icon_Rhythm_Salt.png"), ("peper", "Icon_Rhythm_Pepper.png") })
+            {
+                Transform t = panel.Find(child);
+                if (t == null) { Debug.LogError($"[IconCapture] 없음: {ShakerRoot}/{child}"); continue; }
+                Capture(t.gameObject, null, RhythmDir + file, topFraction: 1f, yaw: 0f, pitch: 30f, keepRotation: true);
+            }
+        }
+
+        private static string GetPath(Transform t)
+        {
+            string p = t.name;
+            while (t.parent != null) { t = t.parent; p = t.name + "/" + p; }
+            return p;
+        }
+
+        private static void Capture(GameObject prefab, AnimationClip pose, string outPath,
+                                    float topFraction, float yaw, float pitch, bool keepRotation = false)
+        {
+            // (+10/9) 프리팹이 아니면(씬 오브젝트) 복제해서 찍는다. 씬에 놓인 기울기를 살리려면 keepRotation.
+            var root = PrefabUtility.IsPartOfPrefabAsset(prefab)
+                ? (GameObject)PrefabUtility.InstantiatePrefab(prefab)
+                : Object.Instantiate(prefab, prefab.transform.position, prefab.transform.rotation);
+            root.SetActive(true);
             root.hideFlags = HideFlags.HideAndDontSave;
-            root.transform.SetPositionAndRotation(new Vector3(0f, 5000f, 0f), Quaternion.identity);
+            Quaternion rot = keepRotation ? prefab.transform.rotation : Quaternion.identity;
+            root.transform.SetPositionAndRotation(new Vector3(0f, 5000f, 0f), rot);
 
             bool fog = RenderSettings.fog;
             var camGo = new GameObject("IconCaptureCam") { hideFlags = HideFlags.HideAndDontSave };
@@ -70,6 +102,7 @@ namespace Marea.EditorTools
                 float h = b.size.y * topFraction;
                 var focus = new Vector3(b.center.x, b.max.y - h * 0.5f, b.center.z);
                 float radius = h * 0.62f;   // 폭은 안 본다 — 스킨 bounds 가 T포즈 폭으로 남아 있을 수 있다
+                if (pose == null) radius = Mathf.Max(h, b.size.x, b.size.z) * 0.62f;   // (+10/9) 정지 모델은 폭도 본다 — 기울어진 양념통
 
                 var cam = camGo.AddComponent<Camera>();
                 cam.fieldOfView = 20f;
@@ -79,7 +112,8 @@ namespace Marea.EditorTools
                 cam.allowMSAA = false;
                 cam.targetTexture = rt;
                 float dist = radius / Mathf.Sin(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
-                var dir = Quaternion.Euler(-pitch, yaw, 0f) * root.transform.forward;   // 캐릭터 앞쪽에서
+                // 캐릭터 앞쪽에서. 씬 기울기를 살린 모델은 게임 카메라처럼 월드 +z(바깥쪽)에서 본다 (+10/9)
+                var dir = Quaternion.Euler(-pitch, yaw, 0f) * (keepRotation ? Vector3.forward : root.transform.forward);
                 cam.transform.position = focus + dir * dist;
                 cam.transform.LookAt(focus);
                 cam.nearClipPlane = 0.01f;
@@ -94,6 +128,11 @@ namespace Marea.EditorTools
                 key.transform.rotation = Quaternion.LookRotation(focus - (cam.transform.position + Vector3.up * dist * 0.6f));
 
                 RenderSettings.fog = false;
+                // (+10/9) 한 번 먼저 그린다 — 셰이더가 비동기 컴파일 중이면 첫 렌더에서 모델이 빠져 빈 PNG 가 나왔다(소금통)
+                bool async = ShaderUtil.allowAsyncCompilation;
+                ShaderUtil.allowAsyncCompilation = false;
+                cam.Render();
+                ShaderUtil.allowAsyncCompilation = async;
                 cam.Render();
 
                 var prev = RenderTexture.active;

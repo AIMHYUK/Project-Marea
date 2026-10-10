@@ -53,6 +53,9 @@ namespace Marea.Field
 
         private GameObject _carried;   // (+10/7) 조리대에서 옮겨 온 음식 모델
         private int _carriedPrice;     // (+10/7) 그 음식값 — 넘어지면 물어낸다
+        private CookingResult _carriedFood;   // (+10/10) 그 음식 — 손님이 떠나면 조리대에 도로 올린다
+        private bool _hasCarriedFood;
+        private bool _bringingBack;           // (+10/10) 도로 올리러 돌아가는 중
 
         [Header("배달 판정 (+9/3)")]
         [Tooltip("대상과 이만큼 가까워지면 건넨 것으로 본다.")]
@@ -101,6 +104,9 @@ namespace Marea.Field
         private WorldLabelUI _labels;
         private NavMeshAgent _agent;
         private float _baseSpeed;   // (+10/2) 업그레이드 전 속도. AgentMover가 Awake에서 넣은 값
+
+        private const float CounterCheckInterval = 0.5f;   // (+10/10) 쉬는 동안 조리대를 보는 간격
+        private float _nextCounterCheck;
 
         /// <summary>
         /// 지금 상태. ServingStaffAnimator 가 이것만 읽어서 Animator 에 넘긴다 (+9/22).
@@ -198,14 +204,36 @@ namespace Marea.Field
                 return;
             }
 
-
-            if (_state != State.ToTarget || !_expectTarget) return;
-
-            // 손님이 식사를 끝내고 Destroy됐다. 들고 있던 음식은 버린다.
-            if (_task.DeliverTarget == null)
+            // (+10/10) 쉬는 동안 조리대를 본다 — 손님이 없을 때 만든 음식 · 받을 손님이 떠난 음식을
+            // 나중에 온 손님에게 가져가려면 누가 다시 봐야 한다. 조리대는 음식이 놓여도 알리지 않는다.
+            if (_state == State.Idle || _state == State.Returning)
             {
-                Debug.LogWarning("[ServingStaff] 배달 대상이 사라졌다 — 음식을 버리고 유휴로 돌아간다.", this);
-                DropTask();
+                if (Time.time >= _nextCounterCheck)
+                {
+                    _nextCounterCheck = Time.time + CounterCheckInterval;
+                    TryStartNext();
+                }
+                return;
+            }
+
+            if (!_expectTarget) return;
+
+            // (+10/10) 가지러 가는 사이 손님이 떠났다. 음식은 아직 조리대에 있으니 손대지 않고 내려놓는다.
+            if (_state == State.ToPickup)
+            {
+                if (TargetGone(_task))
+                {
+                    Debug.LogWarning("[ServingStaff] 가지러 가는 사이 손님이 떠났다 — 음식은 조리대에 둔다.", this);
+                    DropTask();
+                }
+                return;
+            }
+
+            // 손님이 식사를 끝내고 Destroy됐다 · (+10/10) 화나서 떠나는 중이다. (+10/10) 음식은 조리대로 도로 가져간다.
+            if (TargetGone(_task))
+            {
+                Debug.LogWarning("[ServingStaff] 배달 대상이 사라졌다 — 음식을 조리대에 도로 올린다.", this);
+                BringBack();
                 return;
             }
 
@@ -256,8 +284,22 @@ namespace Marea.Field
             // 다 돌아갈 때까지 기다리면 손님이 그만큼 더 기다린다. (+9/23)
             // GoTo가 내부에서 Stop()을 부르므로 복귀 콜백은 여기서 알아서 버려진다.
             if (_state != State.Idle && _state != State.Returning) return;
+            if (_bringingBack) return;   // (+10/10) 든 음식을 조리대에 올리고 나서 받는다
             if (board == null) return;   // OnEnable에서 이미 에러를 냈다. 여기선 조용히 빠진다
-            if (!board.TryTake(out _task)) return;
+
+            // (+10/10) 쌓인 일이 없으면 조리대에 남은 음식을 손님에게 건다. Post의 OnPosted가 이 함수로
+            // 다시 들어와 바로 집어 가므로, 돌아왔을 때 이미 바쁘면 여기서 끝난다.
+            if (board.PendingCount == 0) PostCounterFood();
+            if (_state != State.Idle && _state != State.Returning) return;
+
+            // (+10/10) 기다리는 사이 손님이 떠난 작업은 건너뛴다. 예전엔 대상이 사라진 작업을 좌표 배달로 착각해
+            // 음식을 빈자리까지 들고 가 버렸다. 음식은 조리대에 남아 다음 손님 몫이 된다.
+            ServeTask next;
+            do
+            {
+                if (!board.TryTake(out next)) return;
+            } while (TargetGone(next));
+            _task = next;
 
             _expectTarget = _task.DeliverTarget != null;
             if (emote != null) emote.Show(surprisedEmote);   // (+10/8) 새 주문 ❗
@@ -270,6 +312,11 @@ namespace Marea.Field
             _mover.GoTo(_task.PickupPoint,
                 onArrived: () =>
                 {
+                    if (_expectTarget && TargetGone(_task))   // (+10/10) 음식은 조리대에 두고 간다
+                    {
+                        DropTask();
+                        return;
+                    }
                     ShowIcon(_task.FoodIcon);
                     TakeFoodFromCounter();   // (+10/7) 조리대 위 음식을 손으로
                     SoundManager.PlayAt(pickupClip, transform.position, pickupVolume);   // (+10/6)
@@ -286,10 +333,10 @@ namespace Marea.Field
         {
             // 픽업하러 가는 동안 손님이 식사를 끝내고 나갔을 수 있다.
             // 여기서 안 보면 사라진 손님의 옛 좌표까지 헛걸음을 한다.
-            if (_expectTarget && _task.DeliverTarget == null)
+            if (_expectTarget && TargetGone(_task))
             {
-                Debug.LogWarning("[ServingStaff] 픽업하는 사이 대상이 사라졌다 — 음식을 버린다.", this);
-                DropTask();
+                Debug.LogWarning("[ServingStaff] 픽업하는 사이 대상이 사라졌다 — 음식을 조리대에 도로 올린다.", this);
+                BringBack();   // (+10/10) 예전엔 버렸다
                 return;
             }
 
@@ -313,8 +360,8 @@ namespace Marea.Field
         }
 
         /// <summary>
-        /// 넘어졌다. 음식을 잃는다 — 작업을 버리면 DeliverTarget이 null이 되어, B가 다음 조리분을
-        /// 그 손님에게 다시 배정한다. 손님은 OnDelivered가 올 때까지 그냥 기다린다. (+9/28, 이슈 76)
+        /// 넘어졌다. 음식을 잃는다 — 작업을 버리면 DeliverTarget이 null이 되어, (+10/10) 조리대에 같은 메뉴가
+        /// 놓이면 PostCounterFood가 그 손님에게 다시 건다. 손님은 OnDelivered가 올 때까지 그냥 기다린다. (+9/28, 이슈 76)
         /// 골드는 넘어지는 순간 뺀다. Wallet은 0 아래로 안 가서 모자라면 있는 만큼만.
         /// </summary>
         private void Trip()
@@ -477,6 +524,55 @@ namespace Marea.Field
         }
 
         /// <summary>
+        /// (+10/10) 조리대에서 아직 누구 몫도 아닌 음식마다, 그 메뉴를 시키고 기다리는 손님(최우선 · 오래 기다린 순)에게
+        /// 배달을 건다. 음식을 배정하는 곳은 여기 하나다 — 예전엔 미니게임이 완성 순간에만 메뉴를 안 보고 맨 앞 손님에게
+        /// 걸어서, 손님이 없을 때 만든 음식은 조리대에 영영 남았고 다른 메뉴를 시킨 손님이 받기도 했다.
+        /// 맞는 손님이 없는 음식은 그대로 두면 다음 확인 때 다시 본다. 플레이어는 직원 몫이 아닌 음식만 집는다.
+        /// </summary>
+        private void PostCounterFood()
+        {
+            if (counter == null) return;
+            List<CookingResult> foods = counter.UnreservedFoods();
+            if (foods.Count == 0) return;
+
+            Marea.Restaurant.CustomerManager manager = FindAnyObjectByType<Marea.Restaurant.CustomerManager>();
+            if (manager == null) return;
+            List<Marea.Restaurant.CustomerController> waiting = manager.GetWaitingCustomers();
+            ServingStaff[] staffs = FindObjectsByType<ServingStaff>(FindObjectsSortMode.None);
+            waiting.RemoveAll(c => board.IsTargeted(c.transform)
+                                   || System.Array.Exists(staffs, s => s.DeliverTarget == c.transform));
+
+            // 짝을 먼저 다 정하고 건다 — Post가 OnPosted로 직원을 바로 움직여 목록이 바뀐다.
+            var pairs = new List<(Marea.Restaurant.CustomerController target, CookingResult food)>();
+            foreach (CookingResult food in foods)
+            {
+                if (food.menuData == null) continue;
+                Marea.Restaurant.CustomerController target = waiting.Find(c => c.OrderedMenu == food.menuData);
+                if (target == null) continue;
+                waiting.Remove(target);
+                pairs.Add((target, food));
+            }
+
+            foreach (var (target, food) in pairs)
+                board.Post(target.transform, food.menuData.Icon, () =>
+                {
+                    if (target != null) target.ServeFood(food);
+                });
+        }
+
+        /// <summary>
+        /// (+10/10) 손님에게 가는 작업인데 그 손님이 없어졌거나(식사 끝 · Destroy) 더는 주문을 기다리지 않는다(식사 중 · 떠나는 중).
+        /// 좌표 배달(ServeBoard 테스트 — OnDelivered 없음)은 해당 없다.
+        /// </summary>
+        private static bool TargetGone(ServeTask task)
+        {
+            if (task.OnDelivered == null) return false;
+            if (task.DeliverTarget == null) return true;
+            var customer = task.DeliverTarget.GetComponent<Marea.Restaurant.CustomerController>();
+            return customer != null && customer.State != Marea.Restaurant.CustomerState.WaitingOrder;
+        }
+
+        /// <summary>
         /// 배달을 포기한다. 꺼내온 작업은 증발한다 — board에 되돌리는 함수가 없다.
         /// 이슈 #5 미해결 그대로다.
         /// </summary>
@@ -529,6 +625,8 @@ namespace Marea.Field
             if (counter == null || holdPoint == null) return;
             if (!counter.TryTakeFood(_task.FoodIcon, out CookingResult food, out GameObject visual)) return;
             _carriedPrice = food.finalPrice;   // (+10/7) 넘어지면 이 값을 물어낸다
+            _carriedFood = food;               // (+10/10) 손님이 떠나면 조리대에 도로 올린다
+            _hasCarriedFood = true;
             if (visual == null) return;
 
             _carried = visual;
@@ -537,8 +635,38 @@ namespace Marea.Field
             _carried.transform.localRotation = Quaternion.identity;
         }
 
+        /// <summary>
+        /// (+10/10) 받을 손님이 떠났다. 든 음식을 들고 픽업대로 돌아가 조리대에 도로 올린다 — 다음에 같은 메뉴를 시킨
+        /// 손님 몫이 된다. 돌아가는 동안엔 새 일을 안 받는다(새 일을 집으면 든 음식이 지워진다).
+        /// 조리대에서 못 집고 빈손으로 왔으면 올릴 게 없어 예전처럼 내려놓기만 한다.
+        /// </summary>
+        private void BringBack()
+        {
+            if (!_hasCarriedFood) { DropTask(); return; }
+
+            _mover.Stop();
+            _task = default;
+            _expectTarget = false;
+            _bringingBack = true;
+            _state = State.Returning;
+            _mover.GoTo(board.PickupPosition, onArrived: PutBack, onFailed: PutBack, allowPartialPath: true);
+        }
+
+        private void PutBack()
+        {
+            if (!_bringingBack) return;
+            _bringingBack = false;
+
+            if (counter == null || !counter.TryPlaceFood(_carriedFood))
+                Debug.LogWarning("[ServingStaff] 조리대가 가득 차서 도로 올리지 못했다 — 음식을 버린다.", this);
+            ShowIcon(null);   // 조리대에 새 모델이 생겼다. 손에 든 건 치운다
+            _state = State.Idle;
+            TryStartNext();
+        }
+
         private void ReleaseCarried()
         {
+            _hasCarriedFood = false;
             if (_carried == null) return;
             Destroy(_carried);
             _carried = null;

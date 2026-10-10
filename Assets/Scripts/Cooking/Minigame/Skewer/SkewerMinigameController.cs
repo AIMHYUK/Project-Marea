@@ -319,11 +319,6 @@ namespace Marea.Cooking
                 menuData = _currentMenu
             };
 
-            if (isSuccess)
-            {
-                DispatchCookedFood(result);
-            }
-
             // Clear round state before the callback, which may immediately start another round.
             Action<CookingResult> callback = _onCompleteCallback;
             _onCompleteCallback = null;
@@ -332,56 +327,6 @@ namespace Marea.Cooking
             _hitHistory.Clear();
             _targetIngredients.Clear();
             callback?.Invoke(result);
-        }
-
-        private void DispatchCookedFood(CookingResult result)
-        {
-            Sprite icon = _currentMenu != null ? _currentMenu.Icon : null;
-            ServeBoard board = FindFirstObjectByType<ServeBoard>();
-            ServingStaff[] staffs = FindObjectsByType<ServingStaff>(FindObjectsSortMode.None);
-
-            if (board == null || staffs.Length == 0)
-            {
-                GiveFoodToPlayer(result);
-                return;
-            }
-
-            CustomerController target = PickTarget(board, staffs);
-            if (target == null)
-            {
-                GiveFoodToPlayer(result);
-                return;
-            }
-
-            board.Post(target.transform, icon, () =>
-            {
-                if (target != null) target.ServeFood(result);
-            });
-        }
-
-        private CustomerController PickTarget(ServeBoard board, ServingStaff[] staffs)
-        {
-            CustomerManager manager = FindFirstObjectByType<CustomerManager>();
-            if (manager == null) return null;
-
-            foreach (CustomerController c in manager.GetWaitingCustomers())
-            {
-                if (board.IsTargeted(c.transform)) continue;
-
-                bool taken = false;
-                foreach (ServingStaff s in staffs)
-                {
-                    if (s.DeliverTarget == c.transform) { taken = true; break; }
-                }
-
-                if (!taken) return c;
-            }
-
-            return null;
-        }
-
-        private void GiveFoodToPlayer(CookingResult result)
-        {
         }
     }
 }

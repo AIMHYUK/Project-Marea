@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using Marea.Core;
 using Marea.Data;
@@ -57,18 +58,28 @@ namespace Marea.Economy
             if (group != null) group.alpha = lockedLevel > 0 ? 0.35f : selected || servings > 0 ? 1f : 0.55f;
         }
 
-        // 기호를 안 쓴다 — Pretendard-Bold SDF에 · 가 없다. "/" 는 있다.
+        // (+10/9) 같은 재료는 합치고, 3종이 넘으면 한 줄에 둘씩 — 카드 아래 칸이 좁아 5줄이면 글자가 10pt 까지 줄었다.
         private static string RecipeText(MenuData menu)
         {
             Warehouse warehouse = Warehouse.Instance;
-            var sb = new StringBuilder();
             if (menu.Recipe == null) return string.Empty;
+
+            var needs = new List<(IngredientData item, int amount)>();
             foreach (RecipeEntry entry in menu.Recipe)
             {
                 if (entry.ingredient == null) continue;
-                int have = warehouse != null ? warehouse.CountOf(entry.ingredient) : 0;
-                if (sb.Length > 0) sb.Append('\n');
-                sb.Append(entry.ingredient.DisplayName).Append(' ').Append(entry.requiredAmount).Append(" / ").Append(have);
+                int i = needs.FindIndex(x => x.item == entry.ingredient);
+                if (i >= 0) needs[i] = (entry.ingredient, needs[i].amount + entry.requiredAmount);
+                else needs.Add((entry.ingredient, entry.requiredAmount));
+            }
+
+            int perLine = needs.Count > 3 ? 2 : 1;
+            var sb = new StringBuilder();
+            for (int i = 0; i < needs.Count; i++)
+            {
+                int have = warehouse != null ? warehouse.CountOf(needs[i].item) : 0;
+                if (i > 0) sb.Append(i % perLine == 0 ? "\n" : "   ");
+                sb.Append(needs[i].item.DisplayName).Append(' ').Append(needs[i].amount).Append(" / ").Append(have);
             }
             return sb.ToString();
         }

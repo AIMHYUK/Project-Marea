@@ -57,6 +57,18 @@ namespace Marea.Field
                 Debug.LogError($"{name}: 부모에 FarmManager가 없다. 클릭해도 아무 일도 안 일어난다.", this);
 
             if (sprout != null) _sproutFullScale = sprout.localScale;
+
+            // (+10/10) 수확 마커를 누르면 그 자리에서 수확(FarmManager.harvestByMarkerClick). 아이콘 말풍선을 덮는 트리거 구체.
+            // 꺼져 있으면 콜라이더도 안 붙인다 — 붙이면 마커 자리 클릭이 막히기만 한다.
+            if (readyMarker != null && _manager != null && _manager.HarvestByMarkerClick && readyMarker.GetComponent<FarmReadyMarker>() == null)
+            {
+                var hit = readyMarker.AddComponent<SphereCollider>();   // InteractableBase가 콜라이더를 요구해서 먼저
+                readyMarker.AddComponent<FarmReadyMarker>().Init(this, _manager);
+                hit.isTrigger = true;
+                float scale = Mathf.Max(readyMarker.transform.lossyScale.x, 0.0001f);
+                hit.radius = readyIconSize * bubblePadding * 0.55f / scale;
+                if (readyIcon != null) hit.center = readyMarker.transform.InverseTransformPoint(readyIcon.transform.position);
+            }
         }
 
         public override bool CanInteract(IInteractor actor) => _manager != null && _manager.CanInteract(this);

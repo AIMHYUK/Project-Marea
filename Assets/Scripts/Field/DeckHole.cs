@@ -67,7 +67,14 @@ namespace Marea.Field
                 Vector3 perPlank = perU / (tiling * PlanksPerTexture);
                 float u = u0 + Vector3.Dot(p - origin, perU) / perU.sqrMagnitude;
                 float k = u * tiling * PlanksPerTexture;
-                transform.position = p + perPlank * (Mathf.Floor(k) + 0.5f - k);
+                Vector3 fit = p + perPlank * (Mathf.Floor(k) + 0.5f - k);
+
+                // (+10/10) 높이도 데크 윗면에 붙인다. 선장 이벤트는 NavMesh 높이에 장판을 놓는데, 식당 데크는 살짝 기울어
+                // NavMesh가 윗면보다 0.16m 뜬 곳이 있다 — heightTolerance(0.15)를 넘어 구멍이 안 뚫리고 판자도 떴다.
+                Vector3 normal = Vector3.Cross(perU, perV);
+                if (Mathf.Abs(normal.y) > 1e-4f)
+                    fit.y = origin.y - (normal.x * (fit.x - origin.x) + normal.z * (fit.z - origin.z)) / normal.y;
+                transform.position = fit;
 
                 Vector3 along = new Vector3(perV.x, 0f, perV.z);
                 transform.rotation = Quaternion.LookRotation(along.normalized, Vector3.up);

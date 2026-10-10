@@ -81,28 +81,28 @@ namespace Marea.Restaurant
         }
 
         /// <summary>
-        /// (+10/9, A) 주문하지 않는 엑스트라 — 자리가 모자라 서 있는 선원 같은. 손님 프리팹 모습 그대로 입구에 만들되
-        /// 손님 동작(CustomerController)은 끄고 클릭 상호작용(CustomerInteractable)은 뺀다. 움직임 · 대사는 부르는 쪽이
-        /// AgentMover · CustomerSpeech.SayLine으로 한다. 다 쓰면 부르는 쪽이 Destroy.
+        /// (+10/10, A) 아직 앉히지 않을 손님 — 특별 이벤트에서 선장 뒤에 서 있는 선원. 입구에 만들기만 하고 Initialize를
+        /// 안 불러 좌석으로 안 가고 주문도 안 한다(WalkingToSeat 그대로). 움직임 · 대사는 부르는 쪽이 AgentMover ·
+        /// CustomerSpeech.SayLine으로 한다. 앉힐 때 SeatHeld, 돌려보낼 때는 부르는 쪽이 Destroy.
+        /// (+10/9의 SpawnExtra — 손님 동작을 끈 엑스트라 — 를 대신한다. 엑스트라는 나중에 앉힐 수가 없었다.)
         /// </summary>
-        public GameObject SpawnExtra()
+        public CustomerController SpawnHeld()
         {
             GameObject prefab = GetRandomCustomerPrefab();
             if (prefab == null) return null;
             Vector3 originPos = spawnPoint != null ? spawnPoint.position : transform.position;
             Quaternion originRot = spawnPoint != null ? spawnPoint.rotation : transform.rotation;
+            GameObject go = Instantiate(prefab, originPos, originRot);
+            return go.GetComponent<CustomerController>();
+        }
 
-            // 꺼진 그릇 안에서 만들어 Awake 전에 손님 동작을 끈다.
-            var holder = new GameObject("__ExtraHolder");
-            holder.SetActive(false);
-            GameObject go = Instantiate(prefab, originPos, originRot, holder.transform);
-            foreach (CustomerInteractable ci in go.GetComponentsInChildren<CustomerInteractable>(true)) DestroyImmediate(ci);
-            CustomerController cc = go.GetComponent<CustomerController>();
-            if (cc != null) cc.enabled = false;
-            go.name = prefab.name + " (Extra)";
-            go.transform.SetParent(null, true);
-            Destroy(holder);
-            return go;
+        /// <summary>(+10/10, A) SpawnHeld로 세워 둔 손님을 빈자리에 앉힌다 — 지금 자리에서 좌석으로 걸어가 주문한다. 빈자리가 없으면 false.</summary>
+        public bool SeatHeld(CustomerController customer)
+        {
+            Seat seat = GetRandomEmptySeat();
+            if (customer == null || seat == null || seat.SitPoint == null) return false;
+            customer.Initialize(seat, EntrancePosition);
+            return true;
         }
 
         public void StopSpawning()

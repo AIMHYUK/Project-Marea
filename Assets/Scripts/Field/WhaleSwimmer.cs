@@ -15,6 +15,9 @@ namespace Marea.Field
     /// → 고개 숙여 잠수 → 숨김. 카메라 근처 경로가 없으면 그번은 건너뛴다(아무도 못 보는 등장은 의미가 없다).
     ///
     /// (+10/8) lap이 켜져 있으면 직선 경로 대신 데크를 감싸는 곡선(lapPoints)으로 한 바퀴 돌고 잠수해 떠난다.
+    ///
+    /// (+10/10) 새 고래(FT_Whale_Rigged)는 animator를 연결하면 헤엄 · 점프를 클립(Whale_Swim · Whale_Jump · Whale_Jump_Low)으로 한다.
+    /// 이때 뼈 굽히기 · 출렁임 코드는 쉬고, 이 스크립트는 경로 이동 · 떠오름 · 잠수만 맡는다. (+10/10) 다 떠오른 뒤 jumpInterval마다 종종 뛴다.
     /// </summary>
     public class WhaleSwimmer : MonoBehaviour
     {
@@ -32,6 +35,19 @@ namespace Marea.Field
         [SerializeField] private Transform[] spine;
         [Tooltip("지느러미 뿌리 뼈들. 살짝 젓는다.")]
         [SerializeField] private Transform[] fins;
+        [Tooltip("(+10/10) 새 고래(FT_Whale_Rigged)의 Animator. 있으면 헤엄 · 점프를 클립으로 하고 spine · fins는 안 쓴다(비워 둔다).")]
+        [SerializeField] private Animator animator;
+
+        // (+10/10) 점프 클립은 앞뒤 이동 없이 높이 · 기울기만 있다 — 앞으로는 이 스크립트가 경로를 따라 옮긴다.
+        // 점프 첫 · 끝 프레임이 헤엄 첫 프레임과 같아서, 헤엄이 한 바퀴 도는 순간에 틀면 이음새가 안 보인다.
+        [Header("점프 (+10/10)")]
+        [Tooltip("(+10/10) 다 떠오른 뒤 · 점프가 끝난 뒤 다음 점프까지 기다리는 시간(초, 최소~최대). 잠수 전에 끝나지 않을 점프는 안 한다. "
+               + "예전엔 한 바퀴에 jumpChance 확률로 한 번뿐이었다.")]
+        [SerializeField] private Vector2 jumpInterval = new Vector2(4f, 8f);
+        [Tooltip("점프할 때 낮은 점프를 고를 확률.")]
+        [SerializeField, Range(0f, 1f)] private float lowJumpChance = 0.5f;
+        [Tooltip("점프하는 동안 앞으로 가는 속도 배율 — 뛰어오르는 힘이 보이게.")]
+        [SerializeField, Min(1f)] private float jumpSpeedBoost = 1.5f;
 
         [Header("경로")]
         [SerializeField] private SwimPath[] paths;
@@ -85,15 +101,26 @@ namespace Marea.Field
         [SerializeField] private AudioClip callClip;
         [SerializeField, Range(0f, 1f)] private float callVolume = 1f;
 
+        private const string SwimState = "Whale_Swim";
+        private const string JumpState = "Whale_Jump";
+        private const string JumpLowState = "Whale_Jump_Low";
+
         private Quaternion[] _spineBase;
         private Quaternion[] _finBase;
         private float _swimTime;
         private bool _swimming;
+        private Renderer _renderer;
+        private string _queuedJump;      // (+10/10) 헤엄 클립이 한 바퀴 돌면 틀 점프 상태 이름
+        private float _lastSwimPhase;
+
+        // (+10/10) 클립으로 헤엄치면 코드가 뼈 · 출렁임을 만들지 않는다(클립에 들어 있다).
+        private bool Procedural => animator == null;
 
         private void Awake()
         {
             if (model == null) Debug.LogError($"{name}: WhaleSwimmer.model이 비어 있다.", this);
-            if (spine == null || spine.Length == 0) Debug.LogError($"{name}: WhaleSwimmer.spine이 비어 있다. 꼬리를 못 친다.", this);
+            if (Procedural && (spine == null || spine.Length == 0)) Debug.LogError($"{name}: WhaleSwimmer.spine이 비어 있다. 꼬리를 못 친다.", this);
+            if (model != null) _renderer = model.GetComponentInChildren<Renderer>(true);
             if (paths == null || paths.Length == 0) Debug.LogError($"{name}: WhaleSwimmer.paths가 비어 있다. 나타날 곳이 없다.", this);
 
             _spineBase = CaptureBase(spine);
@@ -123,17 +150,32 @@ namespace Marea.Field
             float total = dist[dist.Length - 1];
 
             float surfaceY = seaLevel - surfaceDepth, hiddenY = seaLevel - hiddenDepth;
-            float duration = total / lapSpeed;
+            // (+10/10) 점프 중엔 빨라지므로 시간 대신 지나온 거리로 진행한다. 잠수는 남은 거리로 판단.
+            float diveDistance = diveTime * lapSpeed;
+            _queuedJump = null;
             model.gameObject.SetActive(true);
             _swimming = true;
             bool called = false;
+            // (+10/10) 다 떠오른 뒤 jumpInterval마다 한 번씩. 점프가 끝나야 다음 간격을 잰다.
+            float nextJump = riseTime + NextJumpGap();
+            float jumpRun = JumpClipSeconds() * lapSpeed * jumpSpeedBoost;   // 점프 한 번에 가는 거리 — 잠수 전에 끝나야 한다
+            bool wasJumping = false;
             int seg = 0;
             float roll = 0f;
             Vector3 lastDir = Flat(line[1] - line[0]).normalized;
 
-            for (float t = 0f; t < duration; t += Time.deltaTime)
+            float t = 0f;
+            for (float d = 0f; d < total; t += Time.deltaTime)
             {
-                float d = Mathf.Min(total, t * lapSpeed);
+                bool jumping = IsJumping;
+                if (wasJumping && !jumping) nextJump = t + NextJumpGap();
+                wasJumping = jumping;
+                if (!Procedural && !jumping && _queuedJump == null && t >= nextJump && d < total - diveDistance - jumpRun)
+                {
+                    QueueJump(UnityEngine.Random.value < lowJumpChance);
+                    nextJump = float.MaxValue;   // 점프가 끝나면 다시 잰다
+                }
+                d = Mathf.Min(total, d + lapSpeed * (IsJumping ? jumpSpeedBoost : 1f) * Time.deltaTime);
                 while (seg < dist.Length - 2 && dist[seg + 1] < d) seg++;
                 float u = Mathf.InverseLerp(dist[seg], dist[seg + 1], d);
                 Vector3 pos = Vector3.Lerp(line[seg], line[seg + 1], u);
@@ -146,9 +188,9 @@ namespace Marea.Field
                 lastDir = dir;
 
                 float rise = Mathf.Clamp01(t / riseTime);
-                float dive = Mathf.Clamp01((t - (duration - diveTime)) / diveTime);
+                float dive = Mathf.Clamp01((d - (total - diveDistance)) / diveDistance);
                 if (!called && rise >= 1f) { called = true; SoundManager.Play(callClip, callVolume); }
-                float stroke = Mathf.Sin(_swimTime * strokeFrequency * Mathf.PI * 2f);
+                float stroke = Procedural ? Mathf.Sin(_swimTime * strokeFrequency * Mathf.PI * 2f) : 0f;   // (+10/10) 클립이면 출렁임은 클립에
                 float y = Mathf.Lerp(hiddenY, surfaceY, Smooth(rise));
                 y = Mathf.Lerp(y, hiddenY, Smooth(dive)) + stroke * bobHeight * (1f - dive);
 
@@ -318,11 +360,12 @@ namespace Marea.Field
                 float dive = Mathf.Clamp01((t - (swimDuration - diveTime)) / diveTime);
                 float y = Mathf.Lerp(hiddenY, surfaceY, Smooth(rise));
                 y = Mathf.Lerp(y, hiddenY, Smooth(dive));
-                y += Mathf.Sin(_swimTime * strokeFrequency * Mathf.PI * 2f) * bobHeight * (1f - dive);
+                float procedural = Procedural ? 1f : 0f;   // (+10/10) 클립이면 출렁임 · 끄덕임은 클립에
+                y += Mathf.Sin(_swimTime * strokeFrequency * Mathf.PI * 2f) * bobHeight * (1f - dive) * procedural;
 
                 // 떠오를 땐 고개를 들고, 잠수할 땐 숙인다.
                 float pitch = -divePitch * 0.5f * (1f - rise) + divePitch * Smooth(dive);
-                pitch += Mathf.Sin(_swimTime * strokeFrequency * Mathf.PI * 2f + Mathf.PI) * bodyRock;   // 꼬리와 반대로 끄덕
+                pitch += Mathf.Sin(_swimTime * strokeFrequency * Mathf.PI * 2f + Mathf.PI) * bodyRock * procedural;   // 꼬리와 반대로 끄덕
                 transform.SetPositionAndRotation(new Vector3(pos.x, y, pos.z), heading * Quaternion.Euler(pitch, 0f, 0f));
                 yield return null;
             }
@@ -331,9 +374,65 @@ namespace Marea.Field
             model.gameObject.SetActive(false);
         }
 
+        /// <summary>(+10/10) 지금 점프 클립을 트는 중인가.</summary>
+        public bool IsJumping
+        {
+            get
+            {
+                if (animator == null || !animator.isActiveAndEnabled) return false;
+                AnimatorStateInfo st = animator.GetCurrentAnimatorStateInfo(0);
+                return st.IsName(JumpState) || st.IsName(JumpLowState);
+            }
+        }
+
+        /// <summary>(+10/10) 고래 몸의 화면상 중심 — 점프하면 오브젝트 위치보다 한참 위로 간다. 카메라가 이걸 본다.</summary>
+        public Vector3 VisualCenter => _renderer != null && _renderer.gameObject.activeInHierarchy ? _renderer.bounds.center : transform.position;
+
+        /// <summary>(+10/10) 헤엄치는 중이면 다음 헤엄 한 바퀴가 끝날 때 점프한다(개발 단축키 · 연출용).</summary>
+        public void JumpNow(bool low)
+        {
+            if (Procedural) { Debug.LogWarning($"{name}: animator가 없어 점프 클립을 못 튼다.", this); return; }
+            if (!_swimming) { Debug.LogWarning($"{name}: 헤엄치는 중에만 점프한다 — 먼저 나타나게 해라.", this); return; }
+            if (IsJumping) return;
+            QueueJump(low);
+        }
+
+        private void QueueJump(bool low) => _queuedJump = low ? JumpLowState : JumpState;
+
+        private float NextJumpGap() => UnityEngine.Random.Range(jumpInterval.x, Mathf.Max(jumpInterval.x, jumpInterval.y));
+
+        // (+10/10) 긴 점프 클립 길이(초). 클립을 못 찾으면 7초(Whale_Jump).
+        private float JumpClipSeconds()
+        {
+            float longest = 0f;
+            if (animator != null && animator.runtimeAnimatorController != null)
+                foreach (AnimationClip clip in animator.runtimeAnimatorController.animationClips)
+                    if (clip.name.StartsWith(JumpState)) longest = Mathf.Max(longest, clip.length);
+            return longest > 0f ? longest : 7f;
+        }
+
+        // 점프 첫 프레임 = 헤엄 첫 프레임이라, 헤엄 클립이 한 바퀴 돌아 0으로 넘어가는 프레임에 튼다.
+        // 점프가 끝나면 Animator 전이(종료 시점, 0초)로 헤엄 첫 프레임에 돌아온다.
+        private void UpdateJump()
+        {
+            if (!animator.isActiveAndEnabled) return;
+            AnimatorStateInfo st = animator.GetCurrentAnimatorStateInfo(0);
+            if (!st.IsName(SwimState) || animator.IsInTransition(0)) { _lastSwimPhase = 0f; return; }
+            float phase = st.normalizedTime % 1f;
+            if (_queuedJump != null && phase < _lastSwimPhase)
+            {
+                animator.Play(_queuedJump, 0, 0f);
+                _queuedJump = null;
+                _lastSwimPhase = 0f;
+                return;
+            }
+            _lastSwimPhase = phase;
+        }
+
         private void LateUpdate()
         {
             if (!_swimming) return;
+            if (!Procedural) { UpdateJump(); return; }   // (+10/10) 헤엄 · 점프는 클립이 한다
             _swimTime += Time.deltaTime;
             float w = _swimTime * strokeFrequency * Mathf.PI * 2f;
 
