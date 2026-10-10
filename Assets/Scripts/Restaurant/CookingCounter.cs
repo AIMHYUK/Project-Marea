@@ -69,19 +69,35 @@ namespace Marea.Restaurant
 
         public override bool AllowClick => false;
 
-        public override string InteractLabel(IInteractor actor) => "집기";
+        public override string InteractLabel(IInteractor actor)
+        {
+            PlayerServingController serving = PlayerServingController.Of(actor);
+            return serving != null && serving.IsHoldingFood ? "내려놓기" : "집기";   // (+10/10, A)
+        }
 
         // 빈손 + 집을 음식(직원 몫 빼고)이 있을 때만 [E] 집기가 뜬다.
+        // (+10/10, A) 음식을 들고 있으면 빈 칸이 있을 때 [E] 내려놓기 — 조리대에 도로 올리면 직원이 맞는 손님에게 가져간다.
         public override bool CanInteract(IInteractor actor)
         {
             PlayerServingController serving = PlayerServingController.Of(actor);
-            return serving != null && !serving.IsHoldingFood && HasFood && FindPlayerPickIndex() >= 0;
+            if (serving == null) return false;
+            if (serving.IsHoldingFood) return !IsFull;
+            return HasFood && FindPlayerPickIndex() >= 0;
         }
 
         public override void Interact(IInteractor actor)
         {
             PlayerServingController serving = PlayerServingController.Of(actor);
-            if (serving != null) TryGiveFoodToPlayer(serving);
+            if (serving == null) return;
+            if (serving.IsHoldingFood) PutBackFromPlayer(serving);
+            else TryGiveFoodToPlayer(serving);
+        }
+
+        /// <summary>(+10/10, A) 플레이어가 든 음식을 조리대에 도로 올린다.</summary>
+        private void PutBackFromPlayer(PlayerServingController serving)
+        {
+            if (!TryPlaceFood(serving.LastCookingResult)) return;
+            serving.ClearHeldFood();
         }
 
         private void TryGiveFoodToPlayer(PlayerServingController serving)
@@ -162,6 +178,24 @@ namespace Marea.Restaurant
         /// </summary>
         private int FindPlayerPickIndex()
         {
+            List<int> free = UnreservedIndices();
+            return free.Count > 0 ? free[0] : -1;
+        }
+
+        /// <summary>
+        /// (+10/10, A) 아직 누구 몫도 아닌 음식들 — 앞에서부터, 직원 몫을 뺀 것. 서빙 직원이 이걸 보고
+        /// 그 메뉴를 시킨 손님에게 배달을 건다. 손님이 없을 때 만든 음식 · 받을 손님이 떠난 음식도 여기 남는다.
+        /// </summary>
+        public List<CookingResult> UnreservedFoods()
+        {
+            List<CookingResult> items = new(_foodQueue);
+            List<CookingResult> free = new();
+            foreach (int i in UnreservedIndices()) free.Add(items[i]);
+            return free;
+        }
+
+        private List<int> UnreservedIndices()
+        {
             Dictionary<Sprite, int> reserved = new();
 
             Marea.Core.ServeBoard board = FindAnyObjectByType<Marea.Core.ServeBoard>();
@@ -170,15 +204,16 @@ namespace Marea.Restaurant
             foreach (Marea.Field.ServingStaff staff in FindObjectsByType<Marea.Field.ServingStaff>(FindObjectsSortMode.None))
                 Reserve(reserved, staff.ReservedIcon);
 
+            List<int> free = new();
             int i = 0;
             foreach (CookingResult r in _foodQueue)
             {
                 Sprite icon = r.menuData != null ? r.menuData.Icon : null;
                 if (icon != null && reserved.TryGetValue(icon, out int n) && n > 0) reserved[icon] = n - 1;
-                else return i;
+                else free.Add(i);
                 i++;
             }
-            return -1;
+            return free;
         }
 
         private static void Reserve(Dictionary<Sprite, int> reserved, Sprite icon)
