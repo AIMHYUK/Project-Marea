@@ -279,7 +279,7 @@ namespace Marea.Field
             Pose(boat, type, path, 1f);
 
             // 손님은 정원과 빈자리 중 적은 만큼. 영업이 끝났으면 아무도 안 내린다.
-            // (+10/9) 특별 이벤트는 일행 전부 — 빈자리만큼 앉고 나머지는 서 있는 선원(엑스트라)으로 내린다.
+            // (+10/9) 특별 이벤트는 일행 전부 — (+10/10) 선장만 앉고 나머지 선원은 세워 둔다(CaptainEvent가 성공하면 앉힌다).
             int count = ev != null ? ev.PartySize : Mathf.Min(type.passengers, seats);
             var extras = new List<GameObject>();
             _passengers.Clear();
@@ -292,12 +292,15 @@ namespace Marea.Field
             {
                 if (unloaded < count && clock >= nextUnload)
                 {
-                    CustomerController c = _customers != null ? _customers.SpawnOne() : null;
-                    GameObject extra = c == null && ev != null && _customers != null ? _customers.SpawnExtra() : null;
-                    if (extra != null)
+                    // (+10/10) 특별 이벤트: 선장(첫 손님)만 앉고, 선원은 자리 없이 내려 곧장 선장 뒤 줄로 간다.
+                    // 선장이 만족하면 CaptainEvent가 그때 앉힌다.
+                    CustomerController crew = ev != null && first != null && _customers != null ? _customers.SpawnHeld() : null;
+                    CustomerController c = crew == null && _customers != null && (ev == null || first == null) ? _customers.SpawnOne() : null;
+                    if (crew != null)
                     {
                         unloaded++;
-                        extras.Add(extra);
+                        extras.Add(crew.gameObject);
+                        ev.LineUp(crew.gameObject, first);
                         nextUnload = clock + unloadInterval;
                     }
                     else if (c == null) count = unloaded;   // 그사이 자리가 찼다

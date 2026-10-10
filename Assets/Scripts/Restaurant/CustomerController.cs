@@ -73,6 +73,9 @@ namespace Marea.Restaurant
 
         public CustomerState State => _state;
         public MenuData OrderedMenu => _orderedMenu;
+
+        /// <summary>(+10/10, A) 앉을 · 앉은 좌석. 특별 이벤트가 선장 뒤 줄 자리를 잡는 데 쓴다. 떠나기 시작하면 null.</summary>
+        public Seat AssignedSeat => _assignedSeat;
         public float WaitingSince { get; private set; }
 
         /// <summary>(+10/9, A) 음식을 너무 오래 못 받아 떠났는가. 말풍선(CustomerSpeech)이 잘못된 음식으로 떠날 때와 대사를 나눈다.</summary>

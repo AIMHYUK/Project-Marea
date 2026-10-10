@@ -14,9 +14,10 @@ namespace Marea.Field
     /// 특별 이벤트 — 선장과 선원들. (+10/9, 이슈 128)
     ///
     /// eventDay(2일차) 영업 첫 배로 big_ship이 선장 + 선원(모두 partySize명)을 태우고 온다(GuestBoatArrival이 이 컴포넌트를 보고
-    /// 첫 배를 바꾼다). 빈자리만큼 앉고(선장이 첫 번째) 나머지 선원은 선착장 근처에 서서 기다린다.
+    /// 첫 배를 바꾼다). (+10/10) 선장이 맨 앞에서 내려 혼자 앉아 주문하고, 선원은 뒤따라 들어와 선장 의자 뒤에 일렬로 선다.
     /// - 선장은 오늘의 메뉴 중 하나를 시키고 최우선(IsPriority) — 머리 위 "최우선!" 라벨, 완성 요리 · 서빙 직원이 먼저 간다.
     /// - 그 요리를 S(Perfect)로 받으면 성공: 그날 정산 ×revenueMultiplier, 가운데 위 알림.
+    ///   (+10/10) 선장 박수가 끝나면 "너희도 먹어라" — 선원이 빈자리부터 앉아 평소 손님처럼 주문한다. 모자란 자리는 비는 대로.
     /// - A 이하로 받거나 · 다른 요리를 받거나 · patienceSeconds 안에 못 받으면 실패: 식당 바닥 빈 곳 hazardCount군데에
     ///   파손 장판(TripHazard)이 생기고, 알림, 일행이 모두 화내며 떠난다.
     /// 선원도 말한다(도착 · 성공 · 실패). 일행이 다 타면 배가 떠나고 그다음 일반 배가 온다.
@@ -45,8 +46,16 @@ namespace Marea.Field
         [SerializeField] private VfxId breakVfx = VfxId.Dust;
 
         [Header("서 있는 선원")]
-        [Tooltip("입구(손님 스폰 지점)에서 이 반경 안 빈 곳에 선다.")]
+        [Tooltip("선장 뒤 줄에 자리가 없을 때 입구(손님 스폰 지점)에서 이 반경 안 빈 곳에 선다.")]
         [SerializeField, Min(1f)] private float crewStandRadius = 4.5f;
+
+        [Header("선장 뒤 도열 (+10/10)")]
+        [Tooltip("선장 의자에서 뒤로 첫 줄까지(m).")]
+        [SerializeField, Min(0.3f)] private float lineBehind = 1.4f;
+        [Tooltip("옆 사람 · 뒷줄 간격(m).")]
+        [SerializeField, Min(0.4f)] private float lineSpacing = 0.85f;
+        [Tooltip("한 줄에 서는 수. 넘치면 뒤에 한 줄 더.")]
+        [SerializeField, Min(1)] private int lineWidth = 5;
 
         [Header("글 — {0}은 선장 주문 메뉴(강조), {1}은 이/가")]
         [SerializeField] private string priorityLabel = "최우선!";
@@ -57,6 +66,8 @@ namespace Marea.Field
         [SerializeField] private string[] captainOrderLines = { "{0}. 이 가게 최고의 솜씨로 가져와라.", "{0}. 최고의 솜씨로 부탁하지." };
         [SerializeField] private string[] crewArriveLines = { "우리 선장님은 최고의 요리만 드신다!", "S급이 아니면 각오해라!", "선장님을 기다리게 하지 마라!" };
         [SerializeField] private string[] captainSuccessLines = { "훌륭하군! 소문대로야." };
+        [Tooltip("(+10/10) 선장이 요리를 받고 박수가 끝난 뒤 — 이 말 뒤에 선원들이 앉아 주문한다.")]
+        [SerializeField] private string[] captainTreatLines = { "너희도 먹어라!", "다들 앉아라, 오늘은 내가 산다!" };
         [SerializeField] private string[] crewSuccessLines = { "역시 소문대로군!", "선장님이 웃으셨다!", "오늘은 실컷 먹자!" };
         [Tooltip("요리를 받았는데 S가 아닐 때.")]
         [SerializeField] private string[] captainFailLines = { "이걸 요리라고 내놓은 건가!" };
@@ -69,6 +80,9 @@ namespace Marea.Field
         private WorldLabelUI _labels;
         private Marea.Hud.HudAlarm _alarm;
         private readonly List<TripHazard> _hazards = new();   // 이 이벤트가 부순 자리 — 고치지 않은 것만 저장한다
+        private readonly List<Vector3> _lineSpots = new();   // (+10/10) 이번 이벤트에서 잡은 도열 자리
+        private int _lineSlot;
+        private CustomerController _lineCaptain;   // 이 선장의 줄 — 바뀌면 자리를 새로 잡는다
 
         public int BoatTypeIndex => boatTypeIndex;
         public int PartySize => partySize;
@@ -161,10 +175,7 @@ namespace Marea.Field
             }
             captain.IsPriority = true;
             captain.SetPatience(patienceSeconds);
-
-            // 서 있는 선원은 입구 근처 빈 곳으로.
-            List<Vector3> spots = StandSpots(entrance, extras.Count);
-            for (int i = 0; i < extras.Count; i++) MoveExtra(extras[i], spots[i], null);
+            // (+10/10) 선원은 내리면서 이미 선장 뒤 줄로 가고 있다(LineUp). 예전엔 여기서 입구 근처로 보냈다.
 
             // 선장이 앉아 주문하면 대사 — 선장 한마디, 서 있는 선원 몇이 거든다.
             while (IsOpen && captain != null && captain.State == CustomerState.WalkingToSeat) yield return null;
@@ -204,20 +215,121 @@ namespace Marea.Field
                 Settlement.SetEventMultiplier(eventDay, revenueMultiplier);
                 Toast.Show(successToast);
                 if (captain != null) Say(captain.gameObject, captainSuccessLines);
+
+                // (+10/10) 선장 박수(요리 받을 때) 애니메이션이 끝나면 "너희도 먹어라" → 선원 환호 → 선원이 앉아 주문한다.
+                yield return WaitClap(captain);
+                if (captain != null) Say(captain.gameObject, captainTreatLines);
                 yield return CrewSay(extras, seated, crewSuccessLines, 0.5f);
+                yield return SeatCrew(extras);
+                yield break;
             }
-            else
-            {
-                if (captain != null) Say(captain.gameObject, captain.HasReceivedFood ? captainFailLines : captainNoFoodLines);
-                yield return CrewSay(extras, seated, crewFailLines, 0.4f);
-                BreakDeck(captain != null ? captain.transform.position : entrance);
-                Toast.Show(failToast);
-                foreach (CustomerController c in seated)
-                    if (c != null) c.LeaveAngry();
-            }
+
+            if (captain != null) Say(captain.gameObject, captain.HasReceivedFood ? captainFailLines : captainNoFoodLines);
+            yield return CrewSay(extras, seated, crewFailLines, 0.4f);
+            BreakDeck(captain != null ? captain.transform.position : entrance);
+            Toast.Show(failToast);
+            foreach (CustomerController c in seated)
+                if (c != null) c.LeaveAngry();
 
             yield return new WaitForSeconds(1.5f);   // 대사를 보여 주고 돌아간다
             yield return ReturnExtras(extras, entrance);
+        }
+
+        // --- (+10/10) 선장 뒤 도열 · 성공하면 착석 ---
+
+        /// <summary>
+        /// (+10/10) 배에서 막 내린 선원을 선장 의자 뒤 줄 자리로 보낸다. GuestBoatArrival이 한 명 내릴 때마다 부른다 —
+        /// 선장이 먼저 내려 앞장서고 선원이 뒤따라 들어온다. 닿으면 선장 쪽을 본다.
+        /// </summary>
+        public void LineUp(GameObject crew, CustomerController captain)
+        {
+            if (crew == null) return;
+            if (captain != _lineCaptain)
+            {
+                _lineCaptain = captain;
+                _lineSpots.Clear();
+                _lineSlot = 0;
+            }
+            Vector3 spot = NextLineSpot(captain);
+            MoveExtra(crew, spot, () =>
+            {
+                if (crew == null || captain == null) return;
+                Vector3 look = captain.transform.position - crew.transform.position;
+                look.y = 0f;
+                if (look.sqrMagnitude > 0.01f) crew.transform.rotation = Quaternion.LookRotation(look);
+            });
+        }
+
+        // 선장 의자 뒤로 lineBehind, 옆으로 lineSpacing 간격 lineWidth명씩 줄. NavMesh 밖 · 물체에 막힌 · 이미 잡은 자리는 건너뛴다.
+        // 다 막히면 입구 근처 빈 곳.
+        private Vector3 NextLineSpot(CustomerController captain)
+        {
+            Transform sit = captain != null && captain.AssignedSeat != null ? captain.AssignedSeat.SitPoint : null;
+            if (sit != null)
+            {
+                Vector3 fwd = sit.forward;
+                fwd.y = 0f;
+                fwd = fwd.sqrMagnitude > 0.001f ? fwd.normalized : Vector3.forward;
+                Vector3 right = Vector3.Cross(Vector3.up, fwd);
+
+                for (int tries = 0; tries < lineWidth * 6; tries++, _lineSlot++)
+                {
+                    int row = _lineSlot / lineWidth, col = _lineSlot % lineWidth;
+                    float side = (col - (lineWidth - 1) * 0.5f) * lineSpacing;
+                    Vector3 guess = sit.position - fwd * (lineBehind + row * lineSpacing) + right * side;
+                    if (!NavMesh.SamplePosition(guess, out NavMeshHit hit, 0.6f, NavMesh.AllAreas)) continue;
+                    if (_lineSpots.Exists(p => Flat(p - hit.position) < lineSpacing * 0.7f)) continue;
+                    _lineSpots.Add(hit.position);
+                    _lineSlot++;
+                    return hit.position;
+                }
+            }
+
+            Vector3 entrance = FindAnyObjectByType<CustomerManager>() is CustomerManager m ? m.EntrancePosition : transform.position;
+            Vector3 stand = StandSpots(entrance, 1)[0];
+            _lineSpots.Add(stand);
+            return stand;
+        }
+
+        /// <summary>선장이 요리를 받을 때 튼 박수(Clap) 클립 길이만큼 기다린다. 클립을 못 찾으면 2초.</summary>
+        private static IEnumerator WaitClap(CustomerController captain)
+        {
+            float seconds = 2f;
+            Animator anim = captain != null ? captain.GetComponentInChildren<Animator>() : null;
+            if (anim != null && anim.runtimeAnimatorController != null)
+                foreach (AnimationClip clip in anim.runtimeAnimatorController.animationClips)
+                    if (clip.name.IndexOf("clap", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        seconds = clip.length / Mathf.Max(0.1f, anim.speed);
+                        break;
+                    }
+            yield return new WaitForSeconds(seconds + 0.2f);
+        }
+
+        /// <summary>
+        /// 줄에 선 선원을 빈자리에 앉힌다(앉으면 평소 손님처럼 주문 · 식사 · 퇴장). 자리가 모자라면 서서 기다렸다가 비는 대로
+        /// 앉힌다. 다 먹고 떠날 때까지 기다린다 — 그동안 배가 정박해 있다. 영업이 끝나면 BusinessManager가 한꺼번에 지운다.
+        /// </summary>
+        private static IEnumerator SeatCrew(List<GameObject> crew)
+        {
+            CustomerManager manager = FindAnyObjectByType<CustomerManager>();
+            var waiting = new List<CustomerController>();
+            foreach (GameObject x in crew)
+                if (x != null && x.TryGetComponent(out CustomerController c)) waiting.Add(c);
+
+            while (IsOpen && waiting.Count > 0)
+            {
+                waiting.RemoveAll(c => c == null);
+                for (int i = 0; i < waiting.Count; i++)
+                {
+                    if (manager == null || !manager.SeatHeld(waiting[i])) break;   // 자리가 없다 — 다음에
+                    waiting.RemoveAt(i--);
+                }
+                if (waiting.Count > 0) yield return new WaitForSeconds(0.5f);
+            }
+
+            while (IsOpen && crew.Exists(x => x != null)) yield return null;
+            crew.Clear();
         }
 
         // --- 서 있는 선원 ---
