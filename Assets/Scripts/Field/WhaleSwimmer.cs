@@ -17,7 +17,7 @@ namespace Marea.Field
     /// (+10/8) lap이 켜져 있으면 직선 경로 대신 데크를 감싸는 곡선(lapPoints)으로 한 바퀴 돌고 잠수해 떠난다.
     ///
     /// (+10/10) 새 고래(FT_Whale_Rigged)는 animator를 연결하면 헤엄 · 점프를 클립(Whale_Swim · Whale_Jump · Whale_Jump_Low)으로 한다.
-    /// 이때 뼈 굽히기 · 출렁임 코드는 쉬고, 이 스크립트는 경로 이동 · 떠오름 · 잠수만 맡는다. 한 바퀴에 jumpChance 확률로 한 번 뛴다.
+    /// 이때 뼈 굽히기 · 출렁임 코드는 쉬고, 이 스크립트는 경로 이동 · 떠오름 · 잠수만 맡는다. (+10/10) 다 떠오른 뒤 jumpInterval마다 종종 뛴다.
     /// </summary>
     public class WhaleSwimmer : MonoBehaviour
     {
@@ -41,12 +41,11 @@ namespace Marea.Field
         // (+10/10) 점프 클립은 앞뒤 이동 없이 높이 · 기울기만 있다 — 앞으로는 이 스크립트가 경로를 따라 옮긴다.
         // 점프 첫 · 끝 프레임이 헤엄 첫 프레임과 같아서, 헤엄이 한 바퀴 도는 순간에 틀면 이음새가 안 보인다.
         [Header("점프 (+10/10)")]
-        [Tooltip("한 번 나타날 때 점프할 확률.")]
-        [SerializeField, Range(0f, 1f)] private float jumpChance = 0.3f;
+        [Tooltip("(+10/10) 다 떠오른 뒤 · 점프가 끝난 뒤 다음 점프까지 기다리는 시간(초, 최소~최대). 잠수 전에 끝나지 않을 점프는 안 한다. "
+               + "예전엔 한 바퀴에 jumpChance 확률로 한 번뿐이었다.")]
+        [SerializeField] private Vector2 jumpInterval = new Vector2(4f, 8f);
         [Tooltip("점프할 때 낮은 점프를 고를 확률.")]
         [SerializeField, Range(0f, 1f)] private float lowJumpChance = 0.5f;
-        [Tooltip("한 바퀴 경로 중 점프를 시작할 수 있는 구간(0 시작 ~ 1 끝). 잠수 전에 끝나게 앞쪽으로.")]
-        [SerializeField] private Vector2 jumpWindow = new Vector2(0.2f, 0.5f);
         [Tooltip("점프하는 동안 앞으로 가는 속도 배율 — 뛰어오르는 힘이 보이게.")]
         [SerializeField, Min(1f)] private float jumpSpeedBoost = 1.5f;
 
@@ -157,8 +156,10 @@ namespace Marea.Field
             model.gameObject.SetActive(true);
             _swimming = true;
             bool called = false;
-            bool jumpPlanned = !Procedural && UnityEngine.Random.value < jumpChance;
-            float jumpAt = total * UnityEngine.Random.Range(jumpWindow.x, Mathf.Max(jumpWindow.x, jumpWindow.y));
+            // (+10/10) 다 떠오른 뒤 jumpInterval마다 한 번씩. 점프가 끝나야 다음 간격을 잰다.
+            float nextJump = riseTime + NextJumpGap();
+            float jumpRun = JumpClipSeconds() * lapSpeed * jumpSpeedBoost;   // 점프 한 번에 가는 거리 — 잠수 전에 끝나야 한다
+            bool wasJumping = false;
             int seg = 0;
             float roll = 0f;
             Vector3 lastDir = Flat(line[1] - line[0]).normalized;
@@ -166,7 +167,14 @@ namespace Marea.Field
             float t = 0f;
             for (float d = 0f; d < total; t += Time.deltaTime)
             {
-                if (jumpPlanned && d >= jumpAt) { jumpPlanned = false; QueueJump(UnityEngine.Random.value < lowJumpChance); }
+                bool jumping = IsJumping;
+                if (wasJumping && !jumping) nextJump = t + NextJumpGap();
+                wasJumping = jumping;
+                if (!Procedural && !jumping && _queuedJump == null && t >= nextJump && d < total - diveDistance - jumpRun)
+                {
+                    QueueJump(UnityEngine.Random.value < lowJumpChance);
+                    nextJump = float.MaxValue;   // 점프가 끝나면 다시 잰다
+                }
                 d = Mathf.Min(total, d + lapSpeed * (IsJumping ? jumpSpeedBoost : 1f) * Time.deltaTime);
                 while (seg < dist.Length - 2 && dist[seg + 1] < d) seg++;
                 float u = Mathf.InverseLerp(dist[seg], dist[seg + 1], d);
@@ -390,6 +398,18 @@ namespace Marea.Field
         }
 
         private void QueueJump(bool low) => _queuedJump = low ? JumpLowState : JumpState;
+
+        private float NextJumpGap() => UnityEngine.Random.Range(jumpInterval.x, Mathf.Max(jumpInterval.x, jumpInterval.y));
+
+        // (+10/10) 긴 점프 클립 길이(초). 클립을 못 찾으면 7초(Whale_Jump).
+        private float JumpClipSeconds()
+        {
+            float longest = 0f;
+            if (animator != null && animator.runtimeAnimatorController != null)
+                foreach (AnimationClip clip in animator.runtimeAnimatorController.animationClips)
+                    if (clip.name.StartsWith(JumpState)) longest = Mathf.Max(longest, clip.length);
+            return longest > 0f ? longest : 7f;
+        }
 
         // 점프 첫 프레임 = 헤엄 첫 프레임이라, 헤엄 클립이 한 바퀴 돌아 0으로 넘어가는 프레임에 튼다.
         // 점프가 끝나면 Animator 전이(종료 시점, 0초)로 헤엄 첫 프레임에 돌아온다.
