@@ -32,6 +32,10 @@ namespace Marea.Field
         [Tooltip("(+10/9) 수확 말풍선 그림. 이 데크의 밭 칸 전부에 쓴다. 비우면 칸마다 Bubble에 들어 있는 그림 그대로.")]
         [SerializeField] private Sprite readyBubble;
 
+        [Tooltip("(+10/10) 다 자란 밭 위 수확 마커를 누르면 걸어가지 않고 바로 수확한다. 끄면 예전처럼 밭을 눌러 걸어가 수확.")]
+        [SerializeField] private bool harvestByMarkerClick = true;
+        public bool HarvestByMarkerClick => harvestByMarkerClick;
+
         [Header("연출 (+10/6, 이슈 117) — 기획 「작물 수확」 VFX_10 / VFX_02")]
         [SerializeField] private VfxId harvestDustVfx = VfxId.Dust;
         [SerializeField] private VfxId harvestSparkleVfx = VfxId.Sparkle;

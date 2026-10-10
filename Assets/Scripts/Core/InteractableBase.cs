@@ -32,6 +32,9 @@ namespace Marea.Core
         /// <summary>(+10/9) 클릭하면 걸어가서 받나. 끄면 E로만 — 조리대 · 손님. 클릭은 예전처럼 그냥 지나간다.</summary>
         public virtual bool AllowClick => true;
 
+        /// <summary>(+10/10) 클릭하면 걸어가지 않고 그 자리에서 바로 받나 — 다 자란 밭 위 수확 마커.</summary>
+        public virtual bool ClickFromAfar => false;
+
         public abstract void Interact(IInteractor actor);
 
         /// <summary>마우스가 올라왔을 때. 아웃라인 같은 걸 켜고 싶으면 override.</summary>
