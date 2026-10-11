@@ -263,11 +263,8 @@ public static class TitleSceneBuilder
         SetRect(title.rectTransform, new Vector2(0f, 225f), new Vector2(470f, 100f));
         title.characterSpacing = 7f;
 
-        TMP_Text subtitle = CreateText("Subtitle", mainPanel, "바다 위의 작은 식당", 25f, new Color(0.86f, 0.9f, 0.88f, 1f), TextAlignmentOptions.Center);
-        SetRect(subtitle.rectTransform, new Vector2(0f, 158f), new Vector2(440f, 45f));
-
         RectTransform divider = CreateImage("Divider", mainPanel, new Color(GoldColor.r, GoldColor.g, GoldColor.b, 0.75f));
-        SetRect(divider, new Vector2(0f, 116f), new Vector2(90f, 3f));
+        SetRect(divider, new Vector2(0f, 180f), new Vector2(320f, 3f));
 
         Button startButton = CreateButton("StartButton", mainPanel, "게임 시작", new Vector2(0f, 30f));
         Button settingsButton = CreateButton("SettingsButton", mainPanel, "설정", new Vector2(0f, -72f));
