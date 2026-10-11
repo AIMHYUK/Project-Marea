@@ -1,5 +1,6 @@
 using Marea.Player;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
@@ -28,6 +29,10 @@ namespace Marea.Cooking
         private Quaternion _originalRotation;
         private bool _hasOriginal; // 미니게임 중(시점에 가 있거나 가는 중)이면 true
         private Coroutine _moveRoutine;
+        private PlayerController _hiddenPlayer;
+        private bool _hidePlayerVisual;
+        private readonly List<Renderer> _playerRenderers = new();
+        private readonly Dictionary<Renderer, bool> _playerRenderingStates = new();
 
         public bool HasMinigameView => _hasOriginal;
 
@@ -126,7 +131,49 @@ namespace Marea.Cooking
 
         // (+10/7, A) 셰이더 전역값은 플레이를 꺼도 남는다 — 켜질 때 · 꺼질 때 비운다.
         private void OnEnable() => Marea.Core.EdgeBlurRendererFeature.Clear();
-        private void OnDisable() => Marea.Core.EdgeBlurRendererFeature.Clear();
+        private void OnDisable()
+        {
+            RestorePlayerVisual();
+            Marea.Core.EdgeBlurRendererFeature.Clear();
+        }
+
+        private void LateUpdate()
+        {
+            if (_hidePlayerVisual) HidePlayerRenderers();
+        }
+
+        private void HidePlayerVisual()
+        {
+            if (_hiddenPlayer == null) _hiddenPlayer = FindFirstObjectByType<PlayerController>();
+            if (_hiddenPlayer == null) return;
+            _hidePlayerVisual = true;
+            HidePlayerRenderers();
+        }
+
+        private void HidePlayerRenderers()
+        {
+            if (_hiddenPlayer == null) return;
+            // 캐릭터의 동작은 유지하고 화면 표시만 숨긴다. 나중에 붙는 음식도 함께 숨긴다.
+            _hiddenPlayer.GetComponentsInChildren<Renderer>(true, _playerRenderers);
+            foreach (Renderer renderer in _playerRenderers)
+            {
+                if (!_playerRenderingStates.ContainsKey(renderer))
+                    _playerRenderingStates.Add(renderer, renderer.forceRenderingOff);
+                renderer.forceRenderingOff = true;
+            }
+        }
+
+        private void RestorePlayerVisual()
+        {
+            _hidePlayerVisual = false;
+            foreach (var state in _playerRenderingStates)
+            {
+                if (state.Key != null) state.Key.forceRenderingOff = state.Value;
+            }
+            _playerRenderingStates.Clear();
+            _playerRenderers.Clear();
+            _hiddenPlayer = null;
+        }
 
         private void ClearFocus()
         {
@@ -147,6 +194,8 @@ namespace Marea.Cooking
                 Debug.LogError("[MinigameCameraController] Camera 컴포넌트가 없습니다.");
                 return;
             }
+
+            HidePlayerVisual();
 
             if (_cameraFollow != null)
             {
@@ -216,6 +265,7 @@ namespace Marea.Cooking
         {
             yield return TransitionRoutine(destPos, destRot);
             _hasOriginal = false;
+            RestorePlayerVisual();
 
             if (_cameraFollow != null)
             {
