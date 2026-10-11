@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -21,6 +22,14 @@ public sealed class TitleMenuController : MonoBehaviour
     [SerializeField] private Button settingsButton;
     [SerializeField] private Button quitButton;
 
+    [Header("Loading")]
+    [SerializeField] private GameObject loadingPanel;
+    [SerializeField] private UnityEngine.UI.Image loadingProgressFill;
+    [SerializeField] private TMP_Text loadingProgressText;
+    [SerializeField] private LoadingWhaleView loadingWhaleView;
+    [SerializeField, Range(1f, 5f)] private float extraLoadingSeconds = 2.5f;
+    private bool isLoading;
+
     [Header("Settings")]
     [SerializeField] private Slider volumeSlider;
     [SerializeField] private TMP_Text volumeValueText;
@@ -43,6 +52,7 @@ public sealed class TitleMenuController : MonoBehaviour
 
         InitializeSettings();
         CloseSettings();
+        if (loadingPanel != null) loadingPanel.SetActive(false);
     }
 
     private void OnDestroy()
@@ -65,12 +75,103 @@ public sealed class TitleMenuController : MonoBehaviour
 
     public void StartGame()
     {
+        if (isLoading) return;
+        isLoading = true;
         Time.timeScale = 1f;
-        SceneManager.LoadScene("Main");
+        if (startButton != null) startButton.interactable = false;
+        if (settingsButton != null) settingsButton.interactable = false;
+        if (quitButton != null) quitButton.interactable = false;
+        SetLoadingProgress(0f);
+        StartCoroutine(LoadMainScene());
+    }
+
+    private IEnumerator LoadMainScene()
+    {
+        var fade = SceneTransitionFade.Create();
+        yield return fade.FadeTo(1f, 0.45f);
+        if (loadingWhaleView != null) yield return loadingWhaleView.WaitUntilPrepared();
+        if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
+        if (settingsPanel != null) settingsPanel.SetActive(false);
+        if (loadingPanel != null) loadingPanel.SetActive(true);
+        if (loadingWhaleView != null) loadingWhaleView.Begin();
+        var previousPriority = Application.backgroundLoadingPriority;
+        Application.backgroundLoadingPriority = UnityEngine.ThreadPriority.Low;
+        yield return null;
+        AsyncOperation operation;
+        try
+        {
+            operation = SceneManager.LoadSceneAsync("Main", LoadSceneMode.Single);
+            if (operation == null) throw new System.InvalidOperationException("Main 씬 로드를 시작할 수 없습니다.");
+        }
+        catch (System.Exception exception)
+        {
+            Debug.LogException(exception, this);
+            isLoading = false;
+            if (loadingPanel != null) loadingPanel.SetActive(false);
+            if (loadingWhaleView != null) loadingWhaleView.End();
+            if (startButton != null) startButton.interactable = true;
+            if (settingsButton != null) settingsButton.interactable = true;
+            if (quitButton != null) quitButton.interactable = true;
+            CloseSettings();
+            Application.backgroundLoadingPriority = previousPriority;
+            StartCoroutine(RecoverLoadingFade(fade));
+            yield break;
+        }
+
+        operation.allowSceneActivation = false;
+        // 로드 시작의 무거운 프레임은 암전 중 처리하고 고래 화면을 부드럽게 밝힌다.
+        yield return null;
+        yield return null;
+        yield return fade.FadeTo(0f, 0.55f);
+        float displayedProgress = 0f;
+        while (operation.progress < 0.9f)
+        {
+            displayedProgress = Mathf.MoveTowards(displayedProgress, operation.progress / 0.9f * 0.85f, Mathf.Min(Time.unscaledDeltaTime, 1f / 30f) * 0.5f);
+            SetLoadingProgress(displayedProgress);
+            yield return null;
+        }
+
+        // 로드 준비가 끝난 뒤에도 고래 연출과 마지막 게이지 이동을 잠시 보여준다.
+        float startProgress = displayedProgress;
+        float duration = Mathf.Clamp(extraLoadingSeconds, 1f, 5f);
+        for (float elapsed = 0f; elapsed < duration; elapsed += Time.unscaledDeltaTime)
+        {
+            SetLoadingProgress(Mathf.Lerp(startProgress, 1f, elapsed / duration));
+            yield return null;
+        }
+        SetLoadingProgress(1f);
+        yield return fade.FadeTo(1f, 0.45f);
+        // Title의 코루틴은 씬 전환 시 사라지므로 암전막이 Main 첫 렌더 후 페이드인을 담당한다.
+        fade.RevealAfterSceneLoad("Main");
+        Application.backgroundLoadingPriority = previousPriority;
+        operation.allowSceneActivation = true;
+        while (!operation.isDone) yield return null;
+    }
+
+    private IEnumerator RecoverLoadingFade(SceneTransitionFade fade)
+    {
+        yield return fade.FadeTo(0f, 0.55f);
+        Destroy(fade.gameObject);
+    }
+
+    private void SetLoadingProgress(float progress)
+    {
+        progress = Mathf.Clamp01(progress);
+        if (loadingProgressFill != null)
+        {
+            // 스프라이트의 투명 여백 없이 배경의 왼쪽 끝부터 정확히 채운다.
+            loadingProgressFill.fillAmount = progress;
+            var rect = loadingProgressFill.rectTransform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = new Vector2(progress, 1f);
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+        }
+        if (loadingProgressText != null) loadingProgressText.text = $"{Mathf.RoundToInt(progress * 100f)}%";
     }
 
     public void OpenSettings()
     {
+        if (isLoading) return;
         if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
         if (settingsPanel != null) settingsPanel.SetActive(true);
         if (closeSettingsButton != null) closeSettingsButton.Select();
@@ -78,6 +179,7 @@ public sealed class TitleMenuController : MonoBehaviour
 
     public void CloseSettings()
     {
+        if (isLoading) return;
         if (settingsPanel != null) settingsPanel.SetActive(false);
         if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
         if (UnityEngine.EventSystems.EventSystem.current != null)

@@ -310,6 +310,47 @@ public static class TitleSceneBuilder
         serialized.ApplyModifiedPropertiesWithoutUndo();
 
         settingsPanel.gameObject.SetActive(false);
+        AddLoadingScreen(scene);
+        TitleLoadingScreenBuilder.Configure(scene);
+    }
+
+    public static void AddLoadingScreen(Scene scene)
+    {
+        GameObject canvasObject = scene.GetRootGameObjects().First(root => root.name == "TitleUI");
+        if (canvasObject.transform.Find("LoadingPanel") != null) return;
+        font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
+
+        RectTransform loading = CreateImage("LoadingPanel", canvasObject.transform, new Color(0.025f, 0.065f, 0.085f, 1f));
+        Stretch(loading);
+        loading.SetAsLastSibling();
+        TMP_Text title = CreateText("LoadingTitle", loading, "MAREA", 66f, CreamColor, TextAlignmentOptions.Center);
+        SetRect(title.rectTransform, new Vector2(0f, 100f), new Vector2(700f, 100f));
+        title.characterSpacing = 7f;
+        TMP_Text message = CreateText("LoadingMessage", loading, "바다 위의 식당을 준비하고 있어요", 28f, CreamColor, TextAlignmentOptions.Center);
+        SetRect(message.rectTransform, new Vector2(0f, 5f), new Vector2(800f, 60f));
+
+        RectTransform track = CreateImage("ProgressTrack", loading, new Color(0.13f, 0.23f, 0.27f, 1f));
+        SetRect(track, new Vector2(0f, -70f), new Vector2(620f, 12f));
+        track.GetComponent<UnityEngine.UI.Image>().raycastTarget = false;
+        RectTransform fill = CreateImage("ProgressFill", track, GoldColor);
+        Stretch(fill);
+        UnityEngine.UI.Image progressImage = fill.GetComponent<UnityEngine.UI.Image>();
+        progressImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+        progressImage.type = UnityEngine.UI.Image.Type.Filled;
+        progressImage.fillMethod = UnityEngine.UI.Image.FillMethod.Horizontal;
+        progressImage.fillOrigin = 0;
+        progressImage.fillAmount = 0f;
+        progressImage.raycastTarget = false;
+        TMP_Text progress = CreateText("ProgressText", loading, "0%", 23f, GoldColor, TextAlignmentOptions.Center);
+        SetRect(progress.rectTransform, new Vector2(0f, -115f), new Vector2(240f, 50f));
+
+        SerializedObject serialized = new(canvasObject.GetComponent<TitleMenuController>());
+        serialized.FindProperty("loadingPanel").objectReferenceValue = loading.gameObject;
+        serialized.FindProperty("loadingProgressFill").objectReferenceValue = progressImage;
+        serialized.FindProperty("loadingProgressText").objectReferenceValue = progress;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        loading.gameObject.SetActive(false);
+        EditorSceneManager.MarkSceneDirty(scene);
     }
 
     private static RectTransform CreateRect(string name, Transform parent)
