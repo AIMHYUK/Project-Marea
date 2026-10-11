@@ -134,12 +134,12 @@ namespace Marea.Field
         /// (+10/8) 데크 한 바퀴: 경로 첫 점 아래 깊은 곳에서 떠올라 곡선을 따라 헤엄치고, 끝에서 잠수해 사라진다.
         /// 방향은 그때그때 뒤집는다. 진행 방향을 보고, 꺾이는 만큼 안쪽으로 기운다.
         /// </summary>
-        private IEnumerator Lap()
+        private IEnumerator Lap(bool randomDirection = true)
         {
             if (model == null || lapPoints == null || lapPoints.Length < 2) yield break;
 
             Vector3[] pts = (Vector3[])lapPoints.Clone();
-            if (UnityEngine.Random.value < 0.5f) Array.Reverse(pts);
+            if (randomDirection && UnityEngine.Random.value < 0.5f) Array.Reverse(pts);
             var line = new System.Collections.Generic.List<Vector3>();
             for (int i = 0; i < pts.Length - 1; i++)
                 for (int k = 0; k < 16; k++)
@@ -165,8 +165,9 @@ namespace Marea.Field
             Vector3 lastDir = Flat(line[1] - line[0]).normalized;
 
             float t = 0f;
-            for (float d = 0f; d < total; t += Time.deltaTime)
+            for (float d = 0f; d < total;)
             {
+                float delta = randomDirection ? Time.deltaTime : Mathf.Min(Time.unscaledDeltaTime, 1f / 30f);
                 bool jumping = IsJumping;
                 if (wasJumping && !jumping) nextJump = t + NextJumpGap();
                 wasJumping = jumping;
@@ -175,7 +176,7 @@ namespace Marea.Field
                     QueueJump(UnityEngine.Random.value < lowJumpChance);
                     nextJump = float.MaxValue;   // 점프가 끝나면 다시 잰다
                 }
-                d = Mathf.Min(total, d + lapSpeed * (IsJumping ? jumpSpeedBoost : 1f) * Time.deltaTime);
+                d = Mathf.Min(total, d + lapSpeed * (IsJumping ? jumpSpeedBoost : 1f) * delta);
                 while (seg < dist.Length - 2 && dist[seg + 1] < d) seg++;
                 float u = Mathf.InverseLerp(dist[seg], dist[seg + 1], d);
                 Vector3 pos = Vector3.Lerp(line[seg], line[seg + 1], u);
@@ -183,8 +184,8 @@ namespace Marea.Field
                 if (dir.sqrMagnitude < 0.001f) dir = lastDir;
 
                 // 꺾이는 정도로 기울기 — 왼쪽으로 꺾으면 왼쪽으로
-                float turn = Vector3.SignedAngle(lastDir, dir, Vector3.up) / Mathf.Max(0.0001f, Time.deltaTime);
-                roll = Mathf.Lerp(roll, Mathf.Clamp(-turn * 0.6f, -bankAngle, bankAngle), 1f - Mathf.Exp(-2f * Time.deltaTime));
+                float turn = Vector3.SignedAngle(lastDir, dir, Vector3.up) / Mathf.Max(0.0001f, delta);
+                roll = Mathf.Lerp(roll, Mathf.Clamp(-turn * 0.6f, -bankAngle, bankAngle), 1f - Mathf.Exp(-2f * delta));
                 lastDir = dir;
 
                 float rise = Mathf.Clamp01(t / riseTime);
@@ -197,6 +198,7 @@ namespace Marea.Field
                 float pitch = -divePitch * 0.5f * (1f - rise) + divePitch * Smooth(dive) - stroke * bodyRock;
                 transform.SetPositionAndRotation(new Vector3(pos.x, y, pos.z),
                     Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Euler(pitch, 0f, roll));
+                t += delta;
                 yield return null;
             }
 
@@ -279,6 +281,41 @@ namespace Marea.Field
 
         /// <summary>지금 헤엄치는 중인가(떠오름 ~ 잠수 끝). 숨어 있으면 false. (+10/5)</summary>
         public bool IsSwimming => _swimming;
+
+        /// <summary>로딩 화면이 열리기 전에 모델과 첫 헤엄 포즈를 준비한다.</summary>
+        public void PrepareForLoading()
+        {
+            StopAllCoroutines();
+            _swimming = false;
+            ResetBones();
+            if (model != null) model.gameObject.SetActive(true);
+            if (lapPoints != null && lapPoints.Length >= 2)
+            {
+                Vector3 position = lapPoints[0];
+                position.y = seaLevel - surfaceDepth;
+                transform.SetPositionAndRotation(position, Quaternion.LookRotation(Flat(lapPoints[1] - lapPoints[0]), Vector3.up));
+            }
+            if (animator != null)
+            {
+                animator.Play(SwimState, 0, 0f);
+                animator.Update(0f);
+            }
+        }
+
+        /// <summary>로딩 연출에서는 일정한 방향으로 바로 수면 위를 헤엄친다.</summary>
+        public void AppearForLoading()
+        {
+            if (!Application.isPlaying) return;
+            StopAllCoroutines();
+            _swimming = false;
+            ResetBones();
+            StartCoroutine(LoadingLap());
+        }
+
+        private IEnumerator LoadingLap()
+        {
+            while (true) yield return Lap(false);
+        }
 
         public float SeaLevel => seaLevel;
 
