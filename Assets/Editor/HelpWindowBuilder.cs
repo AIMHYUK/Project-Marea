@@ -10,7 +10,8 @@ using UnityEngine.UI;
 /// 도움말 창 프리팹을 만들고 열린 씬 루트에 놓는다. (+10/12) 자체 캔버스 · F1로 연다.
 /// (+10/12) 아트가 PF_AUI를 고치는 중이라 HUD엔 붙이지 않는다.
 ///
-/// 모양은 붕괴: 스타레일 튜토리얼 창을 따랐다 — 어두운 바탕 · 왼쪽 탭 · 검색 · 목록, 오른쪽 밝은 판에 그림 · 제목 · 설명 · 페이지 넘김.
+/// 배치는 붕괴: 스타레일 튜토리얼 창을 따랐다 — 왼쪽 검색 · 목록, 위 분류 탭, 오른쪽 판에 그림 · 제목 · 설명 · 페이지 넘김.
+/// (+10/13) 깔은 아트(요리 선택 창)에 맞췄다 — "도움말" 리본, 늘 쓰는 버튼(베이지 · 고르면 초록), 오른쪽은 양피지, 뒤는 옅게만 가린다.
 /// 다시 돌리면 PF_HelpWindow를 덮어쓰고 열린 씬의 인스턴스를 새로 놓는다. HelpBook 에셋(내용)은 있으면 안 건드린다.
 /// 기준 해상도 1920×1080(PF_AUI CanvasScaler와 같다).
 /// </summary>
@@ -19,12 +20,12 @@ public static class HelpWindowBuilder
     private const string PrefabPath = "Assets/Prefabs/UI/PF_HelpWindow.prefab";
     private const string BookPath = "Assets/Scripts/Data/HelpBook.asset";
 
-    private static readonly Color Gold = new(0.85f, 0.72f, 0.48f, 1f);
-    private static readonly Color Paper = new(0.91f, 0.91f, 0.9f, 1f);
-    private static readonly Color Ink = new(0.2f, 0.2f, 0.2f, 1f);
+    // (+10/13) 다른 창(요리 선택)과 같은 진한 갈색
+    private static readonly Color Ink = new(0.29f, 0.184f, 0.106f, 1f);
+    private const string Bamao = "Assets/Art/UI/Bamao/BamaoUIPack/Sprites/";
 
     private static TMP_FontAsset _bold, _semi;
-    private static Sprite _round, _knob;
+    private static Sprite _round, _knob, _btn, _btnOn, _paper, _ribbon;
 
     [MenuItem("Marea/UI/도움말 창 만들기")]
     public static void Build()
@@ -33,7 +34,14 @@ public static class HelpWindowBuilder
         _semi = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/A2Z-SemiBold SDF.asset");
         _round = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
         _knob = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
-        var cross = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Bamao/BamaoUIPack/Sprites/Character sheet/Button_cross.png");
+        var cross = AssetDatabase.LoadAssetAtPath<Sprite>(Bamao + "Character sheet/Button_cross.png");
+        // (+10/13) 아트 깔 — 늘 쓰는 버튼 · 양피지 · 제목 리본
+        _btn = AssetDatabase.LoadAssetAtPath<Sprite>(Bamao + "Button/button short.png");
+        _btnOn = AssetDatabase.LoadAssetAtPath<Sprite>(Bamao + "Button/button short green.png");
+        _paper = AssetDatabase.LoadAssetAtPath<Sprite>(Bamao + "Button/Popup_paper_bg.png");
+        _ribbon = AssetDatabase.LoadAssetAtPath<Sprite>(Bamao + "Button/Popup_paper_title.png");
+        if (_btn == null || _btnOn == null || _paper == null || _ribbon == null)
+            Debug.LogError("[도움말] Bamao 버튼 · 양피지 · 리본 그림 중 못 찾은 게 있다. 경로를 확인할 것.");
 
         var book = AssetDatabase.LoadAssetAtPath<HelpBook>(BookPath);
         if (book == null)
@@ -59,87 +67,77 @@ public static class HelpWindowBuilder
         scaler.matchWidthOrHeight = 0.5f;
         root.AddComponent<GraphicRaycaster>();
         GameObject panel = Child(root, "Panel"); Stretch(panel);
-        Img(panel, null, new Color(0.04f, 0.04f, 0.06f, 0.97f));   // 뒤 화면을 막는다
+        Img(panel, null, new Color(0f, 0f, 0f, 0.45f));   // (+10/13) 뒤 화면을 살짝만 가린다 — 가벼운 느낌
 
-        // 왼쪽 위 머리
-        GameObject bulb = Child(panel, "Bulb"); Place(bulb, TopLeft, new Vector2(92, -100), new Vector2(44, 44));
-        Img(bulb, _knob, Gold);
-        Text(Child(panel, "Header"), "도움말 목록", 24, Gold, TopLeft, new Vector2(130 + 200, -84), new Vector2(400, 32), TextAlignmentOptions.Left, _bold);
-        TextMeshProUGUI categoryLabel = Text(Child(panel, "Category"), "전체", 38, Color.white, TopLeft, new Vector2(130 + 200, -122), new Vector2(400, 50), TextAlignmentOptions.Left, _bold);
+        // (+10/13) 머리 — "도움말" 리본만. 요리 선택 창과 같은 그림 · 글자색.
+        GameObject ribbon = Child(panel, "TitleRibbon"); Place(ribbon, TopLeft, new Vector2(80 + 260, -70), new Vector2(520, 96));
+        Img(ribbon, _ribbon, Color.white);
+        Text(Child(ribbon, "Label"), "도움말", 40, Ink, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _bold);
+        // 분류 이름은 탭이 보여 주니 안 띄운다 — HelpWindow가 쓰는 칸이라 꺼 둔 채 남긴다.
+        TextMeshProUGUI categoryLabel = Text(Child(panel, "Category"), "전체", 1, Ink, TopLeft, Vector2.zero, Vector2.zero, TextAlignmentOptions.Left, _bold);
+        categoryLabel.gameObject.SetActive(false);
 
         // 닫기
-        GameObject close = Child(panel, "CloseButton"); Place(close, TopRight, new Vector2(-70, -70), new Vector2(64, 64));
+        GameObject close = Child(panel, "CloseButton"); Place(close, TopRight, new Vector2(-70, -70), new Vector2(64, 56));
         Button closeButton = close.AddComponent<Button>();
         Img(close, cross, Color.white);
 
-        // 탭 줄
-        GameObject tabs = Child(panel, "Tabs"); Place(tabs, TopLeft, new Vector2(80 + 540, -195), new Vector2(1080, 64));   // (+10/12) 탭 7개(전체 + 시트 분류 6)
+        // 탭 줄 — 오른쪽 양피지 위. 늘 쓰는 버튼(평소 베이지 · 고르면 초록)
+        GameObject tabs = Child(panel, "Tabs"); Place(tabs, TopLeft, new Vector2(650 + 605, -165), new Vector2(1210, 60));
         var tabLayout = tabs.AddComponent<HorizontalLayoutGroup>();
-        tabLayout.spacing = 12; tabLayout.childForceExpandWidth = true; tabLayout.childForceExpandHeight = true; tabLayout.childControlWidth = true; tabLayout.childControlHeight = true;
+        tabLayout.spacing = 10; tabLayout.childForceExpandWidth = true; tabLayout.childForceExpandHeight = true; tabLayout.childControlWidth = true; tabLayout.childControlHeight = true;
         GameObject tab = Child(tabs, "TabTemplate");
-        Img(tab, _round, new Color(1, 1, 1, 0f));
+        Img(tab, _btn, Color.white);
         Button tabTemplate = tab.AddComponent<Button>();
-        Text(Child(tab, "Label"), "탭", 24, Color.white, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _bold);
-        GameObject underline = Child(tab, "Underline"); Place(underline, new Anchor(new Vector2(0.1f, 0), new Vector2(0.9f, 0), new Vector2(0.5f, 0)), Vector2.zero, new Vector2(0, 4));
-        Img(underline, null, Gold);
-        GameObject divider = Child(panel, "Divider"); Place(divider, TopLeft, new Vector2(80 + 540, -229), new Vector2(1080, 2));
-        Img(divider, null, new Color(1, 1, 1, 0.18f));
+        Text(Child(tab, "Label"), "탭", 24, Ink, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _bold);
 
-        // 검색
-        GameObject searchGo = Child(panel, "Search"); Place(searchGo, TopLeft, new Vector2(95 + 245, -282), new Vector2(490, 56));
-        Image searchBg = Img(searchGo, _round, new Color(1, 1, 1, 0.06f));
-        searchGo.AddComponent<Outline>().effectColor = new Color(1, 1, 1, 0.45f);
-        GameObject area = Child(searchGo, "Text Area"); Stretch(area, new Vector2(24, 6), new Vector2(-24, -6));
+        // 검색 — 왼쪽 목록 위, 탭과 같은 줄
+        GameObject searchGo = Child(panel, "Search"); Place(searchGo, TopLeft, new Vector2(95 + 250, -165), new Vector2(500, 60));
+        Image searchBg = Img(searchGo, _btn, new Color(1f, 0.97f, 0.9f, 1f));
+        GameObject area = Child(searchGo, "Text Area"); Stretch(area, new Vector2(28, 6), new Vector2(-28, -6));
         area.AddComponent<RectMask2D>();
-        TextMeshProUGUI placeholder = Text(Child(area, "Placeholder"), "도움말 검색", 24, new Color(1, 1, 1, 0.45f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Left, _semi);
-        TextMeshProUGUI searchText = Text(Child(area, "Text"), "", 24, Color.white, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Left, _semi);
+        TextMeshProUGUI placeholder = Text(Child(area, "Placeholder"), "도움말 검색", 24, new Color(Ink.r, Ink.g, Ink.b, 0.5f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Left, _semi);
+        TextMeshProUGUI searchText = Text(Child(area, "Text"), "", 24, Ink, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Left, _semi);
         var search = searchGo.AddComponent<TMP_InputField>();
         search.targetGraphic = searchBg; search.textViewport = area.GetComponent<RectTransform>();
         search.textComponent = searchText; search.placeholder = placeholder; search.fontAsset = _semi; search.pointSize = 24;
 
-        // 목록
-        GameObject scroll = Child(panel, "List"); Place(scroll, new Anchor(new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 1)), new Vector2(95, -330), new Vector2(500, 0));
-        RectTransform srt = scroll.GetComponent<RectTransform>(); srt.offsetMin = new Vector2(95, 40); srt.offsetMax = new Vector2(595, -330);
+        // 목록 — 늘 쓰는 버튼
+        GameObject scroll = Child(panel, "List"); Place(scroll, new Anchor(new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 1)), new Vector2(95, -215), new Vector2(500, 0));
+        RectTransform srt = scroll.GetComponent<RectTransform>(); srt.offsetMin = new Vector2(95, 40); srt.offsetMax = new Vector2(595, -215);
         var sr = scroll.AddComponent<ScrollRect>(); sr.horizontal = false; sr.movementType = ScrollRect.MovementType.Clamped; sr.scrollSensitivity = 30;
         GameObject viewport = Child(scroll, "Viewport"); Stretch(viewport); viewport.AddComponent<RectMask2D>();
         GameObject content = Child(viewport, "Content");
         Place(content, new Anchor(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1)), Vector2.zero, new Vector2(0, 0));
-        var vl = content.AddComponent<VerticalLayoutGroup>(); vl.spacing = 10; vl.childForceExpandHeight = false; vl.childControlHeight = true; vl.childControlWidth = true; vl.padding = new RectOffset(30, 0, 0, 0);
+        var vl = content.AddComponent<VerticalLayoutGroup>(); vl.spacing = 8; vl.childForceExpandHeight = false; vl.childControlHeight = true; vl.childControlWidth = true; vl.padding = new RectOffset(0, 0, 0, 0);
         content.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         sr.viewport = viewport.GetComponent<RectTransform>(); sr.content = content.GetComponent<RectTransform>();
         GameObject item = Child(content, "ItemTemplate");
-        Img(item, null, new Color(1, 1, 1, 0.06f));
-        item.AddComponent<LayoutElement>().preferredHeight = 88;
+        Img(item, _btn, Color.white);
+        item.AddComponent<LayoutElement>().preferredHeight = 76;
         Button itemTemplate = item.AddComponent<Button>();
-        GameObject accent = Child(item, "Accent"); Place(accent, new Anchor(new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0.5f)), Vector2.zero, new Vector2(6, 0));
-        Img(accent, null, Gold);
-        Text(Child(item, "Label"), "항목", 28, new Color(0.92f, 0.92f, 0.92f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Left, _bold).margin = new Vector4(34, 0, 10, 0);
-        GameObject marker = Child(item, "Marker"); Place(marker, new Anchor(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f)), new Vector2(-18, 0), new Vector2(18, 18));
-        Img(marker, null, Gold); marker.transform.localRotation = Quaternion.Euler(0, 0, 45);
+        Text(Child(item, "Label"), "항목", 28, Ink, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Left, _bold).margin = new Vector4(30, 0, 10, 0);
         GameObject empty = Child(panel, "EmptyHint");
-        Text(empty, "찾는 도움말이 없습니다", 24, new Color(1, 1, 1, 0.5f), TopLeft, new Vector2(345, -400), new Vector2(490, 40), TextAlignmentOptions.Center, _semi);
+        Text(empty, "찾는 도움말이 없습니다", 24, new Color(1, 1, 1, 0.8f), TopLeft, new Vector2(345, -280), new Vector2(490, 40), TextAlignmentOptions.Center, _semi);
 
-        // 오른쪽 판
+        // 오른쪽 — 양피지
         GameObject sheet = Child(panel, "Sheet");
         RectTransform shrt = Place(sheet, new Anchor(new Vector2(0, 0), new Vector2(1, 1), new Vector2(0.5f, 0.5f)), Vector2.zero, Vector2.zero);
-        shrt.offsetMin = new Vector2(650, 0); shrt.offsetMax = new Vector2(-60, -250);
-        Img(sheet, null, Paper);
-        GameObject band = Child(sheet, "TopBand"); Place(band, new Anchor(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1)), Vector2.zero, new Vector2(0, 220));
-        Img(band, null, new Color(0.13f, 0.13f, 0.14f, 1f));
-        GameObject frame = Child(sheet, "ImageFrame"); Place(frame, new Anchor(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 1)), new Vector2(0, -40), new Vector2(720, 330));   // (+10/12) 글이 길어져 줄였다
-        Img(frame, null, new Color(1, 1, 1, 1f));
-        frame.AddComponent<Outline>().effectColor = new Color(0, 0, 0, 0.25f);
-        GameObject pic = Child(frame, "Image"); Stretch(pic, new Vector2(8, 8), new Vector2(-8, -8));
+        shrt.offsetMin = new Vector2(630, 20); shrt.offsetMax = new Vector2(-40, -200);
+        Img(sheet, _paper, Color.white);
+        GameObject frame = Child(sheet, "ImageFrame"); Place(frame, new Anchor(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 1)), new Vector2(0, -70), new Vector2(720, 330));
+        Img(frame, null, new Color(1f, 1f, 1f, 0f));   // (+10/13) 바탕 없음 — 그림 비율이 칸과 달라도 남는 자리가 양피지로 보이게
+        GameObject pic = Child(frame, "Image"); Stretch(pic);
         Image image = Img(pic, null, Color.white); image.preserveAspect = true;
         GameObject body = Child(sheet, "Body");
-        RectTransform bodyRt = Place(body, new Anchor(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 1)), new Vector2(0, -410), new Vector2(1000, 0));
-        var bodyLayout = body.AddComponent<VerticalLayoutGroup>(); bodyLayout.spacing = 18; bodyLayout.childControlHeight = true; bodyLayout.childControlWidth = true; bodyLayout.childForceExpandHeight = false;
+        RectTransform bodyRt = Place(body, new Anchor(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 1)), new Vector2(0, -425), new Vector2(1000, 0));
+        var bodyLayout = body.AddComponent<VerticalLayoutGroup>(); bodyLayout.spacing = 16; bodyLayout.childControlHeight = true; bodyLayout.childControlWidth = true; bodyLayout.childForceExpandHeight = false;
         body.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         TextMeshProUGUI title = Text(Child(body, "Title"), "제목", 40, Ink, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _bold);
-        TextMeshProUGUI text = Text(Child(body, "Text"), "설명", 25, new Color(0.3f, 0.3f, 0.3f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Left, _semi);   // (+10/12) 여러 문단이라 왼쪽 정렬
+        TextMeshProUGUI text = Text(Child(body, "Text"), "설명", 25, new Color(0.36f, 0.25f, 0.16f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Left, _semi);   // (+10/12) 여러 문단이라 왼쪽 정렬
         text.lineSpacing = 8;
         // (+10/12) 아버지의 한마디 — 설명 아래 금빛 기울임
-        TextMeshProUGUI quote = Text(Child(body, "Quote"), "한마디", 26, new Color(0.62f, 0.47f, 0.22f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _semi);
+        TextMeshProUGUI quote = Text(Child(body, "Quote"), "한마디", 26, new Color(0.58f, 0.38f, 0.14f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _semi);
         quote.fontStyle = FontStyles.Italic;
 
         GameObject dots = Child(sheet, "Dots"); Place(dots, new Anchor(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0)), new Vector2(0, 128), new Vector2(200, 14));
@@ -167,6 +165,14 @@ public static class HelpWindowBuilder
         so.FindProperty("dotTemplate").objectReferenceValue = dotTemplate;
         so.FindProperty("prevButton").objectReferenceValue = prev;
         so.FindProperty("nextButton").objectReferenceValue = next;
+        // (+10/13) 고르면 초록 버튼, 아니면 베이지 — 바탕색은 그림 그대로(흰색), 글자는 늘 진한 갈색
+        so.FindProperty("selectedSprite").objectReferenceValue = _btnOn;
+        so.FindProperty("normalSprite").objectReferenceValue = _btn;
+        so.FindProperty("tabOn").colorValue = Ink; so.FindProperty("tabOff").colorValue = Ink;
+        so.FindProperty("itemOn").colorValue = Color.white; so.FindProperty("itemOff").colorValue = Color.white;
+        so.FindProperty("itemTextOn").colorValue = Ink; so.FindProperty("itemTextOff").colorValue = Ink;
+        so.FindProperty("dotOn").colorValue = Ink; so.FindProperty("dotOff").colorValue = new Color(Ink.r, Ink.g, Ink.b, 0.3f);
+        so.FindProperty("bodyYWithImage").floatValue = -425f; so.FindProperty("bodyYWithoutImage").floatValue = -80f;
         so.ApplyModifiedPropertiesWithoutUndo();
         tab.SetActive(false); item.SetActive(false); dot.SetActive(false);
         panel.SetActive(false);   // (+10/12) 켜진 채 저장하면 편집 상태 Game 뷰에 빈 창이 보인다
@@ -237,8 +243,7 @@ public static class HelpWindowBuilder
     {
         GameObject go = Child(parent, name);
         Place(go, new Anchor(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0)), pos, new Vector2(300, 60));
-        Img(go, _round, Color.white);
-        go.AddComponent<Outline>().effectColor = new Color(0, 0, 0, 0.18f);
+        Img(go, _btn, Color.white);   // (+10/13) 늘 쓰는 버튼
         Text(Child(go, "Label"), label, 26, Ink, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _bold);
         return go.AddComponent<Button>();
     }

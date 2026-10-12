@@ -56,6 +56,12 @@ namespace Marea.Hud
         [SerializeField] private Color dotOn = new(0.15f, 0.15f, 0.15f, 1f);
         [SerializeField] private Color dotOff = new(0.15f, 0.15f, 0.15f, 0.3f);
 
+        [Header("모양 (+10/13) — 비우면 그림은 그대로 두고 색만 바꾼다")]
+        [Tooltip("고른 탭 · 항목의 바탕 그림(초록 버튼). 다른 창의 버튼과 맞춘다.")]
+        [SerializeField] private Sprite selectedSprite;
+        [Tooltip("안 고른 탭 · 항목의 바탕 그림(베이지 버튼).")]
+        [SerializeField] private Sprite normalSprite;
+
         private readonly List<Button> _tabs = new();
         private readonly List<(Button button, HelpBook.Topic topic)> _items = new();
         private readonly List<Image> _dots = new();
@@ -122,6 +128,7 @@ namespace Marea.Hud
             {
                 bool on = tab.name == $"Tab_{category}";
                 tab.GetComponentInChildren<TextMeshProUGUI>().color = on ? tabOn : tabOff;
+                SetSprite(tab, on);
                 Transform line = tab.transform.Find("Underline");
                 if (line != null) line.gameObject.SetActive(on);
             }
@@ -159,6 +166,7 @@ namespace Marea.Hud
                 bool on = t == topic;
                 button.GetComponent<Image>().color = on ? itemOn : itemOff;
                 button.GetComponentInChildren<TextMeshProUGUI>().color = on ? itemTextOn : itemTextOff;
+                SetSprite(button, on);
                 Transform mark = button.transform.Find("Marker");
                 if (mark != null) mark.gameObject.SetActive(on);
             }
@@ -177,6 +185,13 @@ namespace Marea.Hud
                 }
             }
             ShowPage(0);
+        }
+
+        /// <summary>(+10/13) 고름 여부에 따라 바탕 그림을 바꾼다. 그림 칸이 비면 아무것도 안 한다.</summary>
+        private void SetSprite(Button button, bool on)
+        {
+            Sprite s = on ? selectedSprite : normalSprite;
+            if (s != null && button.GetComponent<Image>() is Image img) img.sprite = s;
         }
 
         private void ShowPage(int page)
