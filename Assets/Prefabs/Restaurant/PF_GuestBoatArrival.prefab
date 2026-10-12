@@ -337,10 +337,14 @@ MonoBehaviour:
     passengers: 2
     pathOffset: {x: 0, y: 1.45, z: 0}
   - label: "\uC911\uAC04 \uBC30"
-    prefab: {fileID: 8318617894677835548, guid: 34fa00a90a6e9814396e2c099204afcf, type: 3}
+    prefab: {fileID: 7213879325625696947, guid: 0c4a2551a8acc45448e70c80528ed032, type: 3}
     passengers: 5
-    pathOffset: {x: 0, y: 0.8, z: -2.5}
+    pathOffset: {x: 0, y: 1.45, z: 0}
   - label: "\uD070 \uBC30"
+    prefab: {fileID: 8318617894677835548, guid: 34fa00a90a6e9814396e2c099204afcf, type: 3}
+    passengers: 10
+    pathOffset: {x: 0, y: 0.8, z: -2.5}
+  - label: "\uD574\uC801\uC120"
     prefab: {fileID: 2566799650362072155, guid: ce2395690296f084795bd396253a8566, type: 3}
     passengers: 10
     pathOffset: {x: 0, y: 0.85, z: -1.5}
@@ -375,7 +379,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.CaptainEvent
   eventDay: 2
-  boatTypeIndex: 2
+  boatTypeIndex: 3
   partySize: 11
   patienceSeconds: 90
   revenueMultiplier: 2
