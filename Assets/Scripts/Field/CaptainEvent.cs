@@ -58,6 +58,11 @@ namespace Marea.Field
         [SerializeField, Min(0.01f)] private float pirateScale = 230f;
         [Tooltip("선장만 이만큼 더 크게.")]
         [SerializeField, Min(0.5f)] private float captainSizeMultiplier = 1.15f;
+        [Tooltip("(+10/12) 선원 겉모습(Fantasy Pirate02 리깅본). 비우면 선원도 선장 모델(pirateModel)을 쓴다.")]
+        [SerializeField] private GameObject crewModel;
+        [SerializeField] private Avatar crewAvatar;
+        [Tooltip("선원 모델 배율. 원본이 cm 단위라 197이면 손님 NPC와 키가 같다.")]
+        [SerializeField, Min(0.01f)] private float crewScale = 197f;
 
         [Header("서 있는 선원")]
         [Tooltip("선장 뒤 줄에 자리가 없을 때 입구(손님 스폰 지점)에서 이 반경 안 빈 곳에 선다.")]
@@ -300,7 +305,10 @@ namespace Marea.Field
         /// </summary>
         public void Dress(CustomerController customer, bool captain)
         {
-            if (pirateModel == null || pirateAvatar == null || customer == null) return;
+            bool crewLook = !captain && crewModel != null && crewAvatar != null;   // (+10/12) 선원은 따로
+            GameObject source = crewLook ? crewModel : pirateModel;
+            Avatar avatar = crewLook ? crewAvatar : pirateAvatar;
+            if (source == null || avatar == null || customer == null) return;
             Animator anim = customer.GetComponent<Animator>();
             SkinnedMeshRenderer old = customer.GetComponentInChildren<SkinnedMeshRenderer>(true);
             if (anim == null || old == null) { Debug.LogError($"{name}: {customer.name}에 Animator · 모델이 없어 해적으로 못 바꾼다.", customer); return; }
@@ -310,17 +318,17 @@ namespace Marea.Field
             oldModel.SetParent(null);
             Destroy(oldModel.gameObject);
 
-            GameObject model = Instantiate(pirateModel, customer.transform);
+            GameObject model = Instantiate(source, customer.transform);
             model.name = "PirateModel";
             model.transform.localPosition = Vector3.zero;
             model.transform.localRotation = Quaternion.identity;
-            model.transform.localScale = Vector3.one * pirateScale * (captain ? captainSizeMultiplier : 1f);
+            model.transform.localScale = Vector3.one * (crewLook ? crewScale : pirateScale * (captain ? captainSizeMultiplier : 1f));
             foreach (Animator own in model.GetComponentsInChildren<Animator>()) Destroy(own);
             // Rebind는 파라미터를 기본값으로 되돌린다 — 생성 때 켠 IsMoving 등을 잃으면 걷는 동안 서 있고, 도착해도 안 앉는다.
             var bools = new List<(int id, bool on)>();
             foreach (AnimatorControllerParameter p in anim.parameters)
                 if (p.type == AnimatorControllerParameterType.Bool) bools.Add((p.nameHash, anim.GetBool(p.nameHash)));
-            anim.avatar = pirateAvatar;
+            anim.avatar = avatar;
             anim.Rebind();
             foreach (var (id, on) in bools) anim.SetBool(id, on);
         }
