@@ -4,7 +4,8 @@ using UnityEngine;
 namespace Marea.Data
 {
     /// <summary>
-    /// 도움말 내용. (+10/12) 분류 · 항목 · 페이지(그림 + 글). 글은 TMP 서식(&lt;color&gt; 등)을 쓴다.
+    /// 도움말 내용. (+10/12) 분류 · 항목 · 페이지(그림 + 글) · 아버지의 한마디. 글은 TMP 서식(&lt;color&gt; 등)을 쓴다.
+    /// (+10/12) 내용 원본은 기획 시트(도움말 탭)다.
     /// 안 변하는 값만 든다 — 지금 몇 번째 항목을 보는지는 HelpWindow가 든다.
     /// 항목을 늘리거나 고칠 땐 이 에셋만 고치면 된다(코드는 안 바뀐다).
     /// </summary>
@@ -26,6 +27,8 @@ namespace Marea.Data
             [Tooltip("categories 중 하나. 탭으로 거른다.")]
             public string category;
             public Page[] pages;
+            [Tooltip("(+10/12) 아버지의 한마디. 설명 아래에 따로 보인다. 비우면 숨긴다.")]
+            [TextArea(2, 4)] public string quote;
         }
 
         [Tooltip("탭 순서. 맨 앞에 '전체' 탭이 따로 붙는다.")]
