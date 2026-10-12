@@ -108,10 +108,16 @@ namespace Marea.Player
                 return;
             }
 
+            // (+10/13) 키 큰 물건(탐사정)은 꼭대기 위가 화면 밖이라 안 보였다 — 화면 안으로 끌어온다
+            screen.x = Mathf.Clamp(screen.x, ScreenMargin, Screen.width - ScreenMargin);
+            screen.y = Mathf.Clamp(screen.y, ScreenMargin, Screen.height - ScreenMargin);
+
             if (label != null) label.text = $"[E] {_target.InteractLabel(_player)}";
             prompt.position = screen;   // 오버레이 Canvas라 스크린 좌표가 곧 위치다
             prompt.gameObject.SetActive(true);
         }
+
+        private const float ScreenMargin = 80f;   // (+10/13) 화면 가장자리에서 [E] 판까지 띄울 거리(px)
 
         private InteractableBase FindNearest(out Bounds bounds)
         {
@@ -135,7 +141,25 @@ namespace Marea.Player
                 bestDist = dist;
                 bounds = col.bounds;
             }
+            if (best != null) bounds = BodyBounds(best, bounds);
             return best;
+        }
+
+        /// <summary>
+        /// (+10/13) [E]는 물건 몸통 위에 띄운다. 가장 가까운 게 다가가는 영역(트리거)이면 그 영역 위에 떠서
+        /// 엉뚱한 데 보였다(탐사정 — 선착장까지 덮은 영역 가운데). 트리거가 아닌 콜라이더(클릭 상자)가 있으면 그것들의 상자.
+        /// </summary>
+        private static Bounds BodyBounds(InteractableBase target, Bounds fallback)
+        {
+            bool any = false;
+            Bounds b = fallback;
+            foreach (Collider c in target.GetComponentsInChildren<Collider>())
+            {
+                if (c.isTrigger || !c.enabled) continue;
+                if (!any) { b = c.bounds; any = true; }
+                else b.Encapsulate(c.bounds);
+            }
+            return b;
         }
 
         // Collider.ClosestPoint는 볼록하지 않은 MeshCollider에서 에러를 낸다. 그땐 바운드로 대신한다.
