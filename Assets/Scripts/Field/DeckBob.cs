@@ -154,16 +154,13 @@ namespace Marea.Field
         private void LateUpdate()
         {
             if (_live.Count == 0) return;
-            _strength = Mathf.MoveTowards(_strength, IsCooking() ? 0f : 1f, Time.deltaTime / cookingFade);
-            // (+10/13) 다 멈췄으면 아무것도 쓰지 않는다 — 제자리로 되쓰면 미니게임이 옮기는 소품(조개 소스통)이 붙박인다.
-            // 다시 움직일 때 Refresh · Apply가 처음 자리로 돌려놓는다.
-            if (_strength <= 0f) return;
             if (Time.time >= _nextRefresh)
             {
                 _nextRefresh = Time.time + refreshSeconds / _live.Count;   // 한 프레임에 하나씩 돌아가며
                 _refreshIndex = (_refreshIndex + 1) % _live.Count;
                 Refresh(_live[_refreshIndex]);
             }
+            _strength = Mathf.MoveTowards(_strength, IsCooking() ? 0f : 1f, Time.deltaTime / cookingFade);
             foreach (Live l in _live) if (l.active) Apply(l);
         }
 
