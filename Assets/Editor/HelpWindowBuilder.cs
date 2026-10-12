@@ -73,16 +73,16 @@ public static class HelpWindowBuilder
         Img(close, cross, Color.white);
 
         // 탭 줄
-        GameObject tabs = Child(panel, "Tabs"); Place(tabs, TopLeft, new Vector2(80 + 380, -195), new Vector2(760, 64));
+        GameObject tabs = Child(panel, "Tabs"); Place(tabs, TopLeft, new Vector2(80 + 540, -195), new Vector2(1080, 64));   // (+10/12) 탭 7개(전체 + 시트 분류 6)
         var tabLayout = tabs.AddComponent<HorizontalLayoutGroup>();
-        tabLayout.childForceExpandWidth = true; tabLayout.childForceExpandHeight = true; tabLayout.childControlWidth = true; tabLayout.childControlHeight = true;
+        tabLayout.spacing = 12; tabLayout.childForceExpandWidth = true; tabLayout.childForceExpandHeight = true; tabLayout.childControlWidth = true; tabLayout.childControlHeight = true;
         GameObject tab = Child(tabs, "TabTemplate");
         Img(tab, _round, new Color(1, 1, 1, 0f));
         Button tabTemplate = tab.AddComponent<Button>();
         Text(Child(tab, "Label"), "탭", 24, Color.white, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _bold);
         GameObject underline = Child(tab, "Underline"); Place(underline, new Anchor(new Vector2(0.1f, 0), new Vector2(0.9f, 0), new Vector2(0.5f, 0)), Vector2.zero, new Vector2(0, 4));
         Img(underline, null, Gold);
-        GameObject divider = Child(panel, "Divider"); Place(divider, TopLeft, new Vector2(80 + 380, -229), new Vector2(760, 2));
+        GameObject divider = Child(panel, "Divider"); Place(divider, TopLeft, new Vector2(80 + 540, -229), new Vector2(1080, 2));
         Img(divider, null, new Color(1, 1, 1, 0.18f));
 
         // 검색
@@ -126,18 +126,21 @@ public static class HelpWindowBuilder
         Img(sheet, null, Paper);
         GameObject band = Child(sheet, "TopBand"); Place(band, new Anchor(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1)), Vector2.zero, new Vector2(0, 220));
         Img(band, null, new Color(0.13f, 0.13f, 0.14f, 1f));
-        GameObject frame = Child(sheet, "ImageFrame"); Place(frame, new Anchor(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 1)), new Vector2(0, -50), new Vector2(880, 400));
+        GameObject frame = Child(sheet, "ImageFrame"); Place(frame, new Anchor(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 1)), new Vector2(0, -40), new Vector2(720, 330));   // (+10/12) 글이 길어져 줄였다
         Img(frame, null, new Color(1, 1, 1, 1f));
         frame.AddComponent<Outline>().effectColor = new Color(0, 0, 0, 0.25f);
         GameObject pic = Child(frame, "Image"); Stretch(pic, new Vector2(8, 8), new Vector2(-8, -8));
         Image image = Img(pic, null, Color.white); image.preserveAspect = true;
         GameObject body = Child(sheet, "Body");
-        RectTransform bodyRt = Place(body, new Anchor(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 1)), new Vector2(0, -530), new Vector2(1000, 0));
+        RectTransform bodyRt = Place(body, new Anchor(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 1)), new Vector2(0, -410), new Vector2(1000, 0));
         var bodyLayout = body.AddComponent<VerticalLayoutGroup>(); bodyLayout.spacing = 18; bodyLayout.childControlHeight = true; bodyLayout.childControlWidth = true; bodyLayout.childForceExpandHeight = false;
         body.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         TextMeshProUGUI title = Text(Child(body, "Title"), "제목", 40, Ink, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _bold);
-        TextMeshProUGUI text = Text(Child(body, "Text"), "설명", 26, new Color(0.3f, 0.3f, 0.3f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _semi);
-        text.lineSpacing = 12;
+        TextMeshProUGUI text = Text(Child(body, "Text"), "설명", 25, new Color(0.3f, 0.3f, 0.3f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Left, _semi);   // (+10/12) 여러 문단이라 왼쪽 정렬
+        text.lineSpacing = 8;
+        // (+10/12) 아버지의 한마디 — 설명 아래 금빛 기울임
+        TextMeshProUGUI quote = Text(Child(body, "Quote"), "한마디", 26, new Color(0.62f, 0.47f, 0.22f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _semi);
+        quote.fontStyle = FontStyles.Italic;
 
         GameObject dots = Child(sheet, "Dots"); Place(dots, new Anchor(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0)), new Vector2(0, 128), new Vector2(200, 14));
         var dl = dots.AddComponent<HorizontalLayoutGroup>(); dl.spacing = 10; dl.childAlignment = TextAnchor.MiddleCenter; dl.childControlWidth = false; dl.childControlHeight = false; dl.childForceExpandWidth = false;
@@ -160,11 +163,13 @@ public static class HelpWindowBuilder
         so.FindProperty("imageFrame").objectReferenceValue = frame;
         so.FindProperty("title").objectReferenceValue = title;
         so.FindProperty("body").objectReferenceValue = text;
+        so.FindProperty("quote").objectReferenceValue = quote;
         so.FindProperty("dotTemplate").objectReferenceValue = dotTemplate;
         so.FindProperty("prevButton").objectReferenceValue = prev;
         so.FindProperty("nextButton").objectReferenceValue = next;
         so.ApplyModifiedPropertiesWithoutUndo();
         tab.SetActive(false); item.SetActive(false); dot.SetActive(false);
+        panel.SetActive(false);   // (+10/12) 켜진 채 저장하면 편집 상태 Game 뷰에 빈 창이 보인다
 
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         Object.DestroyImmediate(root);
