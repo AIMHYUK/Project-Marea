@@ -18,6 +18,9 @@ namespace Marea.Field
     ///
     /// 시설을 짓거나 장판이 새로 깔리면 바뀌니 refreshSeconds마다 쉬는 자세로 되돌리고 다시 모은다(같은 프레임이라 안 튄다).
     /// 고래 충돌(WhaleCrashEvent)은 Instance.Kick으로 흔들고, 부딪칠 판도 ActiveFloors에서 고른다.
+    ///
+    /// (+10/13) 요리 미니게임이 도는 동안엔 출렁임을 잦아들게 해 멈춘다(cookingFade초) — 조개 소스처럼 흔들리는 카운터에서
+    /// 하는 단계가 있고, 화면이 흔들리면 조작이 어렵다. 끝나면 다시 서서히 출렁인다. 카운터 위 음식은 CookingCounter가 슬롯을 따라가게 한다.
     /// </summary>
     public class DeckBob : MonoBehaviour
     {
@@ -44,6 +47,8 @@ namespace Marea.Field
         [SerializeField, Range(0f, 2f)] private float idleAngle = 0.3f;
         [Tooltip("한 번 출렁이는 데 걸리는 시간(초, 최소~최대). 판마다 다르게 골라 따로 논다.")]
         [SerializeField] private Vector2 idlePeriod = new(5f, 8f);
+        [Tooltip("(+10/13) 요리 미니게임이 시작 · 끝날 때 출렁임이 잦아들고 · 돌아오는 시간(초).")]
+        [SerializeField, Min(0.01f)] private float cookingFade = 0.5f;
 
         [Header("다시 모으기")]
         [Tooltip("이만큼(초)마다 판 하나씩 쉬는 자세로 되돌리고 움직일 것을 다시 모은다 — 시설을 짓거나 장판이 깔리면 바뀐다.")]
@@ -75,6 +80,8 @@ namespace Marea.Field
         private readonly HashSet<GameObject> _sceneBorn = new();
         private float _nextRefresh;
         private int _refreshIndex;
+        private float _strength = 1f;   // (+10/13) 1 = 평소, 0 = 요리 중이라 멈춤
+        private Marea.Cooking.BaseCookingMinigame[] _minigames = Array.Empty<Marea.Cooking.BaseCookingMinigame>();
 
         /// <summary>지금 흔들리는(지어진) 판들의 바닥 상자.</summary>
         public IEnumerable<Bounds> ActiveFloors
@@ -102,6 +109,14 @@ namespace Marea.Field
                     phase = UnityEngine.Random.Range(0f, Mathf.PI * 2f),
                 });
             foreach (Live l in _live) Refresh(l);
+            _minigames = FindObjectsByType<Marea.Cooking.BaseCookingMinigame>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        }
+
+        private bool IsCooking()
+        {
+            foreach (Marea.Cooking.BaseCookingMinigame m in _minigames)
+                if (m != null && m.IsRunning) return true;
+            return false;
         }
 
         private void OnDisable()
@@ -145,6 +160,7 @@ namespace Marea.Field
                 _refreshIndex = (_refreshIndex + 1) % _live.Count;
                 Refresh(_live[_refreshIndex]);
             }
+            _strength = Mathf.MoveTowards(_strength, IsCooking() ? 0f : 1f, Time.deltaTime / cookingFade);
             foreach (Live l in _live) if (l.active) Apply(l);
         }
 
@@ -158,7 +174,7 @@ namespace Marea.Field
             Vector3 idleAxis = Vector3.Cross(Vector3.up, side);
             float w = Mathf.PI * 2f / l.period;
             float idle = idleAngle * (0.7f * Mathf.Sin(w * t + l.phase) + 0.3f * Mathf.Sin(w * 1.63f * t + l.phase * 1.7f));
-            Quaternion qIdle = Quaternion.AngleAxis(idle, idleAxis);
+            Quaternion qIdle = Quaternion.AngleAxis(idle * _strength, idleAxis);
 
             for (int k = l.kicks.Count - 1; k >= 0; k--)
                 if (t - l.kicks[k].start >= l.kicks[k].seconds) l.kicks.RemoveAt(k);
@@ -174,7 +190,7 @@ namespace Marea.Field
                     float age = t - kick.start;
                     // 처음엔 바다 쪽이 쑥 내려갔다가 출렁이며 잦아든다. 끝 1초는 0으로 모은다.
                     float env = Mathf.Exp(-age / kick.decay) * Mathf.Clamp01(kick.seconds - age);
-                    Quaternion q = Quaternion.AngleAxis(kick.down * kick.angle * env * Mathf.Sin(2f * Mathf.PI * kick.frequency * age), kick.axis);
+                    Quaternion q = Quaternion.AngleAxis(kick.down * kick.angle * env * _strength * Mathf.Sin(2f * Mathf.PI * kick.frequency * age), kick.axis);
                     pos = kick.hinge + q * (pos - kick.hinge);
                     rot = q * rot;
                 }
