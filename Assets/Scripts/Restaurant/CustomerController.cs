@@ -426,11 +426,12 @@ namespace Marea.Restaurant
 
             if (audioSource != null)
             {
+                Marea.Core.GameAudioSettings.RouteEffects(audioSource);
                 audioSource.PlayOneShot(coinSoundClip);
             }
             else
             {
-                AudioSource.PlayClipAtPoint(coinSoundClip, transform.position);
+                Marea.Core.GameAudioSettings.PlayEffectAtPoint(coinSoundClip, transform.position);
             }
         }
 

@@ -29,6 +29,7 @@ namespace Marea.Hud
         private void Awake()
         {
             _source = GetComponent<AudioSource>();
+            Marea.Core.GameAudioSettings.RouteEffects(_source);
             _source.playOnAwake = false;
             if (clickClip == null) Debug.LogError($"{name}: UiClickSound.clickClip이 비어 있다. 클릭음이 안 난다.", this);
         }

@@ -46,6 +46,7 @@ namespace Marea.Core
             Instance = this;
 
             _bgm = gameObject.AddComponent<AudioSource>();
+            GameAudioSettings.RouteMusic(_bgm);
             _bgm.playOnAwake = false;
             _bgm.spatialBlend = 0f;
 
@@ -54,6 +55,7 @@ namespace Marea.Core
             {
                 if (clip == null) continue;
                 var s = gameObject.AddComponent<AudioSource>();
+                GameAudioSettings.RouteEffects(s);
                 s.playOnAwake = false;
                 s.loop = true;
                 s.spatialBlend = 0f;

@@ -9,7 +9,6 @@ using UnityEngine.UI;
 
 public sealed class TitleMenuController : MonoBehaviour
 {
-    private const string VolumeKey = "Title.MasterVolume";
     private const string ResolutionKey = "Title.ResolutionIndex";
     private const string FullscreenKey = "Title.Fullscreen";
 
@@ -33,6 +32,8 @@ public sealed class TitleMenuController : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private Slider volumeSlider;
     [SerializeField] private TMP_Text volumeValueText;
+    [SerializeField] private Slider sfxVolumeSlider;
+    [SerializeField] private TMP_Text sfxVolumeValueText;
     [SerializeField] private TMP_Dropdown resolutionDropdown;
     [SerializeField] private Toggle fullscreenToggle;
     [SerializeField] private Button closeSettingsButton;
@@ -46,7 +47,8 @@ public sealed class TitleMenuController : MonoBehaviour
         if (settingsButton != null) settingsButton.onClick.AddListener(OpenSettings);
         if (quitButton != null) quitButton.onClick.AddListener(QuitGame);
         if (closeSettingsButton != null) closeSettingsButton.onClick.AddListener(CloseSettings);
-        if (volumeSlider != null) volumeSlider.onValueChanged.AddListener(SetMasterVolume);
+        if (volumeSlider != null) volumeSlider.onValueChanged.AddListener(SetMusicVolume);
+        if (sfxVolumeSlider != null) sfxVolumeSlider.onValueChanged.AddListener(SetEffectsVolume);
         if (resolutionDropdown != null) resolutionDropdown.onValueChanged.AddListener(SetResolution);
         if (fullscreenToggle != null) fullscreenToggle.onValueChanged.AddListener(SetFullscreen);
 
@@ -61,7 +63,8 @@ public sealed class TitleMenuController : MonoBehaviour
         if (settingsButton != null) settingsButton.onClick.RemoveListener(OpenSettings);
         if (quitButton != null) quitButton.onClick.RemoveListener(QuitGame);
         if (closeSettingsButton != null) closeSettingsButton.onClick.RemoveListener(CloseSettings);
-        if (volumeSlider != null) volumeSlider.onValueChanged.RemoveListener(SetMasterVolume);
+        if (volumeSlider != null) volumeSlider.onValueChanged.RemoveListener(SetMusicVolume);
+        if (sfxVolumeSlider != null) sfxVolumeSlider.onValueChanged.RemoveListener(SetEffectsVolume);
         if (resolutionDropdown != null) resolutionDropdown.onValueChanged.RemoveListener(SetResolution);
         if (fullscreenToggle != null) fullscreenToggle.onValueChanged.RemoveListener(SetFullscreen);
     }
@@ -200,11 +203,13 @@ public sealed class TitleMenuController : MonoBehaviour
     {
         isInitializing = true;
 
-        float volume = PlayerPrefs.GetFloat(VolumeKey, 1f);
-        AudioListener.volume = volume;
+        float volume = Marea.Core.GameAudioSettings.MusicVolume;
         if (volumeSlider != null)
             volumeSlider.SetValueWithoutNotify(volume);
         UpdateVolumeLabel(volume);
+        float effects = Marea.Core.GameAudioSettings.EffectsVolume;
+        if (sfxVolumeSlider != null) sfxVolumeSlider.SetValueWithoutNotify(effects);
+        if (sfxVolumeValueText != null) sfxVolumeValueText.text = $"{Mathf.RoundToInt(effects * 100f)}%";
 
         BuildResolutionOptions();
 
@@ -242,14 +247,18 @@ public sealed class TitleMenuController : MonoBehaviour
         resolutionDropdown.RefreshShownValue();
     }
 
-    public void SetMasterVolume(float value)
+    public void SetMusicVolume(float value)
     {
         value = Mathf.Clamp01(value);
-        AudioListener.volume = value;
+        Marea.Core.GameAudioSettings.SetMusicVolume(value);
         UpdateVolumeLabel(value);
-        PlayerPrefs.SetFloat(VolumeKey, value);
-        if (!isInitializing)
-            PlayerPrefs.Save();
+    }
+
+    public void SetEffectsVolume(float value)
+    {
+        value = Mathf.Clamp01(value);
+        Marea.Core.GameAudioSettings.SetEffectsVolume(value);
+        if (sfxVolumeValueText != null) sfxVolumeValueText.text = $"{Mathf.RoundToInt(value * 100f)}%";
     }
 
     public void SetResolution(int index)

@@ -60,6 +60,7 @@ namespace Marea.Core
                 var go = new GameObject($"Sfx{i}");
                 go.transform.SetParent(transform, false);
                 var s = go.AddComponent<AudioSource>();
+                GameAudioSettings.RouteEffects(s);
                 s.playOnAwake = false;
                 s.rolloffMode = AudioRolloffMode.Linear;
                 s.minDistance = minDistance;
@@ -111,6 +112,7 @@ namespace Marea.Core
             var go = new GameObject($"Loop_{clip.name}");
             go.transform.SetParent(Instance.transform, false);
             var s = go.AddComponent<AudioSource>();
+            GameAudioSettings.RouteEffects(s);
             s.playOnAwake = false;
             s.loop = true;
             s.spatialBlend = 0f;
