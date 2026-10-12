@@ -309,6 +309,7 @@ public static class TitleSceneBuilder
         settingsPanel.gameObject.SetActive(false);
         AddLoadingScreen(scene);
         TitleLoadingScreenBuilder.Configure(scene);
+        TitleMenuPresentation.Configure(scene);
     }
 
     public static void AddLoadingScreen(Scene scene)

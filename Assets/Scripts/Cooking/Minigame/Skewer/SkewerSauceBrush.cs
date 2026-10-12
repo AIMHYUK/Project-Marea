@@ -7,6 +7,15 @@ namespace Marea.Cooking
     {
         [SerializeField] private SkewerMinigameController controller;
         [SerializeField] private Transform brushTip;
+        [Header("잡기 전 브러시 안내 움직임")]
+        [InspectorName("안내 움직임 사용")]
+        [SerializeField] private bool idleBobEnabled = true;
+        [Tooltip("처음 배치한 위치에서 위아래로 움직이는 최대 거리 (월드 단위).")]
+        [InspectorName("위아래 움직임 높이")]
+        [SerializeField, Min(0f)] private float idleBobHeight = 0.025f;
+        [Tooltip("1초 동안 위아래로 왕복하는 횟수입니다.")]
+        [InspectorName("위아래 움직임 속도")]
+        [SerializeField, Min(0.1f)] private float idleBobFrequency = 1.25f;
         [Header("카메라 방향 회전")]
         [Tooltip("드래그 중 카메라 방향을 기준으로 적용할 브러시 각도입니다.")]
         [InspectorName("바를 때 각도 (카메라 기준)")]
@@ -29,6 +38,8 @@ namespace Marea.Cooking
         private Quaternion _initialRotation;
         private bool _capturedPose;
         private bool _dragging;
+        private bool _hasBeenGrabbed;
+        private float _idleBobElapsed;
 
         private void OnEnable()
         {
@@ -41,6 +52,8 @@ namespace Marea.Cooking
             transform.localPosition = _initialPosition;
             transform.localRotation = _initialRotation;
             _dragging = false;
+            _hasBeenGrabbed = false;
+            _idleBobElapsed = 0f;
             _colliders = GetComponentsInChildren<Collider>();
             if (controller == null) controller = GetComponentInParent<SkewerMinigameController>();
         }
@@ -54,6 +67,7 @@ namespace Marea.Cooking
                 _dragging = false;
                 return;
             }
+            UpdateIdleBob();
             var mouse = Mouse.current;
             if (mouse == null || brushTip == null) return;
             if (_camera == null) _camera = Camera.main;
@@ -72,6 +86,8 @@ namespace Marea.Cooking
                     _lastTipPosition = _camera.WorldToScreenPoint(brushTip.position);
                     _lastDragPointer = pointer;
                     _dragging = true;
+                    // Keep the current pose when picked up, so stopping the hint never causes a jump.
+                    _hasBeenGrabbed = true;
                     break;
                 }
             }
@@ -99,6 +115,16 @@ namespace Marea.Cooking
             for (int i = 1; i <= samples; i++)
                 controller.ProcessSauceDrag(Vector2.Lerp(_lastTipPosition, tipPosition, (float)i / samples), amount);
             _lastTipPosition = tipPosition;
+        }
+
+        private void UpdateIdleBob()
+        {
+            if (!idleBobEnabled || _hasBeenGrabbed || _dragging) return;
+            _idleBobElapsed += Time.deltaTime;
+            float height = Mathf.Sin(_idleBobElapsed * idleBobFrequency * Mathf.PI * 2f) * idleBobHeight;
+            Vector3 offset = Vector3.up * height;
+            if (transform.parent != null) offset = transform.parent.InverseTransformVector(offset);
+            transform.localPosition = _initialPosition + offset;
         }
 
         private void RotateForBrushing(bool brushing, float verticalSpeed = 0f)
