@@ -46,6 +46,13 @@ namespace Marea.Cutscene
         [SerializeField] private CinemachineImpulseSource impulse;
         [SerializeField, Min(0f)] private float shakeForce = 1.5f;
 
+        [Header("아빠 도주 (+10/12)")]
+        [Tooltip("뛰는 아빠. Run 신호 때 이 오브젝트가 바라보는 쪽으로 길을 비운다.")]
+        [SerializeField] private Transform runner;
+        [Tooltip("앞으로 이만큼(m) 안에서 가슴 높이를 막는 벽 · 기둥을 숨긴다. 컷신이 끝나면 되돌린다.")]
+        [SerializeField, Min(0f)] private float runClearDistance = 12f;
+        [SerializeField, Min(0.1f)] private float runClearWidth = 1.2f;
+
         [Header("암전")]
         [SerializeField, Min(0f)] private float fadeOutSeconds = 0.8f;
         [SerializeField, Min(0f)] private float blackSeconds = 0.6f;
@@ -53,6 +60,7 @@ namespace Marea.Cutscene
 
         private readonly List<Canvas> _hiddenCanvases = new();
         private readonly List<Renderer> _hiddenPlayer = new();
+        private readonly List<Renderer> _hiddenWalls = new();
         private FacilitySite[] _sites;
         private CameraFollow _follow;
         private PlayerController _player;
@@ -113,6 +121,28 @@ namespace Marea.Cutscene
             director.Play();
         }
 
+        /// <summary>
+        /// (+10/12) 타임라인 Run 신호 — 아빠가 달아나기 시작할 때. 아빠 앞 runClearDistance 안에서 가슴 높이(바닥 + 1.2m)를
+        /// 지나는 렌더러(벽 · 기둥 · 선반)를 숨긴다. 바닥 · 탁자처럼 그 높이에 안 닿는 것은 그대로. 끝나면 Finish가 되돌린다.
+        /// 벽은 씬 오브젝트라 프리팹에 연결할 수 없어서 이렇게 찾는다.
+        /// </summary>
+        public void ClearRunPath()
+        {
+            if (runner == null) { Debug.LogError($"{name}: OpeningCutscene.runner가 비어 있다. 아빠가 벽을 뚫고 뛴다.", this); return; }
+            Vector3 dir = Vector3.ProjectOnPlane(runner.forward, Vector3.up).normalized;
+            Vector3 from = runner.position + Vector3.up * 1.2f;
+            foreach (Renderer r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (!r.enabled || r is ParticleSystemRenderer || r is SkinnedMeshRenderer || r.transform.IsChildOf(content.transform)) continue;
+                Bounds b = r.bounds;
+                if (b.min.y > from.y || b.max.y < from.y) continue;   // 가슴 높이를 안 지난다
+                b.Expand(new Vector3(runClearWidth, 0f, runClearWidth));
+                if (!b.IntersectRay(new Ray(from, dir), out float hit) || hit > runClearDistance) continue;
+                r.enabled = false;
+                _hiddenWalls.Add(r);
+            }
+        }
+
         /// <summary>타임라인 Smash 신호 — 고래가 데크에 닿는 순간. 이펙트를 터뜨리고 시설을 지금 레벨(폐허)로.</summary>
         public void Smash()
         {
@@ -167,6 +197,8 @@ namespace Marea.Cutscene
 
             Smash();   // 건너뛰었으면 여기서 부순다
             content.SetActive(false);
+            foreach (Renderer r in _hiddenWalls) if (r != null) r.enabled = true;   // (+10/12) 도주 때 숨긴 벽
+            _hiddenWalls.Clear();
             if (_addedBrain && _brain != null) Destroy(_brain);
             if (_follow != null) _follow.enabled = true;
             if (_player != null) _player.enabled = true;

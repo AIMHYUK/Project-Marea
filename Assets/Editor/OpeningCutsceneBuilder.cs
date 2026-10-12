@@ -38,6 +38,7 @@ public static class OpeningCutsceneBuilder
         if (old != null) Object.DestroyImmediate(old);
         AssetDatabase.DeleteAsset($"{Dir}/TL_Opening.playable");
         AssetDatabase.DeleteAsset($"{Dir}/SG_OpeningSmash.signal");
+        AssetDatabase.DeleteAsset($"{Dir}/SG_OpeningRun.signal");
         System.IO.Directory.CreateDirectory(Dir);
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PrefabPath));
 
@@ -206,6 +207,13 @@ public static class OpeningCutsceneBuilder
         var reaction = new UnityEvent();
         UnityEventTools.AddPersistentListener(reaction, cutscene.Smash);
         receiver.AddReaction(signal, reaction);
+        // (+10/12) 아빠가 뛰기 시작할 때 앞길의 벽을 잠시 숨긴다(벽을 뚫고 지나가 보였다).
+        var runSignal = ScriptableObject.CreateInstance<SignalAsset>();
+        AssetDatabase.CreateAsset(runSignal, $"{Dir}/SG_OpeningRun.signal");
+        signalTrack.CreateMarker<SignalEmitter>(RunAt).asset = runSignal;
+        var runReaction = new UnityEvent();
+        UnityEventTools.AddPersistentListener(runReaction, cutscene.ClearRunPath);
+        receiver.AddReaction(runSignal, runReaction);
 
         timeline.fixedDuration = End;
         timeline.durationMode = TimelineAsset.DurationMode.FixedLength;
@@ -214,6 +222,7 @@ public static class OpeningCutsceneBuilder
         var so = new SerializedObject(cutscene);
         so.FindProperty("director").objectReferenceValue = director;
         so.FindProperty("content").objectReferenceValue = content;
+        so.FindProperty("runner").objectReferenceValue = dadModel.transform;
         so.FindProperty("impulse").objectReferenceValue = impulse;
         SerializedProperty bp = so.FindProperty("burstPieces");
         string[] burst = { "PF_LoosePlank_Long", "PF_LoosePlank_Short" };
