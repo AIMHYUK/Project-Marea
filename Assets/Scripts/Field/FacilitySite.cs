@@ -420,6 +420,15 @@ namespace Marea.Field
         private void Refresh()
             => Apply(IsBuilt, TargetSlots());
 
+        /// <summary>(+10/12) 오프닝 컷신 — 레벨과 상관없이 다 지은 모습(칸 전부). ShowCurrent로 되돌린다.</summary>
+        public void ShowFullyBuilt() => Apply(true, levelSlots != null ? levelSlots.Length : 0);
+
+        /// <summary>(+10/12) 오프닝 컷신이 끝날 때 — 지금 레벨의 모습으로 되돌린다.</summary>
+        public void ShowCurrent()
+        {
+            if (_levels != null) Refresh();
+        }
+
         private void Apply(bool unlocked, int slots)
         {
             if (brokenVisual != null) brokenVisual.SetActive(!unlocked);
