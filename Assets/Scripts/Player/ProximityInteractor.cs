@@ -71,8 +71,10 @@ namespace Marea.Player
 
             // 미니게임 중이거나 클릭으로 걸어가는 중이면 받지 않는다. 걸어가는 중에 E로 다른 걸
             // 열면 도착했을 때 원래 대상의 Interact가 또 불린다.
+            // (+10/12) 창이 떠 있으면 고르지 않는다 — 수리 확인 창 뒤에 "[E] 수리"가 겹쳐 보였다.
+            // 안내만 숨기고 E를 받으면 안 보이는 대상이 눌리므로 둘 다 막는다.
             InteractableBase was = _target;
-            _target = _player.IsBusy ? null : FindNearest(out _targetBounds);
+            _target = _player.IsBusy || UiPanel.AnyVisible ? null : FindNearest(out _targetBounds);
             if (_target != null && was == null && !_suppressHover) SoundManager.Play(hoverClip, hoverVolume);   // (+10/6) 없다가 생길 때만
             _suppressHover = false;
 

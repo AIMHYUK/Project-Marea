@@ -32,10 +32,15 @@ namespace Marea.Data
         [Tooltip("이 해역을 여는 업그레이드 대상 키 (REGION_UNLOCK의 EffectTarget). 비우면 처음부터 열림.")]
         [SerializeField] private string unlockKey;
 
+        // (+10/12) 결과 창의 짧은 탐사 이야기. 기획 표에는 없는 칸이다. 귀환할 때 하나를 무작위로 고른다.
+        [Tooltip("결과 창에 뜰 짧은 탐사 이야기. 귀환할 때 하나를 무작위로 고른다. 비우면 이야기 칸이 빈다.")]
+        [SerializeField, TextArea(2, 4)] private string[] stories;
+
         public int Id => id;
         public float DurationSeconds => durationSeconds;
         public ExpeditionRewardData RewardGroup => rewardGroup;
         public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
         public string UnlockKey => unlockKey;
+        public string[] Stories => stories ?? System.Array.Empty<string>();
     }
 }
