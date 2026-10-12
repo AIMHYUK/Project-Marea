@@ -20,7 +20,7 @@ public static class OpeningCutsceneBuilder
     private const string PrefabPath = "Assets/Prefabs/Cutscene/PF_OpeningCutscene.prefab";
 
     // 컷 시간(초)
-    private const float SeaAt = 4f, CloseAt = 8.5f, JumpAt = 10.5f, DadAt = 12.8f, ImpactAt = 13.8f, SmashAt = 14.6f, SinkAt = 15.6f, AfterAt = 17.5f, End = 20f;
+    private const float SeaAt = 4f, CloseAt = 8.5f, JumpAt = 10.5f, DadAt = 12.8f, RunAt = 13.1f, ImpactAt = 13.8f, SmashAt = 14.6f, SinkAt = 15.6f, AfterAt = 17.5f, End = 20f;
     private const float SeaLevel = 6.9f, SwimY = 3.9f;   // WhaleSwimmer는 6.9 - 6.4(거의 잠김). 컷신은 등이 보이게 3m만 잠근다
     // 주방(파란 지붕, x 59~78 · z 34~54) 서쪽의 확장 데크(ExpansionSite_Lv03)에 떨어진다. 북쪽(z 56~)이 열린 바다다.
     private static readonly Vector3 ImpactXZ = new(50f, 0f, 44f);
@@ -160,9 +160,16 @@ public static class OpeningCutsceneBuilder
         Shot(cmTrack, director, camImpact, ImpactAt, AfterAt);
         Shot(cmTrack, director, camAfter, AfterAt, End);
 
+        // (+10/12) 아빠는 조리대 앞에 서 있다가 RunAt에 뒤로 돌아 달아난다(달리기 클립의 루트 모션이 앞으로 초속 5m).
+        // 트랙 기준 자리 · 방향을 조리대 앞으로 두고, 달리기 클립만 180° 돌린다.
         var dadTrack = timeline.CreateTrack<AnimationTrack>(null, "Dad");
-        dadTrack.trackOffset = TrackOffset.ApplySceneOffsets;
-        Clip(dadTrack, Load<AnimationClip>("Assets/Art/Asset/Character/NPC_01/Animation/Npc01_Standing.fbx", "AN_Npc01_Standing"), 0f, End);
+        dadTrack.trackOffset = TrackOffset.ApplyTransformOffsets;
+        dadTrack.position = dadPos;
+        dadTrack.rotation = Quaternion.LookRotation(fwd);
+        Clip(dadTrack, Load<AnimationClip>("Assets/Art/Asset/Character/NPC_01/Animation/Npc01_Standing.fbx", "AN_Npc01_Standing"), 0f, RunAt);
+        Clip(dadTrack, Load<AnimationClip>("Assets/Cutscene/Opening/Anim/XBot_FastRun.fbx", "AN_Dad_FastRun"), RunAt, End - RunAt);
+        foreach (TimelineClip c in dadTrack.GetClips())
+            if (c.start >= RunAt) ((AnimationPlayableAsset)c.asset).rotation = Quaternion.Euler(0f, 180f, 0f);
         director.SetGenericBinding(dadTrack, dadAnim);
 
         var pathTrack = timeline.CreateTrack<AnimationTrack>(null, "Whale Path");

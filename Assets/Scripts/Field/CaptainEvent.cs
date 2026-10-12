@@ -49,6 +49,16 @@ namespace Marea.Field
         [Tooltip("(+10/12) 부서지는 이펙트 크기 배율. 예전엔 먼지만 1.2였다.")]
         [SerializeField, Min(0.1f)] private float breakVfxScale = 2.2f;
 
+        [Header("해적 모델 (+10/12)")]
+        [Tooltip("선장 · 선원 겉모습(아트 프리팹 PF_Pirate_Tpose — 재질까지 입혀 있다). Mixamo 뼈 이름이 손님 NPC와 같아 손님 애니메이션이 그대로 입혀진다. 비우면 손님 모습 그대로.")]
+        [SerializeField] private GameObject pirateModel;
+        [Tooltip("해적 Humanoid 아바타(Pirate_Tpose.fbx 안). 아트 프리팹엔 Animator가 없어 따로 든다.")]
+        [SerializeField] private Avatar pirateAvatar;
+        [Tooltip("해적 모델 배율. 원본이 cm 단위라 230이면 손님 NPC와 키가 같다.")]
+        [SerializeField, Min(0.01f)] private float pirateScale = 230f;
+        [Tooltip("선장만 이만큼 더 크게.")]
+        [SerializeField, Min(0.5f)] private float captainSizeMultiplier = 1.15f;
+
         [Header("서 있는 선원")]
         [Tooltip("선장 뒤 줄에 자리가 없을 때 입구(손님 스폰 지점)에서 이 반경 안 빈 곳에 선다.")]
         [SerializeField, Min(1f)] private float crewStandRadius = 4.5f;
@@ -267,6 +277,7 @@ namespace Marea.Field
         public void LineUp(GameObject crew, CustomerController captain)
         {
             if (crew == null) return;
+            Dress(crew.GetComponent<CustomerController>(), false);
             if (captain != _lineCaptain)
             {
                 _lineCaptain = captain;
@@ -281,6 +292,37 @@ namespace Marea.Field
                 look.y = 0f;
                 if (look.sqrMagnitude > 0.01f) crew.transform.rotation = Quaternion.LookRotation(look);
             });
+        }
+
+        /// <summary>
+        /// (+10/12) 손님 NPC 모델을 해적 모델로 갈아입힌다. 손님 프리팹(B)은 그대로 두고, 생성 직후 모델 자식만 바꾼다.
+        /// 루트 Animator의 아바타를 해적 것으로 바꾸고 다시 묶는다 — 옛 모델을 먼저 떼야 같은 뼈 이름에 안 묶인다.
+        /// </summary>
+        public void Dress(CustomerController customer, bool captain)
+        {
+            if (pirateModel == null || pirateAvatar == null || customer == null) return;
+            Animator anim = customer.GetComponent<Animator>();
+            SkinnedMeshRenderer old = customer.GetComponentInChildren<SkinnedMeshRenderer>(true);
+            if (anim == null || old == null) { Debug.LogError($"{name}: {customer.name}에 Animator · 모델이 없어 해적으로 못 바꾼다.", customer); return; }
+
+            Transform oldModel = old.transform;
+            while (oldModel.parent != customer.transform) oldModel = oldModel.parent;
+            oldModel.SetParent(null);
+            Destroy(oldModel.gameObject);
+
+            GameObject model = Instantiate(pirateModel, customer.transform);
+            model.name = "PirateModel";
+            model.transform.localPosition = Vector3.zero;
+            model.transform.localRotation = Quaternion.identity;
+            model.transform.localScale = Vector3.one * pirateScale * (captain ? captainSizeMultiplier : 1f);
+            foreach (Animator own in model.GetComponentsInChildren<Animator>()) Destroy(own);
+            // Rebind는 파라미터를 기본값으로 되돌린다 — 생성 때 켠 IsMoving 등을 잃으면 걷는 동안 서 있고, 도착해도 안 앉는다.
+            var bools = new List<(int id, bool on)>();
+            foreach (AnimatorControllerParameter p in anim.parameters)
+                if (p.type == AnimatorControllerParameterType.Bool) bools.Add((p.nameHash, anim.GetBool(p.nameHash)));
+            anim.avatar = pirateAvatar;
+            anim.Rebind();
+            foreach (var (id, on) in bools) anim.SetBool(id, on);
         }
 
         // 선장 의자 뒤로 lineBehind, 옆으로 lineSpacing 간격 lineWidth명씩 줄. NavMesh 밖 · 물체에 막힌 · 이미 잡은 자리는 건너뛴다.

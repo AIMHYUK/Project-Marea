@@ -336,17 +336,14 @@ MonoBehaviour:
     prefab: {fileID: 1071913288794710355, guid: 33c061f29827f8643a351e95306c9bd9, type: 3}
     passengers: 2
     pathOffset: {x: 0, y: 1.45, z: 0}
-    bowYawOffset: 0
   - label: "\uC911\uAC04 \uBC30"
     prefab: {fileID: 8318617894677835548, guid: 34fa00a90a6e9814396e2c099204afcf, type: 3}
     passengers: 5
     pathOffset: {x: 0, y: 0.8, z: -2.5}
-    bowYawOffset: 0
   - label: "\uD070 \uBC30"
     prefab: {fileID: 2566799650362072155, guid: ce2395690296f084795bd396253a8566, type: 3}
     passengers: 10
     pathOffset: {x: 0, y: 0.85, z: -1.5}
-    bowYawOffset: 0
   waves: {fileID: 11400000, guid: c71f9325f89879843919f9e8b6d64a7c, type: 2}
   captainEvent: {fileID: 1877129063676763086}
   path: {fileID: 7745925245793594915}
@@ -359,8 +356,6 @@ MonoBehaviour:
   unloadInterval: 0.5
   dockHoldSeconds: 1.5
   noSeatRetrySeconds: 2
-  leanPerAccel: 0.5
-  maxLean: 4
   arriveClip: {fileID: 8300000, guid: eb17cd0f614df7f47ab6fc20fdef6f81, type: 3}
   arriveVolume: 0.8
   cameraOnFirstBoat: 1
@@ -388,8 +383,16 @@ MonoBehaviour:
   hazardCount: 2
   hazardSpacing: 2
   breakVfx: 10
-  breakClip: {fileID: 0}
+  breakImpactVfx: 13
+  breakVfxScale: 2.2
+  pirateModel: {fileID: 8971114068028980101, guid: d4625b25223cb5941a3e9aedf3c86e67, type: 3}
+  pirateAvatar: {fileID: 9000000, guid: 4b459d19a4d96944a9b0d8df31576129, type: 3}
+  pirateScale: 230
+  captainSizeMultiplier: 1.15
   crewStandRadius: 4.5
+  lineBehind: 1.4
+  lineSpacing: 0.85
+  lineWidth: 5
   priorityLabel: "\uCD5C\uC6B0\uC120!"
   alarmText: "\uC120\uC7A5\uC758 \uC694\uB9AC\uB97C \uCD5C\uC6B0\uC120\uC73C\uB85C
     \uB9CC\uB4E4\uC5B4\uC57C \uD55C\uB2E4! ({0})"
@@ -404,8 +407,18 @@ MonoBehaviour:
     \uB4DC\uC2E0\uB2E4!"
   - "S\uAE09\uC774 \uC544\uB2C8\uBA74 \uAC01\uC624\uD574\uB77C!"
   - "\uC120\uC7A5\uB2D8\uC744 \uAE30\uB2E4\uB9AC\uAC8C \uD558\uC9C0 \uB9C8\uB77C!"
+  crewArriveInterval: 2.5
+  captainWaitLines:
+  - "{0}{1} \uC544\uC9C1\uC778\uAC00? \uB0B4 \uC778\uB0B4\uC2EC\uC744 \uC2DC\uD5D8\uD558\uC9C0
+    \uB9C8\uB77C."
+  - "\uC120\uC7A5\uC744 \uAE30\uB2E4\uB9AC\uAC8C \uD558\uB2E4\uB2C8, \uBC30\uC9F1
+    \uD55C\uBC88 \uC88B\uAD70."
+  - "\uB0B4 \uBD80\uD558\uB4E4\uC774 \uC2AC\uC2AC \uCC38\uC9C0 \uBABB\uD558\uB294\uAD70\u2026"
   captainSuccessLines:
   - "\uD6CC\uB96D\uD558\uAD70! \uC18C\uBB38\uB300\uB85C\uC57C."
+  captainTreatLines:
+  - "\uB108\uD76C\uB3C4 \uBA39\uC5B4\uB77C!"
+  - "\uB2E4\uB4E4 \uC549\uC544\uB77C, \uC624\uB298\uC740 \uB0B4\uAC00 \uC0B0\uB2E4!"
   crewSuccessLines:
   - "\uC5ED\uC2DC \uC18C\uBB38\uB300\uB85C\uAD70!"
   - "\uC120\uC7A5\uB2D8\uC774 \uC6C3\uC73C\uC168\uB2E4!"

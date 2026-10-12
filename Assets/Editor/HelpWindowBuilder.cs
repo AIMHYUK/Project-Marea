@@ -1,0 +1,278 @@
+using Marea.Data;
+using Marea.Hud;
+using TMPro;
+using UnityEditor;
+using UnityEditor.Events;
+using UnityEngine;
+using UnityEngine.UI;
+
+/// <summary>
+/// 도움말 창 프리팹을 만들고 메인 HUD(PF_AUI)에 붙인다. (+10/12)
+///
+/// 모양은 붕괴: 스타레일 튜토리얼 창을 따랐다 — 어두운 바탕 · 왼쪽 탭 · 검색 · 목록, 오른쪽 밝은 판에 그림 · 제목 · 설명 · 페이지 넘김.
+/// 다시 돌리면 PF_HelpWindow를 덮어쓰고 PF_AUI의 도움말 버튼 · 창을 새로 놓는다. HelpBook 에셋(내용)은 있으면 안 건드린다.
+/// 기준 해상도 1920×1080(PF_AUI CanvasScaler와 같다).
+/// </summary>
+public static class HelpWindowBuilder
+{
+    private const string PrefabPath = "Assets/Prefabs/UI/PF_HelpWindow.prefab";
+    private const string HudPath = "Assets/Prefabs/UI/PF_AUI.prefab";
+    private const string BookPath = "Assets/Scripts/Data/HelpBook.asset";
+
+    private static readonly Color Gold = new(0.85f, 0.72f, 0.48f, 1f);
+    private static readonly Color Paper = new(0.91f, 0.91f, 0.9f, 1f);
+    private static readonly Color Ink = new(0.2f, 0.2f, 0.2f, 1f);
+
+    private static TMP_FontAsset _bold, _semi;
+    private static Sprite _round, _knob;
+
+    [MenuItem("Marea/UI/도움말 창 만들기")]
+    public static void Build()
+    {
+        _bold = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/A2Z-Bold SDF.asset");
+        _semi = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/A2Z-SemiBold SDF.asset");
+        _round = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+        _knob = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+        var cross = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Bamao/BamaoUIPack/Sprites/Character sheet/Button_cross.png");
+
+        var book = AssetDatabase.LoadAssetAtPath<HelpBook>(BookPath);
+        if (book == null)
+        {
+            book = ScriptableObject.CreateInstance<HelpBook>();
+            book.categories = new string[0];
+            book.topics = new HelpBook.Topic[0];
+            AssetDatabase.CreateAsset(book, BookPath);
+        }
+
+        // --- 창 ---
+        var root = new GameObject("PF_HelpWindow", typeof(RectTransform));
+        Stretch(root);
+        var window = root.AddComponent<HelpWindow>();
+        // HUD의 시계 · 골드는 따로 된 캔버스라 같은 캔버스 맨 아래에 둬도 위에 그려진다 — 자체 정렬 순서로 덮는다.
+        var canvas = root.AddComponent<Canvas>();
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = 100;
+        root.AddComponent<GraphicRaycaster>();
+        GameObject panel = Child(root, "Panel"); Stretch(panel);
+        Img(panel, null, new Color(0.04f, 0.04f, 0.06f, 0.97f));   // 뒤 화면을 막는다
+
+        // 왼쪽 위 머리
+        GameObject bulb = Child(panel, "Bulb"); Place(bulb, TopLeft, new Vector2(92, -100), new Vector2(44, 44));
+        Img(bulb, _knob, Gold);
+        Text(Child(panel, "Header"), "도움말 목록", 24, Gold, TopLeft, new Vector2(130 + 200, -84), new Vector2(400, 32), TextAlignmentOptions.Left, _bold);
+        TextMeshProUGUI categoryLabel = Text(Child(panel, "Category"), "전체", 38, Color.white, TopLeft, new Vector2(130 + 200, -122), new Vector2(400, 50), TextAlignmentOptions.Left, _bold);
+
+        // 닫기
+        GameObject close = Child(panel, "CloseButton"); Place(close, TopRight, new Vector2(-70, -70), new Vector2(64, 64));
+        Button closeButton = close.AddComponent<Button>();
+        Img(close, cross, Color.white);
+
+        // 탭 줄
+        GameObject tabs = Child(panel, "Tabs"); Place(tabs, TopLeft, new Vector2(80 + 380, -195), new Vector2(760, 64));
+        var tabLayout = tabs.AddComponent<HorizontalLayoutGroup>();
+        tabLayout.childForceExpandWidth = true; tabLayout.childForceExpandHeight = true; tabLayout.childControlWidth = true; tabLayout.childControlHeight = true;
+        GameObject tab = Child(tabs, "TabTemplate");
+        Img(tab, _round, new Color(1, 1, 1, 0f));
+        Button tabTemplate = tab.AddComponent<Button>();
+        Text(Child(tab, "Label"), "탭", 24, Color.white, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _bold);
+        GameObject underline = Child(tab, "Underline"); Place(underline, new Anchor(new Vector2(0.1f, 0), new Vector2(0.9f, 0), new Vector2(0.5f, 0)), Vector2.zero, new Vector2(0, 4));
+        Img(underline, null, Gold);
+        GameObject divider = Child(panel, "Divider"); Place(divider, TopLeft, new Vector2(80 + 380, -229), new Vector2(760, 2));
+        Img(divider, null, new Color(1, 1, 1, 0.18f));
+
+        // 검색
+        GameObject searchGo = Child(panel, "Search"); Place(searchGo, TopLeft, new Vector2(95 + 245, -282), new Vector2(490, 56));
+        Image searchBg = Img(searchGo, _round, new Color(1, 1, 1, 0.06f));
+        searchGo.AddComponent<Outline>().effectColor = new Color(1, 1, 1, 0.45f);
+        GameObject area = Child(searchGo, "Text Area"); Stretch(area, new Vector2(24, 6), new Vector2(-24, -6));
+        area.AddComponent<RectMask2D>();
+        TextMeshProUGUI placeholder = Text(Child(area, "Placeholder"), "도움말 검색", 24, new Color(1, 1, 1, 0.45f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Left, _semi);
+        TextMeshProUGUI searchText = Text(Child(area, "Text"), "", 24, Color.white, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Left, _semi);
+        var search = searchGo.AddComponent<TMP_InputField>();
+        search.targetGraphic = searchBg; search.textViewport = area.GetComponent<RectTransform>();
+        search.textComponent = searchText; search.placeholder = placeholder; search.fontAsset = _semi; search.pointSize = 24;
+
+        // 목록
+        GameObject scroll = Child(panel, "List"); Place(scroll, new Anchor(new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 1)), new Vector2(95, -330), new Vector2(500, 0));
+        RectTransform srt = scroll.GetComponent<RectTransform>(); srt.offsetMin = new Vector2(95, 40); srt.offsetMax = new Vector2(595, -330);
+        var sr = scroll.AddComponent<ScrollRect>(); sr.horizontal = false; sr.movementType = ScrollRect.MovementType.Clamped; sr.scrollSensitivity = 30;
+        GameObject viewport = Child(scroll, "Viewport"); Stretch(viewport); viewport.AddComponent<RectMask2D>();
+        GameObject content = Child(viewport, "Content");
+        Place(content, new Anchor(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1)), Vector2.zero, new Vector2(0, 0));
+        var vl = content.AddComponent<VerticalLayoutGroup>(); vl.spacing = 10; vl.childForceExpandHeight = false; vl.childControlHeight = true; vl.childControlWidth = true; vl.padding = new RectOffset(30, 0, 0, 0);
+        content.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        sr.viewport = viewport.GetComponent<RectTransform>(); sr.content = content.GetComponent<RectTransform>();
+        GameObject item = Child(content, "ItemTemplate");
+        Img(item, null, new Color(1, 1, 1, 0.06f));
+        item.AddComponent<LayoutElement>().preferredHeight = 88;
+        Button itemTemplate = item.AddComponent<Button>();
+        GameObject accent = Child(item, "Accent"); Place(accent, new Anchor(new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0.5f)), Vector2.zero, new Vector2(6, 0));
+        Img(accent, null, Gold);
+        Text(Child(item, "Label"), "항목", 28, new Color(0.92f, 0.92f, 0.92f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Left, _bold).margin = new Vector4(34, 0, 10, 0);
+        GameObject marker = Child(item, "Marker"); Place(marker, new Anchor(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f)), new Vector2(-18, 0), new Vector2(18, 18));
+        Img(marker, null, Gold); marker.transform.localRotation = Quaternion.Euler(0, 0, 45);
+        GameObject empty = Child(panel, "EmptyHint");
+        Text(empty, "찾는 도움말이 없습니다", 24, new Color(1, 1, 1, 0.5f), TopLeft, new Vector2(345, -400), new Vector2(490, 40), TextAlignmentOptions.Center, _semi);
+
+        // 오른쪽 판
+        GameObject sheet = Child(panel, "Sheet");
+        RectTransform shrt = Place(sheet, new Anchor(new Vector2(0, 0), new Vector2(1, 1), new Vector2(0.5f, 0.5f)), Vector2.zero, Vector2.zero);
+        shrt.offsetMin = new Vector2(650, 0); shrt.offsetMax = new Vector2(-60, -250);
+        Img(sheet, null, Paper);
+        GameObject band = Child(sheet, "TopBand"); Place(band, new Anchor(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1)), Vector2.zero, new Vector2(0, 220));
+        Img(band, null, new Color(0.13f, 0.13f, 0.14f, 1f));
+        GameObject frame = Child(sheet, "ImageFrame"); Place(frame, new Anchor(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 1)), new Vector2(0, -50), new Vector2(880, 400));
+        Img(frame, null, new Color(1, 1, 1, 1f));
+        frame.AddComponent<Outline>().effectColor = new Color(0, 0, 0, 0.25f);
+        GameObject pic = Child(frame, "Image"); Stretch(pic, new Vector2(8, 8), new Vector2(-8, -8));
+        Image image = Img(pic, null, Color.white); image.preserveAspect = true;
+        GameObject body = Child(sheet, "Body");
+        RectTransform bodyRt = Place(body, new Anchor(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 1)), new Vector2(0, -530), new Vector2(1000, 0));
+        var bodyLayout = body.AddComponent<VerticalLayoutGroup>(); bodyLayout.spacing = 18; bodyLayout.childControlHeight = true; bodyLayout.childControlWidth = true; bodyLayout.childForceExpandHeight = false;
+        body.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        TextMeshProUGUI title = Text(Child(body, "Title"), "제목", 40, Ink, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _bold);
+        TextMeshProUGUI text = Text(Child(body, "Text"), "설명", 26, new Color(0.3f, 0.3f, 0.3f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _semi);
+        text.lineSpacing = 12;
+
+        GameObject dots = Child(sheet, "Dots"); Place(dots, new Anchor(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0)), new Vector2(0, 128), new Vector2(200, 14));
+        var dl = dots.AddComponent<HorizontalLayoutGroup>(); dl.spacing = 10; dl.childAlignment = TextAnchor.MiddleCenter; dl.childControlWidth = false; dl.childControlHeight = false; dl.childForceExpandWidth = false;
+        GameObject dot = Child(dots, "DotTemplate"); Place(dot, TopLeft, Vector2.zero, new Vector2(12, 12));
+        Image dotTemplate = Img(dot, _knob, Ink);
+        Button prev = Pill(sheet, "PrevButton", "이전 페이지", new Vector2(-170, 56));
+        Button next = Pill(sheet, "NextButton", "다음 페이지", new Vector2(170, 56));
+
+        // 연결
+        var so = new SerializedObject(window);
+        so.FindProperty("panel").objectReferenceValue = panel;
+        so.FindProperty("closeButton").objectReferenceValue = closeButton;
+        so.FindProperty("book").objectReferenceValue = book;
+        so.FindProperty("categoryLabel").objectReferenceValue = categoryLabel;
+        so.FindProperty("tabTemplate").objectReferenceValue = tabTemplate;
+        so.FindProperty("search").objectReferenceValue = search;
+        so.FindProperty("itemTemplate").objectReferenceValue = itemTemplate;
+        so.FindProperty("emptyHint").objectReferenceValue = empty;
+        so.FindProperty("image").objectReferenceValue = image;
+        so.FindProperty("imageFrame").objectReferenceValue = frame;
+        so.FindProperty("title").objectReferenceValue = title;
+        so.FindProperty("body").objectReferenceValue = text;
+        so.FindProperty("dotTemplate").objectReferenceValue = dotTemplate;
+        so.FindProperty("prevButton").objectReferenceValue = prev;
+        so.FindProperty("nextButton").objectReferenceValue = next;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        tab.SetActive(false); item.SetActive(false); dot.SetActive(false);
+
+        GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+        Object.DestroyImmediate(root);
+
+        AttachToHud(prefab.GetComponent<HelpWindow>());
+        AssetDatabase.SaveAssets();
+        Debug.Log($"[도움말] {PrefabPath} 생성, {HudPath}에 버튼 · 창을 붙였다. 내용: {BookPath}");
+    }
+
+    // PF_AUI의 [메뉴] 묶음에 [도움말] 버튼(성장 버튼 복제)을 더하고, 캔버스 맨 위에 창을 놓아 MainHud에 잇는다.
+    private static void AttachToHud(HelpWindow prefab)
+    {
+        GameObject hud = PrefabUtility.LoadPrefabContents(HudPath);
+        try
+        {
+            var main = hud.GetComponentInChildren<MainHud>(true);
+            var so = new SerializedObject(main);
+            var growth = (Button)so.FindProperty("growthButton").objectReferenceValue;
+            Transform group = growth.transform.parent;
+
+            // 다시 돌리면 이전 것을 지운다. 묶음 높이는 처음 붙일 때만 늘린다.
+            Transform oldButton = group.Find("HelpButton");
+            if (oldButton != null) Object.DestroyImmediate(oldButton.gameObject);
+            else ((RectTransform)group).sizeDelta += new Vector2(0, 74);   // 버튼 60 + 간격 14
+            Transform backs = group.Find("Deco_Backs");
+            Transform oldBack = backs != null ? backs.Find("Back_Help") : null;
+            if (oldBack != null) Object.DestroyImmediate(oldBack.gameObject);
+            foreach (HelpWindow old in hud.GetComponentsInChildren<HelpWindow>(true)) Object.DestroyImmediate(old.gameObject);
+
+            GameObject help = Object.Instantiate(growth.gameObject, group);
+            help.name = "HelpButton";
+            help.GetComponentInChildren<TextMeshProUGUI>().text = "도움말";
+            help.transform.SetAsLastSibling();
+            Button helpButton = help.GetComponent<Button>();
+            helpButton.onClick = new Button.ButtonClickedEvent();
+            if (backs != null && backs.Find("Back_Growth") is Transform backGrowth)
+            {
+                GameObject back = Object.Instantiate(backGrowth.gameObject, backs);
+                back.name = "Back_Help";
+                ((RectTransform)back.transform).anchoredPosition += new Vector2(0, -74);
+            }
+
+            Canvas canvas = main.GetComponentInParent<Canvas>(true).rootCanvas;
+            var window = (HelpWindow)PrefabUtility.InstantiatePrefab(prefab, canvas.transform);
+            window.transform.SetAsLastSibling();
+
+            so.FindProperty("helpButton").objectReferenceValue = helpButton;
+            so.FindProperty("helpWindow").objectReferenceValue = window;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            PrefabUtility.SaveAsPrefabAsset(hud, HudPath);
+        }
+        finally { PrefabUtility.UnloadPrefabContents(hud); }
+    }
+
+    // --- 만들기 도우미 ---
+
+    private readonly struct Anchor
+    {
+        public readonly Vector2 Min, Max, Pivot;
+        public Anchor(Vector2 min, Vector2 max, Vector2 pivot) { Min = min; Max = max; Pivot = pivot; }
+    }
+
+    private static readonly Anchor TopLeft = new(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0.5f, 0.5f));
+    private static readonly Anchor TopRight = new(new Vector2(1, 1), new Vector2(1, 1), new Vector2(0.5f, 0.5f));
+    private static readonly Anchor Stretched = new(Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f));
+
+    private static GameObject Child(GameObject parent, string name)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent.transform, false);
+        return go;
+    }
+
+    private static RectTransform Place(GameObject go, Anchor a, Vector2 pos, Vector2 size)
+    {
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = a.Min; rt.anchorMax = a.Max; rt.pivot = a.Pivot;
+        rt.anchoredPosition = pos; rt.sizeDelta = size;
+        return rt;
+    }
+
+    private static void Stretch(GameObject go) => Stretch(go, Vector2.zero, Vector2.zero);
+
+    private static void Stretch(GameObject go, Vector2 min, Vector2 max)
+    {
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = min; rt.offsetMax = max;
+    }
+
+    private static Image Img(GameObject go, Sprite sprite, Color color)
+    {
+        var img = go.AddComponent<Image>();
+        img.sprite = sprite; img.color = color;
+        if (sprite != null && sprite.border != Vector4.zero) img.type = Image.Type.Sliced;
+        return img;
+    }
+
+    private static TextMeshProUGUI Text(GameObject go, string text, float size, Color color, Anchor a, Vector2 pos, Vector2 box, TextAlignmentOptions align, TMP_FontAsset font)
+    {
+        Place(go, a, pos, box);
+        var t = go.AddComponent<TextMeshProUGUI>();
+        t.font = font; t.text = text; t.fontSize = size; t.color = color; t.alignment = align;
+        t.textWrappingMode = TextWrappingModes.Normal; t.raycastTarget = false;
+        return t;
+    }
+
+    private static Button Pill(GameObject parent, string name, string label, Vector2 pos)
+    {
+        GameObject go = Child(parent, name);
+        Place(go, new Anchor(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0)), pos, new Vector2(300, 60));
+        Img(go, _round, Color.white);
+        go.AddComponent<Outline>().effectColor = new Color(0, 0, 0, 0.18f);
+        Text(Child(go, "Label"), label, 26, Ink, Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _bold);
+        return go.AddComponent<Button>();
+    }
+}

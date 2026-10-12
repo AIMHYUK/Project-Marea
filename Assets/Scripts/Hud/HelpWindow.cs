@@ -1,0 +1,191 @@
+using System.Collections.Generic;
+using Marea.Core;
+using Marea.Data;
+using TMPro;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.UI;
+
+namespace Marea.Hud
+{
+    /// <summary>
+    /// 도움말 창. (+10/12) 왼쪽 분류 탭 · 검색 · 항목 목록, 오른쪽 그림 · 제목 · 설명 · 페이지 넘김. 메인 HUD [메뉴] → [도움말].
+    ///
+    /// 내용은 HelpBook 에셋이 든다. 탭 · 목록 · 페이지 점은 템플릿 오브젝트(꺼 둔 것)를 복제해 채운다 — 모양은 프리팹에서 고친다.
+    /// 프리팹은 Marea/UI/도움말 창 만들기(HelpWindowBuilder)가 만든다.
+    /// </summary>
+    public class HelpWindow : UiPanel
+    {
+        private const string All = "전체";
+
+        [SerializeField] private HelpBook book;
+        [Tooltip("HUD의 시계(WorldClockCanvas 10) 등 따로 된 캔버스 위에 그린다. 토스트(500)보다는 아래.")]
+        [SerializeField] private int sortingOrder = 100;
+
+        [Header("왼쪽")]
+        [SerializeField] private TextMeshProUGUI categoryLabel;
+        [SerializeField] private Button tabTemplate;
+        [SerializeField] private TMP_InputField search;
+        [SerializeField] private Button itemTemplate;
+        [SerializeField] private GameObject emptyHint;
+
+        [Header("오른쪽")]
+        [SerializeField] private Image image;
+        [SerializeField] private GameObject imageFrame;
+        [SerializeField] private TextMeshProUGUI title;
+        [SerializeField] private TextMeshProUGUI body;
+        [Tooltip("제목 · 설명 묶음의 높이 — 그림이 있을 때 / 없을 때(위로 올린다).")]
+        [SerializeField] private float bodyYWithImage = -530f;
+        [SerializeField] private float bodyYWithoutImage = -240f;
+        [SerializeField] private Image dotTemplate;
+        [SerializeField] private Button prevButton;
+        [SerializeField] private Button nextButton;
+
+        [Header("색")]
+        [SerializeField] private Color tabOn = new(0.95f, 0.84f, 0.6f, 1f);
+        [SerializeField] private Color tabOff = new(1f, 1f, 1f, 0.45f);
+        [SerializeField] private Color itemOn = new(0.93f, 0.93f, 0.93f, 1f);
+        [SerializeField] private Color itemOff = new(1f, 1f, 1f, 0.06f);
+        [SerializeField] private Color itemTextOn = new(0.12f, 0.12f, 0.12f, 1f);
+        [SerializeField] private Color itemTextOff = new(0.92f, 0.92f, 0.92f, 1f);
+        [SerializeField] private Color dotOn = new(0.15f, 0.15f, 0.15f, 1f);
+        [SerializeField] private Color dotOff = new(0.15f, 0.15f, 0.15f, 0.3f);
+
+        private readonly List<Button> _tabs = new();
+        private readonly List<(Button button, HelpBook.Topic topic)> _items = new();
+        private readonly List<Image> _dots = new();
+        private string _category = All;
+        private HelpBook.Topic _topic;
+        private int _page;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            // 다른 캔버스 아래에 들어가면 프리팹의 정렬 덮어쓰기가 풀린다 — 여기서 건다.
+            Canvas own = GetComponent<Canvas>();
+            if (own == null) own = gameObject.AddComponent<Canvas>();
+            own.overrideSorting = true;
+            own.sortingOrder = sortingOrder;
+            if (GetComponent<GraphicRaycaster>() == null) gameObject.AddComponent<GraphicRaycaster>();
+            if (book == null) Debug.LogError($"{name}: HelpWindow.book이 비어 있다. 도움말 내용이 없다.", this);
+            if (tabTemplate == null || itemTemplate == null || dotTemplate == null || title == null || body == null)
+                Debug.LogError($"{name}: HelpWindow의 템플릿 · 글 칸 중 비어 있는 게 있다. 도움말 창을 다시 만들 것.", this);
+            if (prevButton != null) prevButton.onClick.AddListener(() => ShowPage(_page - 1));
+            if (nextButton != null) nextButton.onClick.AddListener(() => ShowPage(_page + 1));
+            if (search != null) search.onValueChanged.AddListener(_ => RebuildList());
+            BuildTabs();
+        }
+
+        private void Update()
+        {
+            if (IsVisible && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) Close();
+        }
+
+        protected override void OnOpened()
+        {
+            if (search != null) search.SetTextWithoutNotify("");
+            SelectCategory(All);
+        }
+
+        private void BuildTabs()
+        {
+            if (book == null || tabTemplate == null) return;
+            tabTemplate.gameObject.SetActive(false);
+            var names = new List<string> { All };
+            if (book.categories != null) names.AddRange(book.categories);
+            foreach (string n in names)
+            {
+                Button tab = Instantiate(tabTemplate, tabTemplate.transform.parent);
+                tab.gameObject.SetActive(true);
+                tab.name = $"Tab_{n}";
+                tab.GetComponentInChildren<TextMeshProUGUI>().text = n;
+                string captured = n;
+                tab.onClick.AddListener(() => SelectCategory(captured));
+                _tabs.Add(tab);
+            }
+        }
+
+        private void SelectCategory(string category)
+        {
+            _category = category;
+            if (categoryLabel != null) categoryLabel.text = category;
+            foreach (Button tab in _tabs)
+            {
+                bool on = tab.name == $"Tab_{category}";
+                tab.GetComponentInChildren<TextMeshProUGUI>().color = on ? tabOn : tabOff;
+                Transform line = tab.transform.Find("Underline");
+                if (line != null) line.gameObject.SetActive(on);
+            }
+            RebuildList();
+        }
+
+        private void RebuildList()
+        {
+            foreach (var (button, _) in _items) Destroy(button.gameObject);
+            _items.Clear();
+            if (book == null || itemTemplate == null) return;
+            itemTemplate.gameObject.SetActive(false);
+
+            string q = search != null ? search.text.Trim() : "";
+            foreach (HelpBook.Topic t in book.topics)
+            {
+                if (q.Length == 0 && _category != All && t.category != _category) continue;   // 검색어가 있으면 전체에서 찾는다
+                if (q.Length > 0 && t.title.IndexOf(q, System.StringComparison.OrdinalIgnoreCase) < 0) continue;
+                Button item = Instantiate(itemTemplate, itemTemplate.transform.parent);
+                item.gameObject.SetActive(true);
+                item.GetComponentInChildren<TextMeshProUGUI>().text = t.title;
+                HelpBook.Topic captured = t;
+                item.onClick.AddListener(() => SelectTopic(captured));
+                _items.Add((item, t));
+            }
+            if (emptyHint != null) emptyHint.SetActive(_items.Count == 0);
+            SelectTopic(_items.Count > 0 ? (_items.Exists(i => i.topic == _topic) ? _topic : _items[0].topic) : null);
+        }
+
+        private void SelectTopic(HelpBook.Topic topic)
+        {
+            _topic = topic;
+            foreach (var (button, t) in _items)
+            {
+                bool on = t == topic;
+                button.GetComponent<Image>().color = on ? itemOn : itemOff;
+                button.GetComponentInChildren<TextMeshProUGUI>().color = on ? itemTextOn : itemTextOff;
+                Transform mark = button.transform.Find("Marker");
+                if (mark != null) mark.gameObject.SetActive(on);
+            }
+
+            foreach (Image d in _dots) Destroy(d.gameObject);
+            _dots.Clear();
+            int pages = topic?.pages?.Length ?? 0;
+            if (dotTemplate != null)
+            {
+                dotTemplate.gameObject.SetActive(false);
+                for (int i = 0; i < pages && pages > 1; i++)
+                {
+                    Image dot = Instantiate(dotTemplate, dotTemplate.transform.parent);
+                    dot.gameObject.SetActive(true);
+                    _dots.Add(dot);
+                }
+            }
+            ShowPage(0);
+        }
+
+        private void ShowPage(int page)
+        {
+            int count = _topic?.pages?.Length ?? 0;
+            _page = Mathf.Clamp(page, 0, Mathf.Max(0, count - 1));
+            HelpBook.Page p = count > 0 ? _topic.pages[_page] : null;
+
+            if (title != null) title.text = _topic != null ? _topic.title : "";
+            if (body != null) body.text = p != null ? p.text : "";
+            bool hasImage = p != null && p.image != null;
+            if (imageFrame != null) imageFrame.SetActive(hasImage);
+            if (image != null && hasImage) image.sprite = p.image;
+            if (title != null && title.transform.parent is RectTransform group)
+                group.anchoredPosition = new Vector2(group.anchoredPosition.x, hasImage ? bodyYWithImage : bodyYWithoutImage);
+            for (int i = 0; i < _dots.Count; i++) _dots[i].color = i == _page ? dotOn : dotOff;
+            if (prevButton != null) prevButton.interactable = _page > 0;
+            if (nextButton != null) nextButton.interactable = _page < count - 1;
+        }
+    }
+}

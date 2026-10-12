@@ -10,7 +10,7 @@ namespace Marea.Hud
     /// 메인 플레이 화면의 A 몫 HUD. (+10/2, 이슈 92 — 와이어프레임 01)
     ///
     /// - 우상단 재화(골드)
-    /// - 좌하단 [메뉴] → 탐사정 / 창고 / 성장 펼침
+    /// - 좌하단 [메뉴] → 탐사정 / 창고 / 성장 / 도움말(+10/12) 펼침
     /// - 좌측 알람 (지금은 탐사정 귀환 하나)
     ///
     /// 와이어프레임의 접수된 주문 · 남은 영업 시간 · [영업 시작]은 B 몫(BusinessUIController)
@@ -31,6 +31,9 @@ namespace Marea.Hud
         [SerializeField] private Button expeditionButton;
         [SerializeField] private Button warehouseButton;
         [SerializeField] private Button growthButton;
+        [Tooltip("(+10/12) [메뉴] 묶음의 [도움말]. HelpWindowBuilder가 붙인다.")]
+        [SerializeField] private Button helpButton;
+        [SerializeField] private HelpWindow helpWindow;
 
         [Header("알림 표식 (!)")]
         [Tooltip("탐사정이 돌아왔을 때 [메뉴] 버튼에 붙는 표식. 접혀 있어도 보이게.")]
@@ -64,6 +67,7 @@ namespace Marea.Hud
             // ?. 를 쓰지 않는다 — 파괴된 UnityEngine.Object는 ?. 로는 null로 안 걸린다.
             if (warehouseButton != null && warehouseUI != null) warehouseButton.onClick.AddListener(warehouseUI.Toggle);
             if (growthButton != null && upgradeUI != null) growthButton.onClick.AddListener(upgradeUI.Toggle);
+            if (helpButton != null && helpWindow != null) helpButton.onClick.AddListener(helpWindow.Toggle);   // (+10/12)
             if (expeditionButton != null) expeditionButton.onClick.AddListener(OpenExpedition);
 
             if (menuGroup != null) menuGroup.SetActive(false);
