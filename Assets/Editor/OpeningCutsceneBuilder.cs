@@ -38,6 +38,7 @@ public static class OpeningCutsceneBuilder
         if (old != null) Object.DestroyImmediate(old);
         AssetDatabase.DeleteAsset($"{Dir}/TL_Opening.playable");
         AssetDatabase.DeleteAsset($"{Dir}/SG_OpeningSmash.signal");
+        AssetDatabase.DeleteAsset($"{Dir}/SG_OpeningRun.signal");
         System.IO.Directory.CreateDirectory(Dir);
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PrefabPath));
 
@@ -57,10 +58,10 @@ public static class OpeningCutsceneBuilder
         dadModel.name = "Dad";
         dadModel.transform.SetParent(content.transform, false);
         dadModel.transform.SetPositionAndRotation(dadPos, Quaternion.LookRotation(fwd));
-        dadModel.transform.localScale = Vector3.one * 2f;   // PF_Customer와 같다
+        dadModel.transform.localScale = Vector3.one * 3f;   // (+10/12) PF_Customer(2)의 1.5배
         if (!dadModel.TryGetComponent(out Animator dadAnim)) dadAnim = dadModel.AddComponent<Animator>();
         dadAnim.applyRootMotion = false;
-        Vector3 dadHead = dadPos + Vector3.up * 1.7f;
+        Vector3 dadHead = dadPos + Vector3.up * 2.55f;   // (+10/12) 1.5배 키
 
         // --- 고래: 경로는 Whale, 헤엄 · 점프는 Model ---
         // 경로를 Animator가 붙은 오브젝트 자신에 걸면 Timeline이 루트 모션(시작점 기준 이동량)으로 바꿔 버린다.
@@ -109,6 +110,9 @@ public static class OpeningCutsceneBuilder
         debris.transform.SetParent(content.transform, false);
         string[] pieces = { "PF_BrokenPlank_HoleLarge", "PF_BrokenPlank_HoleDouble", "PF_BrokenPlank_HoleSingle", "PF_BrokenPlank_Split",
                             "PF_LoosePlank_Long", "PF_LoosePlank_Short", "PF_WoodDamage_HoleLarge", "PF_WoodDamage_Crack", "PF_WoodDamage_HoleCrack" };
+        // (+10/12) 판자(Wood_01)가 데크보다 옅어 보였다 — 진하게 한 사본으로 맞춘다(데칼은 그대로).
+        var plankMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/M_LoosePlank_Deck.mat");
+        var deckWood = AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/BO/Shader/Wood_01.mat");
         var rng = new System.Random(7);
         for (int i = 0; i < 14; i++)
         {
@@ -119,6 +123,7 @@ public static class OpeningCutsceneBuilder
             float a = (float)rng.NextDouble() * Mathf.PI * 2f, r = 1f + (float)rng.NextDouble() * 7f;
             go.transform.position = Floor(impact + new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r * 0.8f), station.transform);
             go.transform.rotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f) * go.transform.rotation;
+            foreach (MeshRenderer mr in go.GetComponentsInChildren<MeshRenderer>()) if (mr.sharedMaterial == deckWood) mr.sharedMaterial = plankMat;
         }
 
         // --- 카메라 ---
@@ -160,8 +165,8 @@ public static class OpeningCutsceneBuilder
         Shot(cmTrack, director, camImpact, ImpactAt, AfterAt);
         Shot(cmTrack, director, camAfter, AfterAt, End);
 
-        // (+10/12) 아빠는 조리대 앞에 서 있다가 RunAt에 뒤로 돌아 달아난다(달리기 클립의 루트 모션이 앞으로 초속 5m).
-        // 트랙 기준 자리 · 방향을 조리대 앞으로 두고, 달리기 클립만 180° 돌린다.
+        // (+10/12) 아빠는 조리대 앞에 서 있다가 RunAt에 고래 반대쪽(충돌 지점 → 아빠 방향, 동쪽)으로 달아난다(루트 모션 초속 5m).
+        // 트랙 기준 자리 · 방향을 조리대 앞으로 두고, 달리기 클립만 92° 돌린다.
         var dadTrack = timeline.CreateTrack<AnimationTrack>(null, "Dad");
         dadTrack.trackOffset = TrackOffset.ApplyTransformOffsets;
         dadTrack.position = dadPos;
@@ -169,7 +174,7 @@ public static class OpeningCutsceneBuilder
         Clip(dadTrack, Load<AnimationClip>("Assets/Art/Asset/Character/NPC_01/Animation/Npc01_Standing.fbx", "AN_Npc01_Standing"), 0f, RunAt);
         Clip(dadTrack, Load<AnimationClip>("Assets/Cutscene/Opening/Anim/XBot_FastRun.fbx", "AN_Dad_FastRun"), RunAt, End - RunAt);
         foreach (TimelineClip c in dadTrack.GetClips())
-            if (c.start >= RunAt) ((AnimationPlayableAsset)c.asset).rotation = Quaternion.Euler(0f, 180f, 0f);
+            if (c.start >= RunAt) ((AnimationPlayableAsset)c.asset).rotation = Quaternion.Euler(0f, 92f, 0f);   // (+10/12) 고래 반대쪽(동쪽)으로
         director.SetGenericBinding(dadTrack, dadAnim);
 
         var pathTrack = timeline.CreateTrack<AnimationTrack>(null, "Whale Path");
@@ -206,6 +211,13 @@ public static class OpeningCutsceneBuilder
         var reaction = new UnityEvent();
         UnityEventTools.AddPersistentListener(reaction, cutscene.Smash);
         receiver.AddReaction(signal, reaction);
+        // (+10/12) 아빠가 뛰기 시작할 때 앞길의 벽을 잠시 숨긴다(벽을 뚫고 지나가 보였다).
+        var runSignal = ScriptableObject.CreateInstance<SignalAsset>();
+        AssetDatabase.CreateAsset(runSignal, $"{Dir}/SG_OpeningRun.signal");
+        signalTrack.CreateMarker<SignalEmitter>(RunAt).asset = runSignal;
+        var runReaction = new UnityEvent();
+        UnityEventTools.AddPersistentListener(runReaction, cutscene.ClearRunPath);
+        receiver.AddReaction(runSignal, runReaction);
 
         timeline.fixedDuration = End;
         timeline.durationMode = TimelineAsset.DurationMode.FixedLength;
@@ -214,12 +226,14 @@ public static class OpeningCutsceneBuilder
         var so = new SerializedObject(cutscene);
         so.FindProperty("director").objectReferenceValue = director;
         so.FindProperty("content").objectReferenceValue = content;
+        so.FindProperty("runner").objectReferenceValue = dadModel.transform;
         so.FindProperty("impulse").objectReferenceValue = impulse;
         SerializedProperty bp = so.FindProperty("burstPieces");
         string[] burst = { "PF_LoosePlank_Long", "PF_LoosePlank_Short" };
         bp.arraySize = burst.Length;
         for (int i = 0; i < burst.Length; i++)
             bp.GetArrayElementAtIndex(i).objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Art/Asset/Island/WoodDamage/{burst[i]}.prefab");
+        so.FindProperty("burstMaterial").objectReferenceValue = plankMat;
         SerializedProperty sp = so.FindProperty("smashPoints");
         sp.arraySize = smashPoints.Count;
         for (int i = 0; i < smashPoints.Count; i++) sp.GetArrayElementAtIndex(i).objectReferenceValue = smashPoints[i];
