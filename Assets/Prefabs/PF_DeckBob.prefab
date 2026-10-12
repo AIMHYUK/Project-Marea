@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &7503298487650057065
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1684735306748991840}
+  - component: {fileID: 4252911940599715034}
+  m_Layer: 0
+  m_Name: PF_DeckBob
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1684735306748991840
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7503298487650057065}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4252911940599715034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7503298487650057065}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb66ba6e28696784497192ca09b38ab5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.DeckBob
+  sections:
+  - name: "\uC2DD\uB2F9 \uB0A8\uCABD"
+    probe: {x: 68.9, y: 9, z: 32.9}
+    hingeSide: {x: 0, y: 0, z: 1}
+  - name: Lv02
+    probe: {x: 51.1, y: 8.2, z: 32.7}
+    hingeSide: {x: 1, y: 0, z: 0}
+  - name: Lv03
+    probe: {x: 50.8, y: 7.6, z: 46.7}
+    hingeSide: {x: 1, y: 0, z: 0}
+  - name: "\uB18D\uC7A5"
+    probe: {x: 102.5, y: 7.9, z: 33.3}
+    hingeSide: {x: 1, y: 0, z: 0}
+  idleAngle: 0.3
+  idlePeriod: {x: 5, y: 8}
+  refreshSeconds: 3
+  seaLevel: 6.9

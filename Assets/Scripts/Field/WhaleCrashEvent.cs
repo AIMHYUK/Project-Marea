@@ -15,15 +15,12 @@ namespace Marea.Field
     ///
     /// 흐름: 영업을 열고 delayAfterOpen 뒤 → 부딪칠 자리 고르기 → 고래가 그 가장자리를 스치며 헤엄(WhaleSwimmer.Graze)
     /// → 가장 깊이 파고든 순간: 물보라 · 먼지, 카메라 흔들림, 판자 조각, 그 근처 데크에 파손 장판 hazardCount개, 알림
-    /// → 그 데크 판이 뗏목처럼 기울었다 잦아든다(Sway).
+    /// → 그 데크 판이 뗏목처럼 기울었다 잦아든다(DeckBob.Kick).
     ///
-    /// 부딪칠 자리: sections(데크 판 위 한 점씩)마다 그 아래 큰 바닥 메시를 찾아 상자를 얻고, 네 가장자리 중 고래가 지나갈 줄이
-    /// 바다뿐인 쪽(콜라이더가 수면 위로 안 걸리는 쪽)만 후보로 둔다. 후보 중 플레이어에게 가장 가까운 곳 — 보이는 데서 친다.
-    /// 바닥 메시가 꺼진 판(확장 전 폐허)은 건너뛴다.
+    /// 부딪칠 자리: 흔들리는(지어진) 데크 판(DeckBob.ActiveFloors)마다 네 가장자리 중 고래가 지나갈 길이 바다로 트인 쪽만 후보로 둔다.
+    /// 후보 중 플레이어에게 가장 가까운 곳 — 보이는 데서 친다. (+10/12) 판 목록을 DeckBob과 같이 쓴다 — 예전엔 여기 따로 들었다.
     ///
-    /// 흔들림: 그 판 위에 놓인 렌더러(바닥 · 탁자 · 의자 · 난간 · 장판)를 한 덩어리로, 고래 반대쪽 가장자리를 경첩 삼아 돌린다 —
-    /// 안쪽(건물 쪽)은 안 움직여 이음매가 안 벌어지고 바다 쪽 가장자리가 가장 크게 오르내린다. 사람(NavMeshAgent)은 안 움직인다.
-    /// 높이 3m를 넘는 것(벽 · 지붕)은 빼서, 건물 판은 sections에 넣지 않는다.
+    /// 흔들림은 DeckBob이 맡는다 — 평소 출렁임과 같은 물체를 움직여서, 따로 돌리면 서로 덮어쓴다.
     ///
     /// 고친 장판은 다시 안 생긴다. 안 고친 장판 · 치른 날은 저장한다(CaptainEvent와 같은 형식).
     /// 고래 오브젝트(WhaleSwimmer 옆)에 붙인다.
@@ -38,10 +35,6 @@ namespace Marea.Field
         [SerializeField, Min(0f)] private float waitForWhale = 90f;
         [Tooltip("플레이 중 이 키로 바로 부딪치게 한다(테스트 — 영업 · 날짜와 상관없이).")]
         [SerializeField] private Key testKey = Key.F12;
-
-        [Header("어디를 — 데크 판")]
-        [Tooltip("부딪칠 수 있는 데크 판 위의 한 점씩(월드). 그 아래 바닥 메시가 꺼져 있으면(확장 전 폐허) 건너뛴다. 식당 건물 판은 넣지 않는다.")]
-        [SerializeField] private Vector3[] sections = { new(68.8f, 8.9f, 32.5f), new(51f, 8.4f, 32.8f), new(51f, 7.7f, 46.4f) };
 
         [Header("고래 경로 — 바다에서 비스듬히 들어와 툭 치고 비스듬히 빠진다")]
         [Tooltip("닿는 순간 고래 몸 가운데와 데크 가장자리 사이(m). 몸 반 폭이 3.5m라 그보다 조금 작으면 살짝 파고든다.")]
@@ -78,7 +71,7 @@ namespace Marea.Field
         [Tooltip("카메라 흔들기 세기(m) · 시간(초).")]
         [SerializeField, Min(0f)] private float shakeStrength = 0.35f;
         [SerializeField, Min(0f)] private float shakeSeconds = 0.7f;
-        [Tooltip("데크 판이 기우는 최대 각도(도). 판 폭이 13m면 1도에 바다 쪽 가장자리가 23cm 오르내린다.")]
+        [Tooltip("데크 판이 기우는 최대 각도(도) — DeckBob.Kick에 넘긴다. 판 폭이 13m면 1도에 바다 쪽 가장자리가 23cm 오르내린다.")]
         [SerializeField, Range(0f, 5f)] private float swayAngle = 0.8f;
         [Tooltip("흔들리는 빠르기(Hz).")]
         [SerializeField, Min(0.05f)] private float swayFrequency = 0.45f;
@@ -102,7 +95,7 @@ namespace Marea.Field
         private WhaleSwimmer _whale;
         private CameraFollow _camera;
         private int _doneDay = -1;
-        private bool _running, _swaying;
+        private bool _running;
         private readonly List<TripHazard> _hazards = new();   // 이 이벤트가 부순 자리 — 고치지 않은 것만 저장한다
 
         private static bool IsOpen => BusinessManager.Instance != null && BusinessManager.Instance.CurrentState == BusinessState.Open;
@@ -111,7 +104,6 @@ namespace Marea.Field
         {
             _whale = GetComponent<WhaleSwimmer>();
             if (hazardPrefab == null) Debug.LogError($"{name}: WhaleCrashEvent.hazardPrefab이 비어 있다. 고래가 부딪쳐도 바닥이 안 부서진다.", this);
-            if (sections == null || sections.Length == 0) Debug.LogError($"{name}: WhaleCrashEvent.sections가 비어 있다. 부딪칠 데크가 없다.", this);
 
             // 저장 — 치른 날, 아직 안 고친 파손 자리. 형식 "x,y,z,yaw;..."
             _doneDay = SaveFile.GetInt("whaleCrashDay", -1);
@@ -127,6 +119,7 @@ namespace Marea.Field
         {
             Camera cam = Camera.main;
             if (cam != null) _camera = cam.GetComponent<CameraFollow>();
+            if (DeckBob.Instance == null) Debug.LogError($"{name}: 씬에 DeckBob이 없다. 고래가 부딪칠 데크를 못 고른다(PF_DeckBob을 놓을 것).", this);
             BusinessManager bm = BusinessManager.Instance;
             if (bm == null) { Debug.LogError($"{name}: BusinessManager가 없다. 고래 충돌이 안 일어난다.", this); return; }
             bm.OnStateChanged += OnBusinessState;
@@ -190,9 +183,9 @@ namespace Marea.Field
             float bestDist = float.MaxValue;
             Vector3[] dirs = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
             List<Bounds> obstacles = Obstacles();
-            foreach (Vector3 probe in sections)
+            if (DeckBob.Instance == null) return false;
+            foreach (Bounds floor in DeckBob.Instance.ActiveFloors)
             {
-                if (!FindFloor(probe, _whale.SeaLevel + 0.3f, out Bounds floor)) continue;
                 foreach (Vector3 dir in dirs)
                 {
                     Vector3 tangent = Vector3.Cross(Vector3.up, dir);
@@ -216,25 +209,6 @@ namespace Marea.Field
                 }
             }
             return bestDist < float.MaxValue;
-        }
-
-        // 그 점 바로 아래 가장 넓은 바닥 메시(얇고, 윗면이 점 높이 근처 · 수면 위). 꺼져 있으면(폐허) 못 찾는다 — 바다 판을 잡지 않게 수면 위만.
-        private static bool FindFloor(Vector3 probe, float aboveSea, out Bounds floor)
-        {
-            floor = default;
-            float bestArea = 60f;   // 이보다 작은 건 바닥 판이 아니다
-            foreach (MeshRenderer r in FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
-            {
-                if (!r.enabled) continue;
-                Bounds b = r.bounds;
-                if (b.size.y > 1.5f || b.max.y < aboveSea || Mathf.Abs(b.max.y - probe.y) > 1f) continue;
-                if (probe.x < b.min.x || probe.x > b.max.x || probe.z < b.min.z || probe.z > b.max.z) continue;
-                float area = b.size.x * b.size.z;
-                if (area <= bestArea) continue;
-                bestArea = area;
-                floor = b;
-            }
-            return bestArea > 60f;
         }
 
         private void Path(Spot s, out Vector3 from, out Vector3 apex, out Vector3 to)
@@ -301,7 +275,7 @@ namespace Marea.Field
             if (_camera != null) _camera.Shake(shakeStrength, shakeSeconds);
             BreakFloor(s);
             Burst(p - s.outward * 0.8f + Vector3.up * 0.4f, s.outward);
-            if (!_swaying) StartCoroutine(Sway(s));
+            if (DeckBob.Instance != null) DeckBob.Instance.Kick(p, s.outward, swayAngle, swayFrequency, swayDecay, swaySeconds);
             Toast.Show(toast);
         }
 
@@ -366,69 +340,6 @@ namespace Marea.Field
                 body.angularVelocity = Random.insideUnitSphere * 10f;
                 Destroy(piece, pieceLife);
             }
-        }
-
-        // --- 데크가 뗏목처럼 기울었다 잦아든다 ---
-
-        private IEnumerator Sway(Spot s)
-        {
-            _swaying = true;
-            Vector3 inward = -s.outward;
-            Vector3 hinge = s.edge + inward * (Extent(s.floor, inward) * 2f);   // 고래 반대쪽 가장자리
-            Vector3 axis = Vector3.Cross(Vector3.up, inward);
-            float down = (Quaternion.AngleAxis(1f, axis) * s.outward).y > 0f ? -1f : 1f;   // 이 부호로 돌면 바다 쪽이 내려간다
-
-            List<Transform> items = OnFloor(s.floor);
-            var restPos = new Vector3[items.Count];
-            var restRot = new Quaternion[items.Count];
-            for (int i = 0; i < items.Count; i++) { restPos[i] = items[i].position; restRot[i] = items[i].rotation; }
-
-            for (float t = 0f; t < swaySeconds; t += Time.deltaTime)
-            {
-                // 처음엔 고래 쪽이 쑥 내려갔다가 출렁이며 잦아든다. 끝 1초는 0으로 모은다.
-                float env = Mathf.Exp(-t / swayDecay) * Mathf.Clamp01(swaySeconds - t);
-                float angle = down * swayAngle * env * Mathf.Sin(2f * Mathf.PI * swayFrequency * t);
-                float roll = swayAngle * 0.3f * env * Mathf.Sin(2f * Mathf.PI * swayFrequency * 0.7f * t);
-                Quaternion q = Quaternion.AngleAxis(angle, axis) * Quaternion.AngleAxis(roll, inward);
-                for (int i = 0; i < items.Count; i++)
-                {
-                    if (items[i] == null) continue;
-                    items[i].SetPositionAndRotation(hinge + q * (restPos[i] - hinge), q * restRot[i]);
-                }
-                yield return null;
-            }
-            for (int i = 0; i < items.Count; i++)
-                if (items[i] != null) items[i].SetPositionAndRotation(restPos[i], restRot[i]);
-            _swaying = false;
-        }
-
-        // 그 판에 붙은 것들(위에 놓인 것 · 받치는 기둥) — 사람 · 고래 · 날아가는 조각 · UI는 빼고, 바닥보다 3m 넘게 솟는 것(벽 · 지붕)도 뺀다.
-        private List<Transform> OnFloor(Bounds floor)
-        {
-            var set = new HashSet<Transform>();
-            foreach (Renderer r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
-            {
-                if (!r.enabled || !(r is MeshRenderer)) continue;
-                Bounds b = r.bounds;
-                Vector3 c = b.center;
-                if (c.x < floor.min.x - 0.5f || c.x > floor.max.x + 0.5f || c.z < floor.min.z - 0.5f || c.z > floor.max.z + 0.5f) continue;
-                if (b.max.y < floor.min.y - 0.5f || b.max.y > floor.max.y + 3f) continue;   // 바닥에 닿는 것 — 물속 기둥까지(안 그러면 바닥과 기둥이 벌어진다)
-                Transform t = r.transform;
-                if (t.IsChildOf(transform) || t.GetComponentInParent<NavMeshAgent>() != null || t.GetComponentInParent<Canvas>() != null) continue;
-                Rigidbody body = t.GetComponentInParent<Rigidbody>();
-                if (body != null && !body.isKinematic) continue;
-                TripHazard hazard = t.GetComponentInParent<TripHazard>();
-                set.Add(hazard != null ? hazard.transform : t);   // 장판은 데칼째(루트) 움직인다
-            }
-            // 이미 고른 것의 자식은 부모를 따라 움직인다 — 두 번 돌리지 않게 뺀다.
-            var items = new List<Transform>();
-            foreach (Transform t in set)
-            {
-                bool nested = false;
-                for (Transform p = t.parent; p != null && !nested; p = p.parent) nested = set.Contains(p);
-                if (!nested) items.Add(t);
-            }
-            return items;
         }
 
         // --- 저장 ---
