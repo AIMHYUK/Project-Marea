@@ -167597,6 +167597,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: WhaleSwimmer
       objectReference: {fileID: 0}
+    - target: {fileID: 1934533500715807982, guid: 5950dda418ec8814f85c815b1daa2aa1, type: 3}
+      propertyPath: waterWake
+      value: 
+      objectReference: {fileID: 1854882242}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 7025482346950626550, guid: 5950dda418ec8814f85c815b1daa2aa1, type: 3}
@@ -174574,3 +174578,14 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f6293d0b4a79b4e409f33fecb3a6a395, type: 3}
+--- !u!114 &1854882242 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2839936703320689564, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
+  m_PrefabInstance: {fileID: 972758616}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b770bdb145907d24d8789bce01e2aab8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.WaterWake
