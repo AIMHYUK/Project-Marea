@@ -125,14 +125,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.DriftingCrate
   interactPoint: {fileID: 0}
   contents:
-  - ingredient: {fileID: 11400000, guid: 44e13d9daaa836d48b9d21a53789a16e, type: 2}
-    requiredAmount: 2
+  - ingredient: {fileID: 11400000, guid: e6e82f0a043244799c31067b36197fc9, type: 2}
+    requiredAmount: 5
     inputOrder: 0
+  amountRange: {x: 5, y: 10}
   landedMessage: "\uBB34\uC5B8\uAC00 \uB5A0\uB0B4\uB824\uC628 \uAC83 \uAC19\uB2E4\u2026"
   pickVfx: 2
   landedLoopVfx: {fileID: 664294417148989315, guid: 856f1a86f87c0214cbe692ac3ec9d65b, type: 3}
   landedVfxOffset: {x: 0, y: 0.8, z: 0}
-  landedVfxScale: 2.5
+  landedVfxScale: 1.5
   pickClip: {fileID: 0}
   pickVolume: 0.8
 --- !u!1001 &1614547204948498075

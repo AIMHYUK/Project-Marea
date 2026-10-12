@@ -250,7 +250,8 @@ namespace Marea.Field
 
             if (success)
             {
-                Settlement.SetEventMultiplier(eventDay, revenueMultiplier);
+                // (+10/13) 예정일(eventDay)이 아니라 오늘에 건다 — F10으로 다른 날 부르면 배율이 예정일에 걸려 오늘 정산엔 안 들어갔다.
+                Settlement.SetEventMultiplier(BusinessManager.Instance != null ? BusinessManager.Instance.Day : eventDay, revenueMultiplier);
                 Toast.Show(successToast);
                 if (captain != null) Say(captain.gameObject, captainSuccessLines);
 
