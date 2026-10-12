@@ -312,6 +312,7 @@ namespace Marea.Field
                         if (first == null)
                         {
                             first = c;
+                            if (ev != null) ev.Dress(c, true);   // (+10/12) 선장 — 해적 모델
                             watchUntil = clock + watchCustomerSeconds;
                         }
                     }
