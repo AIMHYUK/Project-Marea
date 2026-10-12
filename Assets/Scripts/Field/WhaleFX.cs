@@ -22,6 +22,8 @@ namespace Marea.Field
         [SerializeField] private Transform body;
 
         [Header("파티클")]
+        [Tooltip("(+10/12) 공용 물살(PF_WaterWake). 있으면 물살 자국 · 등 물보라는 여기가 속도에 맞춰 내고, 아래 wake · bowSpray는 안 쓴다.")]
+        [SerializeField] private WaterWake waterWake;
         [SerializeField] private ParticleSystem wake;
         [SerializeField] private ParticleSystem bowSpray;
         [SerializeField] private ParticleSystem spout;
@@ -65,6 +67,7 @@ namespace Marea.Field
                 SetEmitting(wake, false);
                 SetEmitting(bowSpray, false);
                 SetEmitting(airDrops, false);
+                if (waterWake != null) waterWake.Allowed = false;
                 _spoutTimer = -1f;
                 _lastJumpTime = -1f;
                 return;
@@ -75,13 +78,14 @@ namespace Marea.Field
             bool atSurface = b.y > sea - surfaceBelow && b.y < sea + surfaceAbove;
 
             // 물살 자국 · 등 물보라: 수면 위에 깔고, 고래 진행 방향을 따른다.
+            if (waterWake != null) waterWake.Allowed = atSurface;   // (+10/12) 속도에 맞춘 공용 물살
             Vector3 fwd = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
             Quaternion yaw = fwd.sqrMagnitude > 0.001f ? Quaternion.LookRotation(fwd, Vector3.up) : Quaternion.identity;
             Place(wake, new Vector3(b.x, sea + 0.05f, b.z), yaw);
             Vector3 h = head.position;
             Place(bowSpray, new Vector3(h.x, sea + 0.1f, h.z), yaw);
-            SetEmitting(wake, atSurface);
-            SetEmitting(bowSpray, atSurface);
+            SetEmitting(wake, atSurface && waterWake == null);
+            SetEmitting(bowSpray, atSurface && waterWake == null);
 
             UpdateJump(sea, b);
             UpdateSpout(atSurface);
