@@ -16,6 +16,16 @@ namespace Marea.Cooking
         [Tooltip("재료 모델 가장자리에 추가할 클릭 여유 (1920×1080 기준 픽셀)")]
         [SerializeField, Min(0f)] private float veggieClickPadding = 48f;
 
+        [Header("클릭 주변 재료 함께 투입")]
+        [InspectorName("클릭당 최소 재료 수")]
+        [SerializeField, Range(1, 3)] private int minIngredientsPerClick = 1;
+        [InspectorName("클릭당 최대 재료 수")]
+        [SerializeField, Range(1, 3)] private int maxIngredientsPerClick = 1;
+        [Tooltip("클릭 지점 주변에서 함께 투입할 재료의 선택 여유 (1920×1080 기준 픽셀). 멀리 떨어진 재료는 제외합니다.")]
+        [InspectorName("주변 재료 선택 반경")]
+        [SerializeField, Min(0f)] private float nearbyIngredientClickRadius = 160f;
+        private int _lastIngredientClickFrame = -1;
+
         [Header("재료 투입 애니메이션")]
         [InspectorName("투입 이동 시간 (초)")]
         [SerializeField, Min(0.1f)] private float ingredientInsertDuration = 0.45f;
@@ -189,6 +199,7 @@ namespace Marea.Cooking
         {
             _ingredientFlights.Clear();
             _landedIngredients.Clear();
+            _lastIngredientClickFrame = -1;
             IsVeggieInPan = false;
             IsCookCompleted = false;
             IsBurned = false;
@@ -636,7 +647,8 @@ namespace Marea.Cooking
 
         private void CheckVeggieClickHit()
         {
-            if (_mainCamera == null)
+            if (_mainCamera == null || Mouse.current == null ||
+                _lastIngredientClickFrame == Time.frameCount)
             {
                 return;
             }
@@ -649,7 +661,7 @@ namespace Marea.Cooking
             float closestScore = float.PositiveInfinity;
             foreach (var veggie in clickableVeggieObjects)
             {
-                if (veggie == null || _panIngredientOffsets.ContainsKey(veggie) || _ingredientFlights.ContainsKey(veggie)) continue;
+                if (!CanInsertVeggie(veggie)) continue;
                 if (CookingClickArea.Contains(_mainCamera, veggie, mousePos, veggieClickPadding, out float score)
                     && score < closestScore)
                 {
@@ -657,21 +669,66 @@ namespace Marea.Cooking
                     closestScore = score;
                 }
             }
-            if (closestVeggie != null) InsertVeggie(closestVeggie);
+            if (closestVeggie != null) InsertNearbyVeggies(closestVeggie, mousePos);
         }
 
         public void OnClickVeggieToPan()
         {
-            if (IsCookCompleted || clickableVeggieObjects == null) return;
-            // Keep existing UnityEvent bindings, but insert only one remaining ingredient per call.
+            if (IsCookCompleted || IsBurned || clickableVeggieObjects == null ||
+                _lastIngredientClickFrame == Time.frameCount) return;
+            if (_mainCamera == null) _mainCamera = Camera.main;
+            if (_mainCamera != null && Mouse.current != null)
+            {
+                CheckVeggieClickHit();
+                if (_lastIngredientClickFrame == Time.frameCount) return;
+            }
+            // Preserve button/event bindings that have no ingredient under the pointer.
             foreach (var veggie in clickableVeggieObjects)
             {
-                if (veggie != null && !_panIngredientOffsets.ContainsKey(veggie) && !_ingredientFlights.ContainsKey(veggie))
+                if (CanInsertVeggie(veggie))
                 {
-                    InsertVeggie(veggie);
+                    Vector2 position = _mainCamera != null
+                        ? (Vector2)_mainCamera.WorldToScreenPoint(GetIngredientBounds(veggie).center)
+                        : Vector2.zero;
+                    InsertNearbyVeggies(veggie, position);
                     return;
                 }
             }
+        }
+
+        private bool CanInsertVeggie(GameObject veggie)
+        {
+            return veggie != null && veggie.activeInHierarchy &&
+                !_panIngredientOffsets.ContainsKey(veggie) && !_ingredientFlights.ContainsKey(veggie);
+        }
+
+        private void InsertNearbyVeggies(GameObject clickedVeggie, Vector2 clickPosition)
+        {
+            if (panInsideTransform == null || IsCookCompleted || IsBurned ||
+                _lastIngredientClickFrame == Time.frameCount || !CanInsertVeggie(clickedVeggie)) return;
+
+            int minimum = Mathf.Clamp(minIngredientsPerClick, 1, 3);
+            int maximum = Mathf.Clamp(maxIngredientsPerClick, minimum, 3);
+            int count = Random.Range(minimum, maximum + 1);
+            var nearby = new List<KeyValuePair<GameObject, float>>();
+            if (_mainCamera != null && count > 1)
+            {
+                var seen = new HashSet<GameObject> { clickedVeggie };
+                foreach (var veggie in clickableVeggieObjects)
+                {
+                    if (!CanInsertVeggie(veggie) || !seen.Add(veggie)) continue;
+                    if (CookingClickArea.Contains(_mainCamera, veggie, clickPosition,
+                        nearbyIngredientClickRadius, out float score))
+                        nearby.Add(new KeyValuePair<GameObject, float>(veggie, score));
+                }
+                nearby.Sort((a, b) => a.Value.CompareTo(b.Value));
+            }
+
+            // The clicked ingredient always goes first; the rest are the closest waiting pieces.
+            _lastIngredientClickFrame = Time.frameCount;
+            InsertVeggie(clickedVeggie);
+            for (int i = 0; i < nearby.Count && i < count - 1; i++)
+                InsertVeggie(nearby[i].Key);
         }
 
         private void InsertVeggie(GameObject veggie)
