@@ -23,7 +23,7 @@ namespace Marea.Field
         [Tooltip("(+10/13) 재료마다 이 범위(최소~최대, 둘 다 포함)에서 무작위로 준다. x가 0이면 contents의 수량 그대로.")]
         [SerializeField] private Vector2Int amountRange = new(5, 10);
         [Tooltip("(+10/13) contents 중 이 범위(최소~최대 종류)만 무작위로 골라 준다. x가 0이면 전부.")]
-        [SerializeField] private Vector2Int kindRange = new(1, 2);
+        [SerializeField] private Vector2Int kindRange = new(1, 1);
 
         [Header("연출")]
         [Tooltip("다 흘러와 멈췄을 때 띄울 알림. 비우면 안 띄운다.")]
