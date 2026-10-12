@@ -14,7 +14,7 @@ namespace Marea.Field
     ///
     /// 출렁임은 모델 자식의 FloatBob이 맡는다. 이건 위치만 옮긴다.
     ///
-    /// (+10/12) 다 흘러와 멈추면 줍기 전까지 이펙트(landedLoopVfx — 물 뿌리기)를 계속 튼다. 자식으로 붙여 주우면 상자와 같이 사라진다.
+    /// (+10/12) 다 흘러와 멈추면 줍기 전까지 이펙트(landedLoopVfx — 물 뿌리기, (+10/13) 불꽃놀이 Firework 1 반복)를 계속 튼다. 자식으로 붙여 주우면 상자와 같이 사라진다.
     /// </summary>
     public class DriftingCrate : InteractableBase
     {
