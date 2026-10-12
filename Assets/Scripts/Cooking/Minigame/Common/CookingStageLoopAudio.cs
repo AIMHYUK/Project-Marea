@@ -15,6 +15,7 @@ namespace Marea.Cooking
         private void Awake()
         {
             _source = GetComponent<AudioSource>();
+            Marea.Core.GameAudioSettings.RouteEffects(_source);
             _source.playOnAwake = false;
             _source.loop = true;
             if (station == null) station = GetComponentInParent<BaseCookingMinigame>();

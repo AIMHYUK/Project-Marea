@@ -143,6 +143,9 @@ public static class TitleMenuPresentation
         Color lightText = new Color(1f, 0.971f, 0.871f, 1f);
         foreach (string path in new[] { "VolumeLabel", "VolumeValue", "ResolutionLabel", "FullscreenToggle/Label" })
             panel.Find(path).GetComponent<TMP_Text>().color = lightText;
+        SettingsAudioControls.Configure(panel, ui.GetComponent<TitleMenuController>(), true);
+        foreach (string path in new[] { "SfxVolumeLabel", "SfxVolumeValue" })
+            panel.Find(path).GetComponent<TMP_Text>().color = lightText;
         AddSettingsHeading(scene);
 
         var controller = new SerializedObject(ui.GetComponent<TitleMenuController>());
