@@ -44,6 +44,10 @@ namespace Marea.Field
         [Tooltip("파손 장판끼리 · 기존 장판 · 좌석에서 이만큼 떨어진 곳만.")]
         [SerializeField, Min(0.5f)] private float hazardSpacing = 2f;
         [SerializeField] private VfxId breakVfx = VfxId.Dust;
+        [Tooltip("(+10/12) 부서지는 순간 먼지와 같이 터지는 충격.")]
+        [SerializeField] private VfxId breakImpactVfx = VfxId.Fail;
+        [Tooltip("(+10/12) 부서지는 이펙트 크기 배율. 예전엔 먼지만 1.2였다.")]
+        [SerializeField, Min(0.1f)] private float breakVfxScale = 2.2f;
 
         [Header("서 있는 선원")]
         [Tooltip("선장 뒤 줄에 자리가 없을 때 입구(손님 스폰 지점)에서 이 반경 안 빈 곳에 선다.")]
@@ -65,6 +69,10 @@ namespace Marea.Field
         [SerializeField] private string failToast = "선원들이 데크를 부수고 떠났다…";
         [SerializeField] private string[] captainOrderLines = { "{0}. 이 가게 최고의 솜씨로 가져와라.", "{0}. 최고의 솜씨로 부탁하지." };
         [SerializeField] private string[] crewArriveLines = { "우리 선장님은 최고의 요리만 드신다!", "S급이 아니면 각오해라!", "선장님을 기다리게 하지 마라!" };
+        [Tooltip("(+10/12) 선장이 요리를 받을 때까지 이 간격(초)마다 선원 한 명씩 돌아가며 도착 대사를 한다.")]
+        [SerializeField, Min(0.5f)] private float crewArriveInterval = 2.5f;
+        [Tooltip("(+10/12) 선장이 오래 기다릴 때 — 일반 손님 재촉(\"아직인가요…?\") 대신. 시점은 CustomerSpeech.impatientAfter 그대로.")]
+        [SerializeField] private string[] captainWaitLines = { "{0}{1} 아직인가? 내 인내심을 시험하지 마라.", "선장을 기다리게 하다니, 배짱 한번 좋군.", "내 부하들이 슬슬 참지 못하는군…" };
         [SerializeField] private string[] captainSuccessLines = { "훌륭하군! 소문대로야." };
         [Tooltip("(+10/10) 선장이 요리를 받고 박수가 끝난 뒤 — 이 말 뒤에 선원들이 앉아 주문한다.")]
         [SerializeField] private string[] captainTreatLines = { "너희도 먹어라!", "다들 앉아라, 오늘은 내가 산다!" };
@@ -175,6 +183,7 @@ namespace Marea.Field
             }
             captain.IsPriority = true;
             captain.SetPatience(patienceSeconds);
+            if (captain.TryGetComponent(out CustomerSpeech captainSpeech)) captainSpeech.SetImpatientLines(captainWaitLines);
             // (+10/10) 선원은 내리면서 이미 선장 뒤 줄로 가고 있다(LineUp). 예전엔 여기서 입구 근처로 보냈다.
 
             // 선장이 앉아 주문하면 대사 — 선장 한마디, 서 있는 선원 몇이 거든다.
@@ -189,18 +198,32 @@ namespace Marea.Field
                     string menu = captain.OrderedMenu != null ? captain.OrderedMenu.DisplayName : "";
                     if (_alarm != null) _alarm.Post(this, string.Format(alarmText, menu));
                 }
-                yield return CrewSay(extras, seated, crewArriveLines, 0.8f);
             }
 
-            // 판정.
+            // 판정. (+10/12) 기다리는 동안 선원이 한 명씩 돌아가며 도착 대사를 한다 — 예전엔 주문 직후 한 번만 했다.
+            var crew = new List<GameObject>();
+            foreach (GameObject x in extras) if (x != null) crew.Add(x);
+            for (int i = 1; i < seated.Count; i++) if (seated[i] != null) crew.Add(seated[i].gameObject);
+            float nextCrewLine = Time.time + 0.8f;
+            int crewLine = 0;
+
             bool resolved = false, success = false;
             while (IsOpen && !resolved)
             {
                 if (captain == null) resolved = true;
                 else if (captain.HasReceivedFood) { resolved = true; success = captain.ReceivedGrade == HitGrade.Perfect; }
                 else if (captain.State == CustomerState.Leaving || captain.State == CustomerState.Finished) resolved = true;
-                else if (_labels != null && captain.State == CustomerState.WaitingOrder)
-                    _labels.Set(captain, captain.transform.position + Vector3.up * 3.4f, priorityLabel);
+                else if (captain.State == CustomerState.WaitingOrder)
+                {
+                    if (_labels != null) _labels.Set(captain, captain.transform.position + Vector3.up * 3.4f, priorityLabel);
+                    if (crew.Count > 0 && crewArriveLines.Length > 0 && Time.time >= nextCrewLine)
+                    {
+                        GameObject who = crew[crewLine % crew.Count];
+                        if (who != null) Say(who, new[] { crewArriveLines[crewLine % crewArriveLines.Length] });
+                        crewLine++;
+                        nextCrewLine = Time.time + crewArriveInterval;
+                    }
+                }
                 yield return null;
             }
             if (_alarm != null) _alarm.Clear(this);   // 판정이 났거나 영업이 끝났다
@@ -437,7 +460,8 @@ namespace Marea.Field
                 if (Blocked(p)) continue;
 
                 SpawnHazard(p, Random.Range(0f, 360f));
-                Vfx.Play(breakVfx, p + Vector3.up * 0.3f, 1.2f);
+                Vfx.Play(breakVfx, p + Vector3.up * 0.3f, breakVfxScale);
+                Vfx.Play(breakImpactVfx, p + Vector3.up * 0.2f, breakVfxScale);
                 taken.Add(p);
                 made++;
             }

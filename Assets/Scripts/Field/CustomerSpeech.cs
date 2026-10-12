@@ -105,6 +105,9 @@ namespace Marea.Field
         /// <summary>(+10/9) 정해진 대사를 바로 띄운다 — 특별 이벤트 선장 · 선원. {0}은 주문 메뉴 이름(강조), {1}은 이/가.</summary>
         public void SayLine(string line) => Say(new[] { line });
 
+        /// <summary>(+10/12) 이 손님만 재촉 대사를 바꾼다 — 선장.</summary>
+        public void SetImpatientLines(string[] lines) => impatientLines = lines;
+
         private void Say(string[] lines)
         {
             if (lines == null || lines.Length == 0) return;
