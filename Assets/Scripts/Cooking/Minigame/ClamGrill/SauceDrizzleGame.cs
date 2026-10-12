@@ -75,6 +75,8 @@ namespace Marea.Cooking
         [SerializeField] private VfxId sauceSplashVfx = VfxId.Splash;
         [SerializeField] private Color sauceTint = new Color(0.75f, 0.12f, 0.05f, 1f);
         [SerializeField, Min(0.05f)] private float splashInterval = 0.2f;
+        [Tooltip("(+10/13) 조개 밖 그릇에 떨어질 때 튀김 크기 — 자국은 안 남기고 이펙트만.")]
+        [SerializeField, Min(0.01f)] private float plateSplashScale = 0.25f;
 
         [Header("다 묻었을 때 (+10/7) — 닦기 단계 크기 팝과 같은 모양")]
         [Tooltip("다 묻은 순간 조개 자리에서 크게 한 번 튀는 소스.")]
@@ -91,23 +93,17 @@ namespace Marea.Cooking
 
         private float _nextSplash;
 
-        [Header("그릇에 묻는 소스 (+10/8) — 줄기 끝이 지나간 자리에 데칼을 찍는다")]
+        [Header("조개에 얹는 소스 (+10/8, +10/13) — 조개 하나가 다 묻으면 그 위에 데칼 하나")]
         [Tooltip("찍을 소스 데칼(DecalProjector). 비우면 안 묻힌다.")]
         [SerializeField] private DecalProjector stainDecal;
-        [Tooltip("surface에서 이 반경(m) 안에서만 찍는다 — 그릇 밖 조리대엔 안 묻는다.")]
+        [Tooltip("surface에서 이 반경(m) 안을 그릇으로 본다 — 밖(조리대)엔 튀김도 안 낸다.")]
         [SerializeField, Min(0.01f)] private float stainRadius = 0.3f;
-        [Tooltip("줄기 끝이 이만큼(m) 움직일 때마다 하나 찍는다.")]
-        [SerializeField, Min(0.005f)] private float stainSpacing = 0.03f;
-        [SerializeField] private Vector2 stainSize = new Vector2(0.06f, 0.1f);
-        [Tooltip("투사 깊이(m). surface 높이를 가운데로 위아래 절반씩 — 그릇 굴곡만 덮고 조리대엔 안 닿게.")]
-        [SerializeField, Min(0.01f)] private float stainDepth = 0.08f;
-        [Tooltip("이보다 많으면 가장 오래된 것부터 지운다.")]
-        [SerializeField, Min(1)] private int stainMax = 60;
-        [Tooltip("(+10/12) 켜면 조개 위(targetRadius 안)에 떨어질 때만 찍는다. 그릇 바닥에 겹겹이 남는 자국이 징그럽다는 피드백.")]
-        [SerializeField] private bool stainOnlyOnTargets = true;
+        [Tooltip("(+10/13) 조개 위에 얹는 자국 크기(m).")]
+        [SerializeField, Min(0.01f)] private float coatStainSize = 0.16f;
+        [Tooltip("(+10/13) 투사 깊이(m). 조개 기준점을 가운데로 위아래 절반씩 — 조개 껍데기 높이를 덮게.")]
+        [SerializeField, Min(0.01f)] private float coatStainDepth = 0.2f;
 
         private readonly Queue<DecalProjector> _stains = new();
-        private Vector3? _lastStain;
 
         [Header("소리 (+10/6, 이슈 117) — 기획 sfx_sauce_squeeze_loop")]
         [Tooltip("소스가 나오는 동안.")]
@@ -231,7 +227,6 @@ namespace Marea.Cooking
             else
             {
                 _lastBottlePos = bottle.position;
-                _lastStain = null;   // 다시 짜기 시작하면 첫 자리부터 찍는다
             }
 
             if (_timeLeft <= 0f || CoatedCount == TotalCount) Finish();
@@ -291,7 +286,12 @@ namespace Marea.Cooking
                     stream.SetPosition(i, p);
                 }
             }
-            Stain(to);
+            // (+10/13) 조개 밖 그릇에 떨어지면 자국 없이 작은 튀김만.
+            if (!OverTarget(to) && OnPlate(to) && Time.time >= _nextSplash)
+            {
+                _nextSplash = Time.time + splashInterval;
+                Vfx.Play(sauceSplashVfx, to, plateSplashScale, sauceTint);
+            }
 
             foreach (Target tg in _targets)
             {
@@ -324,34 +324,29 @@ namespace Marea.Cooking
                 // (+10/7) 다 묻은 순간 — 크게 튀고 반짝, 새 모습은 작게 시작해 튀어나온다.
                 Vfx.Play(sauceSplashVfx, tg.Anchor.position, coatedSplashScale, sauceTint);
                 Vfx.Play(coatedSparkleVfx, tg.Anchor.position + Vector3.up * 0.05f, coatedSparkleScale);
+                Stain(tg.Anchor.position);   // (+10/13) 다 묻은 조개 위에만 자국
                 SoundManager.Play(coatedClip, coatedVolume, 0.08f);
                 if (tg.Visual != null && popFrom < 1f) StartCoroutine(Pop(tg.Visual.transform));
                 OnProgress?.Invoke(CoatedCount, TotalCount);
             }
         }
 
-        /// <summary>(+10/8) 줄기 끝 at에 소스 자국을 찍는다. 그릇(stainRadius) 밖이거나 지난 자국과 가까우면 건너뛴다.</summary>
+        /// <summary>(+10/8, +10/13) 다 묻은 조개 자리 at 위에 소스 자국 하나를 위에서 아래로 쏜다.</summary>
         private void Stain(Vector3 at)
         {
             if (stainDecal == null) return;
+            DecalProjector d = Instantiate(stainDecal, at, Quaternion.Euler(90f, UnityEngine.Random.Range(0f, 360f), 0f), transform);
+            d.pivot = Vector3.zero;
+            d.size = new Vector3(coatStainSize, coatStainSize, coatStainDepth);
+            _stains.Enqueue(d);
+        }
+
+        /// <summary>(+10/13) at이 그릇(surface에서 stainRadius) 안인가.</summary>
+        private bool OnPlate(Vector3 at)
+        {
             Vector3 flat = at - surface.position;
             flat.y = 0f;
-            if (flat.magnitude > stainRadius) return;
-            if (stainOnlyOnTargets && !OverTarget(at)) return;
-            if (_lastStain.HasValue && (at - _lastStain.Value).magnitude < stainSpacing) return;
-            _lastStain = at;
-
-            Vector3 pos = new Vector3(at.x, surface.position.y, at.z);
-            DecalProjector d = Instantiate(stainDecal, pos, Quaternion.Euler(90f, UnityEngine.Random.Range(0f, 360f), 0f), transform);
-            float s = UnityEngine.Random.Range(stainSize.x, stainSize.y);
-            d.pivot = Vector3.zero;
-            d.size = new Vector3(s, s, stainDepth);
-            _stains.Enqueue(d);
-            while (_stains.Count > stainMax)
-            {
-                DecalProjector old = _stains.Dequeue();
-                if (old != null) Destroy(old.gameObject);
-            }
+            return flat.magnitude <= stainRadius;
         }
 
         /// <summary>at이 조개(타깃) 하나의 targetRadius 안인가. 다 묻은 조개도 센다 — 계속 뿌리면 더 묻는다. (+10/12)</summary>
@@ -431,7 +426,6 @@ namespace Marea.Cooking
             // (+10/8) 그릇 자국도 조개와 같이 — 다음 요리는 깨끗한 그릇으로 시작한다.
             foreach (DecalProjector d in _stains) if (d != null) Destroy(d.gameObject);
             _stains.Clear();
-            _lastStain = null;
         }
     }
 }
