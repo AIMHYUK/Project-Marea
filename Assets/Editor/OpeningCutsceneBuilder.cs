@@ -54,12 +54,16 @@ public static class OpeningCutsceneBuilder
         // --- 아빠: 조리대 뒤(-forward)에서 조리대를 본다 ---
         Vector3 fwd = station.transform.forward; fwd.y = 0f; fwd.Normalize();
         Vector3 dadPos = Floor(station.transform.position - fwd * 1.1f, station.transform);
-        GameObject dadModel = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Asset/Character/NPC_01/Npc01_T-Pose.fbx"));
+        // (+10/13) 아빠 모델을 아트의 주인장 아버지(낚시꾼)로. 프리팹엔 Animator가 없어 붙이고, 휴머노이드 아바타는 FBX(Humanoid로 임포트)에서.
+        const string fatherDir = "Assets/Art/Asset/Character/father/";
+        GameObject dadModel = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(fatherDir + "Fisherman_T-Pose.prefab"));
         dadModel.name = "Dad";
         dadModel.transform.SetParent(content.transform, false);
         dadModel.transform.SetPositionAndRotation(dadPos, Quaternion.LookRotation(fwd));
-        dadModel.transform.localScale = Vector3.one * 3f;   // (+10/12) PF_Customer(2)의 1.5배
+        dadModel.transform.localScale *= 1.17f;   // 원본(247배, 키 2.72m) → 예전 아빠 키 3.2m(PF_Customer의 1.5배)
         if (!dadModel.TryGetComponent(out Animator dadAnim)) dadAnim = dadModel.AddComponent<Animator>();
+        foreach (Object o in AssetDatabase.LoadAllAssetsAtPath(fatherDir + "Fisherman_T-Pose.fbx"))
+            if (o is Avatar avatar) dadAnim.avatar = avatar;
         dadAnim.applyRootMotion = false;
         Vector3 dadHead = dadPos + Vector3.up * 2.55f;   // (+10/12) 1.5배 키
 

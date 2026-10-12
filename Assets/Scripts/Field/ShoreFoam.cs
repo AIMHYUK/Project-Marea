@@ -20,6 +20,10 @@ namespace Marea.Field
     /// (+10/6) 찾기는 시작할 때 한 번, 그 뒤엔 시설이 해금 · 레벨업할 때만 다시 한다. 예전엔 10초마다 씬의
     /// MeshRenderer를 전부 훑었다 — 아트 에셋이 많은 씬이라 그 프레임이 튄다. 바다에 닿는 구조물이 바뀌는 건
     /// 시설 모습이 바뀔 때뿐이다(런타임에 생기는 구조물 없음, 움직이는 배는 처음 찾은 렌더러를 그대로 쓴다).
+    ///
+    /// (+10/12) 거품 자리를 월드 축 상자(bounds) 둘레에서 골랐더니, 비스듬한 울타리 · 난파선 · 섬 벽처럼 상자가 실물보다 훨씬 큰 것은
+    /// 상자 모서리 — 아무것도 없는 물 — 에 거품이 떴다("허공에 물결"). 이제 그 물체 방향대로의 상자(localBounds) 겉면이
+    /// 수면과 만나는 점만 쓴다. 못 찾으면 그번은 건너뛴다.
     /// </summary>
     public class ShoreFoam : MonoBehaviour
     {
@@ -96,24 +100,37 @@ namespace Marea.Field
             }
             if (_visible.Count == 0) return;
 
-            Bounds pick = _visible[Random.Range(0, _visible.Count)].bounds;
-            Vector3 at = ContactPoint(pick);
+            Renderer pickR = _visible[Random.Range(0, _visible.Count)];
+            if (!ContactPoint(pickR, out Vector3 at)) return;
+            Bounds pick = pickR.bounds;
             float size = Mathf.Clamp(Mathf.Min(pick.size.x, pick.size.z), 0.6f, 2.5f);
             Vfx.Play(foamVfx, at, size);
             if (Random.value < splashChance) Vfx.Play(splashVfx, at, size * 0.6f);
         }
 
-        /// <summary>작은 것은 가운데, 큰 것은 둘레의 아무 점 — 해수면 높이.</summary>
-        private Vector3 ContactPoint(Bounds b)
+        /// <summary>
+        /// (+10/12) 물체 방향대로의 상자 겉면에서 아무 점이나 뽑아, 수면 높이 근처면 그 점(해수면 높이)을 쓴다. 작은 것(기둥)은 가운데.
+        /// 겉면이 수면을 지나는 자리라 실물 둘레에 붙는다 — 월드 축 상자 둘레처럼 빈 물에 뜨지 않는다.
+        /// </summary>
+        private bool ContactPoint(Renderer r, out Vector3 at)
         {
-            if (Mathf.Max(b.size.x, b.size.z) < 1.5f) return new Vector3(b.center.x, seaLevel, b.center.z);
-            float u = Random.value * 2f - 1f;
-            bool alongX = Random.value < b.size.x / (b.size.x + b.size.z);
-            float side = Random.value < 0.5f ? -1f : 1f;
-            Vector3 p = alongX
-                ? new Vector3(b.center.x + u * b.extents.x, seaLevel, b.center.z + side * b.extents.z)
-                : new Vector3(b.center.x + side * b.extents.x, seaLevel, b.center.z + u * b.extents.z);
-            return p;
+            Bounds world = r.bounds;
+            at = new Vector3(world.center.x, seaLevel, world.center.z);
+            if (Mathf.Max(world.size.x, world.size.z) < 1.5f) return true;
+
+            Bounds local = r.localBounds;
+            Matrix4x4 m = r.localToWorldMatrix;
+            for (int i = 0; i < 24; i++)
+            {
+                int axis = Random.Range(0, 3);
+                Vector3 q = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f));
+                q[axis] = Random.value < 0.5f ? -1f : 1f;   // 한 면 위
+                Vector3 p = m.MultiplyPoint3x4(local.center + Vector3.Scale(q, local.extents));
+                if (Mathf.Abs(p.y - seaLevel) > 0.3f) continue;
+                at = new Vector3(p.x, seaLevel, p.z);
+                return true;
+            }
+            return false;
         }
 
         private void Collect()

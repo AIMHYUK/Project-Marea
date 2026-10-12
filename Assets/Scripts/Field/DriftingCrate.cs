@@ -13,6 +13,8 @@ namespace Marea.Field
     /// 주우면 재료가 창고로 들어가고 상자는 사라진다. 한 번 줍고 끝이라 SupplyCrate(재충전)와 따로 둔다.
     ///
     /// 출렁임은 모델 자식의 FloatBob이 맡는다. 이건 위치만 옮긴다.
+    ///
+    /// (+10/12) 다 흘러와 멈추면 줍기 전까지 이펙트(landedLoopVfx — 물 뿌리기)를 계속 튼다. 자식으로 붙여 주우면 상자와 같이 사라진다.
     /// </summary>
     public class DriftingCrate : InteractableBase
     {
@@ -23,6 +25,12 @@ namespace Marea.Field
         [Tooltip("다 흘러와 멈췄을 때 띄울 알림. 비우면 안 띄운다.")]
         [SerializeField] private string landedMessage = "무언가 떠내려온 것 같다…";
         [SerializeField] private VfxId pickVfx = VfxId.Sparkle;
+        [Tooltip("(+10/12) 다 흘러와 멈춘 뒤 주울 때까지 계속 트는 이펙트(반복 재생 파티클 프리팹). 비우면 안 튼다.")]
+        [SerializeField] private GameObject landedLoopVfx;
+        [Tooltip("상자 기준 이펙트 자리. 통 윗면이 0.76m쯤이라 그 위.")]
+        [SerializeField] private Vector3 landedVfxOffset = new(0f, 0.8f, 0f);
+        [Tooltip("이펙트 크기 배율. 1이면 통에 비해 작아 잘 안 보였다.")]
+        [SerializeField, Min(0.01f)] private float landedVfxScale = 2.5f;
         [SerializeField] private AudioClip pickClip;
         [SerializeField, Range(0f, 1f)] private float pickVolume = 0.8f;
 
@@ -80,6 +88,11 @@ namespace Marea.Field
             {
                 HasLanded = true;
                 if (!string.IsNullOrEmpty(landedMessage)) Toast.Show(landedMessage);
+                if (landedLoopVfx != null)
+                {
+                    GameObject fx = Instantiate(landedLoopVfx, transform.position + landedVfxOffset, Quaternion.identity, transform);
+                    fx.transform.localScale = Vector3.one * (landedVfxScale / Mathf.Max(0.0001f, transform.lossyScale.x));
+                }
             }
         }
 

@@ -1288,6 +1288,63 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 60900578}
   m_Mesh: {fileID: -2432090755550338912, guid: 4488902bfbe9c094fab032118f78f73a, type: 3}
+--- !u!1001 &64097497
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1684735306748991840, guid: f6293d0b4a79b4e409f33fecb3a6a395, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1684735306748991840, guid: f6293d0b4a79b4e409f33fecb3a6a395, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1684735306748991840, guid: f6293d0b4a79b4e409f33fecb3a6a395, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1684735306748991840, guid: f6293d0b4a79b4e409f33fecb3a6a395, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1684735306748991840, guid: f6293d0b4a79b4e409f33fecb3a6a395, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1684735306748991840, guid: f6293d0b4a79b4e409f33fecb3a6a395, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1684735306748991840, guid: f6293d0b4a79b4e409f33fecb3a6a395, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1684735306748991840, guid: f6293d0b4a79b4e409f33fecb3a6a395, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1684735306748991840, guid: f6293d0b4a79b4e409f33fecb3a6a395, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1684735306748991840, guid: f6293d0b4a79b4e409f33fecb3a6a395, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7503298487650057065, guid: f6293d0b4a79b4e409f33fecb3a6a395, type: 3}
+      propertyPath: m_Name
+      value: PF_DeckBob
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f6293d0b4a79b4e409f33fecb3a6a395, type: 3}
 --- !u!1 &67356985
 GameObject:
   m_ObjectHideFlags: 0
@@ -2874,6 +2931,7 @@ GameObject:
   - component: {fileID: 124079499}
   - component: {fileID: 124079498}
   - component: {fileID: 124079500}
+  - component: {fileID: 124079501}
   m_Layer: 0
   m_Name: WhaleSwimmer
   m_TagString: Untagged
@@ -2985,6 +3043,50 @@ MonoBehaviour:
   height: 10
   lookUp: 3
   smoothTime: 0.4
+--- !u!114 &124079501
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 124079497}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 590e412eef6708148ad70355d951a365, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.WhaleCrashEvent
+  delayAfterOpen: {x: 20, y: 60}
+  waitForWhale: 90
+  testKey: 105
+  contact: 3.2
+  approach: 14
+  runUp: 22
+  speed: 3.5
+  hazardPrefab: {fileID: 8314280620470089562, guid: adc86825b3f0c4846b7a3cdf4092c891, type: 3}
+  hazardCount: 2
+  hazardRadius: 4
+  hazardSpacing: 2
+  splashVfx: 4
+  breakVfx: 10
+  impactVfx: 13
+  vfxScale: 3
+  burstPieces:
+  - {fileID: 305192240274834667, guid: 42258e099f712664187caf0c5952995e, type: 3}
+  - {fileID: 8514605499306722058, guid: 8885f672e833cfe47a241045f76b14ed, type: 3}
+  burstMaterial: {fileID: 2100000, guid: beb4d137c152cdd488fc1679aa146cf7, type: 2}
+  burstCount: 7
+  burstSpeed: 6
+  pieceLife: 5
+  hitClip: {fileID: 0}
+  hitVolume: 1
+  shakeStrength: 0.35
+  shakeSeconds: 0.7
+  swayAngle: 0.8
+  swayFrequency: 0.45
+  swayDecay: 2.5
+  swaySeconds: 8
+  toast: "\uACE0\uB798\uAC00 \uC2DD\uB2F9\uC744 \uB4E4\uC774\uBC1B\uC558\uB2E4! \uBD80\uC11C\uC9C4
+    \uBC14\uB2E5\uC744 \uACE0\uCCD0\uC57C \uD55C\uB2E4"
 --- !u!1 &124659671
 GameObject:
   m_ObjectHideFlags: 0
@@ -162362,3 +162464,4 @@ SceneRoots:
   - {fileID: 7341472658193183633}
   - {fileID: 4254651983376703837}
   - {fileID: 2042877371}
+  - {fileID: 64097497}

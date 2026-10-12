@@ -530,7 +530,8 @@ namespace Marea.Field
         private static float Flat(Vector3 d) => new Vector2(d.x, d.z).magnitude;
 
         // 탁자 · 의자 · 기둥 같은 단단한 물체가 그 자리에 있으면 안 된다(바닥 자체는 아래라 안 걸린다).
-        private static bool Blocked(Vector3 p)
+        // (+10/12) 고래 충돌(WhaleCrashEvent)도 같은 기준으로 장판 자리를 고른다.
+        internal static bool Blocked(Vector3 p)
         {
             foreach (Collider c in Physics.OverlapSphere(p + Vector3.up * 0.6f, 0.55f, ~0, QueryTriggerInteraction.Ignore))
             {

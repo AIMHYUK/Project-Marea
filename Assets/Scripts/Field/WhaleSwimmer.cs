@@ -18,6 +18,8 @@ namespace Marea.Field
     ///
     /// (+10/10) 새 고래(FT_Whale_Rigged)는 animator를 연결하면 헤엄 · 점프를 클립(Whale_Swim · Whale_Jump · Whale_Jump_Low)으로 한다.
     /// 이때 뼈 굽히기 · 출렁임 코드는 쉬고, 이 스크립트는 경로 이동 · 떠오름 · 잠수만 맡는다. (+10/10) 다 떠오른 뒤 jumpInterval마다 종종 뛴다.
+    ///
+    /// (+10/12) Graze — 고래 충돌 이벤트(WhaleCrashEvent)가 부른다. 바다에서 비스듬히 들어와 데크 가장자리를 툭 치고 비스듬히 빠진다.
     /// </summary>
     public class WhaleSwimmer : MonoBehaviour
     {
@@ -409,6 +411,56 @@ namespace Marea.Field
 
             _swimming = false;
             model.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// (+10/12) from에서 비스듬히 들어와 apex(데크 가장자리에 닿는 점)를 지나 to로 비스듬히 빠진다 — 곡선(2차 베지어). apex를 지나는 순간 onHit을 한 번 부른다.
+        /// 몸은 inward(데크) 쪽으로 살짝 기운다. 지나간 뒤엔 평소 루프로 돌아간다. 떠오름(riseTime)이 끝나기 전에 apex에 닿지 않게 from을 충분히 멀리 줄 것.
+        /// </summary>
+        public void Graze(Vector3 from, Vector3 apex, Vector3 to, Vector3 inward, float speed, Action onHit)
+        {
+            if (!Application.isPlaying || model == null) return;
+            StopAllCoroutines();
+            _swimming = false;
+            ResetBones();
+            StartCoroutine(GrazeThenLoop(from, apex, to, inward, speed, onHit));
+        }
+
+        private IEnumerator GrazeThenLoop(Vector3 from, Vector3 apex, Vector3 to, Vector3 inward, float speed, Action onHit)
+        {
+            Vector3 a = Flat(from), b = Flat(to), side = Flat(inward).normalized;
+            Vector3 c = 2f * Flat(apex) - 0.5f * (a + b);   // 이 조절점이면 곡선이 가운데(s=0.5)에서 apex를 지난다
+            Vector3 Point(float s) => (1f - s) * (1f - s) * a + 2f * (1f - s) * s * c + s * s * b;
+            float total = 0f;
+            for (int i = 1; i <= 20; i++) total += Vector3.Distance(Point((i - 1) / 20f), Point(i / 20f));
+            float duration = total / Mathf.Max(0.1f, speed);
+            float surfaceY = seaLevel - surfaceDepth, hiddenY = seaLevel - hiddenDepth;
+
+            model.gameObject.SetActive(true);
+            _swimming = true;
+            bool called = false, hit = false;
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                if (!called && t >= riseTime) { called = true; SoundManager.Play(callClip, callVolume); }
+                float along = t / duration;
+                Vector3 pos = Point(along), ahead = Point(Mathf.Min(1f, along + 0.01f)) - pos;
+                if (ahead.sqrMagnitude < 1e-6f) ahead = b - c;
+                if (!hit && along >= 0.5f) { hit = true; onHit?.Invoke(); }
+
+                float rise = Mathf.Clamp01(t / riseTime);
+                float dive = Mathf.Clamp01((t - (duration - diveTime)) / diveTime);
+                float y = Mathf.Lerp(Mathf.Lerp(hiddenY, surfaceY, Smooth(rise)), hiddenY, Smooth(dive));
+                float pitch = -divePitch * 0.5f * (1f - rise) + divePitch * Smooth(dive);
+                // 닿는 동안 데크 쪽으로 기울기 — 옆구리로 미는 느낌
+                float lean = bankAngle * Mathf.Exp(-(along - 0.5f) * (along - 0.5f) / 0.01f);
+                float roll = Vector3.Dot(Vector3.Cross(ahead.normalized, side), Vector3.up) > 0f ? -lean : lean;
+                transform.SetPositionAndRotation(new Vector3(pos.x, y, pos.z), Quaternion.LookRotation(ahead.normalized, Vector3.up) * Quaternion.Euler(pitch, 0f, roll));
+                yield return null;
+            }
+            if (!hit) onHit?.Invoke();
+            _swimming = false;
+            model.gameObject.SetActive(false);
+            yield return Loop();
         }
 
         /// <summary>(+10/10) 지금 점프 클립을 트는 중인가.</summary>

@@ -37,8 +37,10 @@ namespace Marea.Hud
         [SerializeField] private GameObject imageFrame;
         [SerializeField] private TextMeshProUGUI title;
         [SerializeField] private TextMeshProUGUI body;
+        [Tooltip("(+10/12) 아버지의 한마디. 항목의 quote가 비면 숨긴다.")]
+        [SerializeField] private TextMeshProUGUI quote;
         [Tooltip("제목 · 설명 묶음의 높이 — 그림이 있을 때 / 없을 때(위로 올린다).")]
-        [SerializeField] private float bodyYWithImage = -530f;
+        [SerializeField] private float bodyYWithImage = -410f;
         [SerializeField] private float bodyYWithoutImage = -240f;
         [SerializeField] private Image dotTemplate;
         [SerializeField] private Button prevButton;
@@ -185,14 +187,20 @@ namespace Marea.Hud
 
             if (title != null) title.text = _topic != null ? _topic.title : "";
             if (body != null) body.text = p != null ? p.text : "";
+            if (quote != null)
+            {
+                bool has = _topic != null && !string.IsNullOrEmpty(_topic.quote);
+                quote.gameObject.SetActive(has);
+                if (has) quote.text = $"“{_topic.quote}”";
+            }
             bool hasImage = p != null && p.image != null;
             if (imageFrame != null) imageFrame.SetActive(hasImage);
             if (image != null && hasImage) image.sprite = p.image;
             if (title != null && title.transform.parent is RectTransform group)
                 group.anchoredPosition = new Vector2(group.anchoredPosition.x, hasImage ? bodyYWithImage : bodyYWithoutImage);
             for (int i = 0; i < _dots.Count; i++) _dots[i].color = i == _page ? dotOn : dotOff;
-            if (prevButton != null) prevButton.interactable = _page > 0;
-            if (nextButton != null) nextButton.interactable = _page < count - 1;
+            if (prevButton != null) { prevButton.gameObject.SetActive(count > 1); prevButton.interactable = _page > 0; }   // (+10/12) 한 장이면 넘김 버튼을 숨긴다
+            if (nextButton != null) { nextButton.gameObject.SetActive(count > 1); nextButton.interactable = _page < count - 1; }
         }
     }
 }
