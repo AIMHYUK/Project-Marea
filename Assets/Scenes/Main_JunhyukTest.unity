@@ -75124,6 +75124,10 @@ PrefabInstance:
       value: PF_WaterWake
       objectReference: {fileID: 0}
     - target: {fileID: 2839936703320689564, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
+      propertyPath: halfBeam
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2839936703320689564, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
       propertyPath: fullSpeed
       value: 4
       objectReference: {fileID: 0}
@@ -75138,6 +75142,10 @@ PrefabInstance:
     - target: {fileID: 2839936703320689564, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
       propertyPath: surfaceBand
       value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2839936703320689564, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
+      propertyPath: sternOffset.z
+      value: -6.5
       objectReference: {fileID: 0}
     - target: {fileID: 5052083973195721435, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
       propertyPath: m_LocalPosition.x
@@ -119142,10 +119150,38 @@ PrefabInstance:
       propertyPath: m_TextStyleHashCode
       value: -1183493901
       objectReference: {fileID: 0}
+    - target: {fileID: 1168440073072664054, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 2164260863
+      objectReference: {fileID: 0}
+    - target: {fileID: 1168440073072664054, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 1251244660662725174, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
       propertyPath: m_TargetGraphic
       value: 
       objectReference: {fileID: 2042877372}
+    - target: {fileID: 1446210579445438455, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 1946157055
+      objectReference: {fileID: 0}
+    - target: {fileID: 1446210579445438455, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 1448972815392161769, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4286232793
+      objectReference: {fileID: 0}
+    - target: {fileID: 1448972815392161769, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 2788016369608346900, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 3690457712124299110, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
       propertyPath: m_Name
       value: PF_HelpWindow
@@ -119238,6 +119274,10 @@ PrefabInstance:
       propertyPath: m_TextStyleHashCode
       value: -1183493901
       objectReference: {fileID: 0}
+    - target: {fileID: 5417482012528575866, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 5946942316869895803, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
       propertyPath: m_AnchorMax.x
       value: 0
@@ -119245,6 +119285,22 @@ PrefabInstance:
     - target: {fileID: 5946942316869895803, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7309649181444856918, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4281545523
+      objectReference: {fileID: 0}
+    - target: {fileID: 7309649181444856918, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 7561207980016244245, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4281545523
+      objectReference: {fileID: 0}
+    - target: {fileID: 7561207980016244245, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 8862675967142568874, guid: 292779ebd0bb230408a6f6a3813b83bb, type: 3}
       propertyPath: m_AnchorMax.x

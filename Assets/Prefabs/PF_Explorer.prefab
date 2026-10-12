@@ -1066,9 +1066,21 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1060871272177647830}
     m_Modifications:
+    - target: {fileID: 1622141001220877140, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2139205791904388653, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
       propertyPath: m_Name
       value: PF_WaterWake
+      objectReference: {fileID: 0}
+    - target: {fileID: 2839936703320689564, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
+      propertyPath: bowSpray
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2839936703320689564, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
+      propertyPath: halfBeam
+      value: 6.6666665
       objectReference: {fileID: 0}
     - target: {fileID: 2839936703320689564, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
       propertyPath: fullSpeed
@@ -1080,11 +1092,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2839936703320689564, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
       propertyPath: bowOffset.z
-      value: 6.6666665
+      value: 9.333333
       objectReference: {fileID: 0}
     - target: {fileID: 2839936703320689564, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
       propertyPath: surfaceBand
       value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2839936703320689564, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
+      propertyPath: sternOffset.y
+      value: 5.9999995
+      objectReference: {fileID: 0}
+    - target: {fileID: 2839936703320689564, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
+      propertyPath: sternOffset.z
+      value: -11.666666
       objectReference: {fileID: 0}
     - target: {fileID: 2839936703320689564, guid: 692ade35f19b0a740b9c30b473b3108b, type: 3}
       propertyPath: centerOffset.y
