@@ -1051,8 +1051,38 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 06b879af0b969e94b8deeb05e5bc2d5e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9217197831654520898}
   m_SourcePrefab: {fileID: 100100000, guid: 06b879af0b969e94b8deeb05e5bc2d5e, type: 3}
+--- !u!1 &373129877310434198 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 06b879af0b969e94b8deeb05e5bc2d5e, type: 3}
+  m_PrefabInstance: {fileID: 715217420601611975}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &9217197831654520898
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 373129877310434198}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9db222cd8d1e2a9408ea2b0160b92f78, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.FloatBob
+  heaveHeight: 0.08
+  heaveSpeed: 1.1
+  pitchDegrees: 1.5
+  pitchSpeed: 0.8
+  rollDegrees: 2.5
+  rollSpeed: 0.65
+  leanPerAccel: 3
+  maxLean: 6
+  leanResponse: 3
+  speedSmoothing: 4
 --- !u!4 &1037603664675221804 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 06b879af0b969e94b8deeb05e5bc2d5e, type: 3}

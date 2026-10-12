@@ -18,6 +18,8 @@ namespace Marea.Player
     /// 연출(FocusOn) 중에도 안 받는다. 미니게임 · 고래는 이 컴포넌트를 끄니 그동안은 저절로 안 받는다.
     /// WASD는 PlayerController가 매 프레임 카메라 방향을 기준으로 잡아서 돌려도 화면 기준이 유지된다.
     /// 연출(FocusOn) 중엔 거리를 focusDistance로 맞춘다 — 휠로 당겨 둔 정도와 상관없이 연출이 같게 보인다.
+    ///
+    /// (+10/12) Shake — 잠깐 흔든다(고래 충돌). 따라가기 계산은 흔들리지 않은 자리(_basePosition)로 하고 화면에만 얹는다.
     /// </summary>
     public class CameraFollow : MonoBehaviour
     {
@@ -62,6 +64,8 @@ namespace Marea.Player
         private bool _dragging;
 
         private Vector3 _velocity;
+        private Vector3 _basePosition;   // (+10/12) 흔들기 전 자리
+        private float _shakeStrength, _shakeSeconds, _shakeLeft;
         private bool _snapped;
         private Vector3? _focus;
         private bool _returning;   // 포커스를 풀고 플레이어로 돌아오는 중 — 그동안은 느린 값으로 간다
@@ -85,9 +89,17 @@ namespace Marea.Player
             _returning = true;
         }
 
+        /// <summary>(+10/12) strength(m)만큼 seconds 동안 흔든다. 점점 잦아든다. 이미 흔들리면 센 쪽으로 다시 시작한다.</summary>
+        public void Shake(float strength, float seconds)
+        {
+            if (seconds <= 0f || (_shakeLeft > 0f && _shakeStrength * (_shakeLeft / _shakeSeconds) > strength)) return;
+            _shakeStrength = strength;
+            _shakeSeconds = _shakeLeft = seconds;
+        }
+
         /// <summary>포커스 지점에 도착했는가. 이 컴포넌트가 꺼져 있으면 영영 false다 — 부르는 쪽이 시간 제한을 둘 것.</summary>
         public bool IsAtFocus => _focus.HasValue
-            && (transform.position - PositionFor(_focus.Value)).sqrMagnitude <= arriveDistance * arriveDistance;
+            && (_basePosition - PositionFor(_focus.Value)).sqrMagnitude <= arriveDistance * arriveDistance;
 
         private void Awake()
         {
@@ -99,7 +111,10 @@ namespace Marea.Player
             if (player != null) target = player.transform;
         }
 
-        private void OnDisable() => _dragging = false;   // 미니게임이 끄는 동안 버튼을 놓쳐도 끌기가 남지 않게
+        private void OnDisable() => _dragging = false;
+
+        // (+10/12) 꺼진 동안 다른 쪽(컷신 · 미니게임)이 카메라를 옮겼으면 거기서부터 따라간다.
+        private void OnEnable() => _basePosition = transform.position;   // 미니게임이 끄는 동안 버튼을 놓쳐도 끌기가 남지 않게
 
         private void Update() => ReadZoomAndRotate();
 
@@ -138,15 +153,24 @@ namespace Marea.Player
 
             Vector3 desired = PositionFor(_focus ?? target.position + lookOffset);
 
-            if (_returning && (transform.position - desired).sqrMagnitude <= arriveDistance * arriveDistance)
+            if (_returning && (_basePosition - desired).sqrMagnitude <= arriveDistance * arriveDistance)
                 _returning = false;
             float smooth = _focus.HasValue || _returning ? focusSmoothTime : smoothTime;
 
             transform.rotation = ViewRotation;
-            transform.position = _snapped
-                ? Vector3.SmoothDamp(transform.position, desired, ref _velocity, smooth)
+            _basePosition = _snapped
+                ? Vector3.SmoothDamp(_basePosition, desired, ref _velocity, smooth)
                 : desired;   // 첫 프레임은 원점에서 날아오지 않게 곧바로 붙인다
             _snapped = true;
+
+            Vector3 shake = Vector3.zero;
+            if (_shakeLeft > 0f)
+            {
+                _shakeLeft -= Time.deltaTime;
+                float k = Mathf.Clamp01(_shakeLeft / _shakeSeconds);
+                shake = Random.insideUnitSphere * (_shakeStrength * k * k);
+            }
+            transform.position = _basePosition + shake;
         }
 
         /// <summary>내려다보는 각도(X) · 비틀기(Z)는 인스펙터 값 그대로, Y만 우클릭으로 돌린 값.</summary>

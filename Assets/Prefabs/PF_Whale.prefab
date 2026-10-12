@@ -76,6 +76,7 @@ GameObject:
   - component: {fileID: 8905583279676328969}
   - component: {fileID: 5819585736539912575}
   - component: {fileID: 1934533500715807982}
+  - component: {fileID: 200141153742597822}
   m_Layer: 0
   m_Name: PF_Whale
   m_TagString: Untagged
@@ -207,6 +208,50 @@ MonoBehaviour:
   launchTime: 1.7
   landTimeHigh: 4.4
   landTimeLow: 3.61
+--- !u!114 &200141153742597822
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3629528589989587068}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 590e412eef6708148ad70355d951a365, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Field.WhaleCrashEvent
+  delayAfterOpen: {x: 20, y: 60}
+  waitForWhale: 90
+  testKey: 105
+  contact: 3.2
+  approach: 14
+  runUp: 22
+  speed: 3.5
+  hazardPrefab: {fileID: 8314280620470089562, guid: adc86825b3f0c4846b7a3cdf4092c891, type: 3}
+  hazardCount: 2
+  hazardRadius: 4
+  hazardSpacing: 2
+  splashVfx: 4
+  breakVfx: 10
+  impactVfx: 13
+  vfxScale: 3
+  burstPieces:
+  - {fileID: 305192240274834667, guid: 42258e099f712664187caf0c5952995e, type: 3}
+  - {fileID: 8514605499306722058, guid: 8885f672e833cfe47a241045f76b14ed, type: 3}
+  burstMaterial: {fileID: 2100000, guid: beb4d137c152cdd488fc1679aa146cf7, type: 2}
+  burstCount: 7
+  burstSpeed: 6
+  pieceLife: 5
+  hitClip: {fileID: 0}
+  hitVolume: 1
+  shakeStrength: 0.35
+  shakeSeconds: 0.7
+  swayAngle: 0.8
+  swayFrequency: 0.45
+  swayDecay: 2.5
+  swaySeconds: 8
+  toast: "\uACE0\uB798\uAC00 \uC2DD\uB2F9\uC744 \uB4E4\uC774\uBC1B\uC558\uB2E4! \uBD80\uC11C\uC9C4
+    \uBC14\uB2E5\uC744 \uACE0\uCCD0\uC57C \uD55C\uB2E4"
 --- !u!1 &6319830743314109701
 GameObject:
   m_ObjectHideFlags: 0

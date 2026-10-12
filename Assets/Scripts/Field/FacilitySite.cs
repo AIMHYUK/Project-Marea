@@ -102,6 +102,9 @@ namespace Marea.Field
         /// <summary>이 실물이 어느 시설인가. 해금 클릭(FacilityUnlockClick)이 읽는다.</summary>
         public FacilityKind Kind => kind;
 
+        /// <summary>(+10/12) 폐허 모습(물에 뜬 잔해). 고래 충돌(WhaleCrashEvent)이 이건 장애물로 안 친다 — 밀고 지나가도 된다.</summary>
+        public GameObject BrokenVisual => brokenVisual;
+
         private void Awake()
         {
             if (brokenVisual == null || builtVisual == null)
