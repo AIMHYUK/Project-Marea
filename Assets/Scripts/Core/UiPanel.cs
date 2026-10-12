@@ -122,6 +122,15 @@ namespace Marea.Core
 
             if (panel.activeSelf == open) return;
 
+            // (+10/13) 창은 하나씩 — 창고가 떠 있는데 성장을 열면 창고를 닫고 성장을 띄운다.
+            // 가려 둔(Suspend) 창은 연출이 끝나면 되돌릴 창이라 건드리지 않는다.
+            if (open)
+            {
+                All.RemoveAll(p => p == null);
+                foreach (UiPanel other in All.ToArray())
+                    if (other != this && other.IsVisible) other.Close();
+            }
+
             panel.SetActive(open);
             SoundManager.Play(open ? openClip : closeClip, openCloseVolume);   // (+10/6)
             if (open) OnOpened();
