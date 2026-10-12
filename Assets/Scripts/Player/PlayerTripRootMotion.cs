@@ -11,6 +11,9 @@ namespace Marea.Player
     ///
     /// 플레이어는 프리팹이 아니라 씬 오브젝트라(Main 포함) 씬에 붙이지 않고 PlayerTrip이 Awake에서 모델에 붙인다.
     /// Animator와 같은 오브젝트에 있어야 OnAnimatorMove가 불린다.
+    ///
+    /// (+10/13) 넘어지는 동작(Tripped 상태 · 그리로 들어가는 전환)일 때만 옮긴다. 예전엔 넘어진 동안 내내 옮겨서,
+    /// 일어나기 → 걷기 전환 구간에 섞인 걷기 클립 이동(프레임마다 0.2~0.4m)까지 실려 끝날 때 1m쯤 순간이동했다.
     /// </summary>
     [RequireComponent(typeof(Animator))]
     public class PlayerTripRootMotion : MonoBehaviour
@@ -18,6 +21,7 @@ namespace Marea.Player
         private Animator _animator;
         private PlayerTrip _trip;
         private NavMeshAgent _agent;
+        private static readonly int TrippedState = Animator.StringToHash("Tripped");
 
         public void Init(PlayerTrip trip, NavMeshAgent agent)
         {
@@ -34,10 +38,18 @@ namespace Marea.Player
         private void OnAnimatorMove()
         {
             if (_trip == null || _agent == null || !_trip.IsTripped || !_agent.isOnNavMesh) return;
+            if (!IsFalling(_animator)) return;
 
             Vector3 delta = _animator.deltaPosition;
             delta.y = 0f;   // 높이는 포즈에 구웠다. 에이전트는 바닥에 붙어 있어야 한다.
             _agent.Move(delta);
+        }
+
+        /// <summary>(+10/13) 지금 넘어지는 동작인가 — Tripped 상태거나 그리로 넘어가는 중. 일어나기 · 걷기로 가는 구간은 아니다.</summary>
+        internal static bool IsFalling(Animator animator)
+        {
+            if (animator.IsInTransition(0)) return animator.GetNextAnimatorStateInfo(0).shortNameHash == TrippedState;
+            return animator.GetCurrentAnimatorStateInfo(0).shortNameHash == TrippedState;
         }
     }
 }

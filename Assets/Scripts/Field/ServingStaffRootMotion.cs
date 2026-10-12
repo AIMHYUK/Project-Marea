@@ -14,6 +14,9 @@ namespace Marea.Field
     /// Animator가 루트 모션을 스스로 적용하지 않으므로, 여기서 안 옮긴 프레임은 그냥 사라진다.
     ///
     /// Animator와 같은 오브젝트(캐릭터 모델)에 붙어야 OnAnimatorMove가 불린다.
+    ///
+    /// (+10/13) 넘어지는 동작(Tripped 상태 · 그리로 들어가는 전환)일 때만 옮긴다 — 플레이어(PlayerTripRootMotion)와 같은 이유.
+    /// 일어나기 → 걷기 전환 구간의 걷기 이동까지 실려 끝날 때 순간이동했다.
     /// </summary>
     [RequireComponent(typeof(Animator))]
     public class ServingStaffRootMotion : MonoBehaviour
@@ -39,6 +42,7 @@ namespace Marea.Field
         {
             if (_staff == null || _agent == null || !_agent.isOnNavMesh) return;
             if (_staff.Current != ServingStaff.State.Tripped) return;
+            if (!Marea.Player.PlayerTripRootMotion.IsFalling(_animator)) return;
 
             Vector3 delta = _animator.deltaPosition;
             delta.y = 0f;   // 높이는 포즈에 구웠다. 에이전트는 바닥에 붙어 있어야 한다.
