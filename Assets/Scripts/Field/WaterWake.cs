@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Marea.Field
@@ -21,6 +22,13 @@ namespace Marea.Field
         [Tooltip("(+10/12) 뱃머리 왼쪽 · 오른쪽 파도. 바깥 · 뒤로 퍼진다(파티클 +z가 바깥).")]
         [SerializeField] private ParticleSystem bowWaveLeft;
         [SerializeField] private ParticleSystem bowWaveRight;
+        [Tooltip("(+10/12) 뱃머리에서 뒤로 벌어지는 V자 항적 선(왼쪽 · 오른쪽). 점을 뱃머리 양옆에 찍고 바깥으로 밀어 V를 만든다.")]
+        [SerializeField] private LineRenderer bowLineLeft;
+        [SerializeField] private LineRenderer bowLineRight;
+        [Tooltip("V자 선 한 점이 사는 시간(초) — 길이.")]
+        [SerializeField, Min(0.1f)] private float lineLife = 2.5f;
+        [Tooltip("V자 선이 바깥으로 벌어지는 속도(m/s). 배 속도에 대한 비가 V의 각도.")]
+        [SerializeField, Min(0f)] private float lineSpread = 1.6f;
         [Tooltip("(+10/12) 뒤로 이어지는 거품 띠. 물 셰이더의 흰 반사에 파티클만으론 묻혀서 더했다. 폭은 이 오브젝트 배율을 따른다.")]
         [SerializeField] private TrailRenderer trail;
 
@@ -53,6 +61,15 @@ namespace Marea.Field
 
         private float _wakeRate, _wakeDistRate, _bowRate, _waveRate;
         private Vector3 _lastCenter;
+        private readonly BowLine _left = new(), _right = new();
+
+        // V자 선 한 줄 — 점(월드) · 바깥 방향 · 태어난 시각.
+        private class BowLine
+        {
+            public readonly List<Vector3> Points = new();
+            public readonly List<Vector3> Out = new();
+            public readonly List<float> Born = new();
+        }
         private float _speed;
         private Vector3 _dir = Vector3.forward;
 
@@ -70,6 +87,8 @@ namespace Marea.Field
             SetEmitting(ripples, false);
             SetEmitting(bowWaveLeft, false);
             SetEmitting(bowWaveRight, false);
+            foreach (LineRenderer l in new[] { bowLineLeft, bowLineRight })
+                if (l != null) { l.useWorldSpace = true; l.widthMultiplier *= transform.lossyScale.x; l.positionCount = 0; }
         }
 
         private void LateUpdate()
@@ -108,6 +127,8 @@ namespace Marea.Field
 
             Rate(wake, _wakeRate * t, _wakeDistRate);
             Rate(bowSpray, _bowRate * t, 0f);
+            UpdateLine(bowLineLeft, _left, OnWater(bow - side, surfaceLift * 0.5f), -side.normalized, near && moving);
+            UpdateLine(bowLineRight, _right, OnWater(bow + side, surfaceLift * 0.5f), side.normalized, near && moving);
             Rate(bowWaveLeft, _waveRate * t, 0f);
             Rate(bowWaveRight, _waveRate * t, 0f);
             SetEmitting(bowWaveLeft, near && moving);
@@ -115,6 +136,33 @@ namespace Marea.Field
             SetEmitting(wake, near && moving);
             SetEmitting(bowSpray, near && moving);
             SetEmitting(ripples, near && !moving);
+        }
+
+        // 새 점은 뱃머리 옆(앞쪽 끝)에, 오래된 점은 바깥으로 밀려 뒤에 남는다 → 뱃머리를 꼭짓점으로 벌어지는 V.
+        private void UpdateLine(LineRenderer line, BowLine data, Vector3 start, Vector3 outward, bool emit)
+        {
+            if (line == null) return;
+            float now = Time.time, dt = Time.deltaTime;
+            for (int i = data.Points.Count - 1; i >= 0; i--)
+            {
+                if (now - data.Born[i] > lineLife) { data.Points.RemoveAt(i); data.Out.RemoveAt(i); data.Born.RemoveAt(i); continue; }
+                data.Points[i] += data.Out[i] * (lineSpread * dt);
+            }
+            float spacing = 0.35f * transform.lossyScale.x;
+            if (emit && (data.Points.Count == 0 || (data.Points[^1] - start).sqrMagnitude > spacing * spacing))
+            {
+                data.Points.Add(start); data.Out.Add(outward); data.Born.Add(now);
+            }
+            // 선 머리는 지금 뱃머리 옆에 붙인다(배가 움직이는 사이 틈이 안 보이게).
+            int n = data.Points.Count;
+            line.positionCount = n == 0 ? 0 : n + (emit ? 1 : 0);
+            for (int i = 0; i < n; i++) line.SetPosition(i, data.Points[n - 1 - i]);
+            if (emit && n > 0)
+            {
+                for (int i = n; i > 0; i--) line.SetPosition(i, line.GetPosition(i - 1));
+                line.SetPosition(0, start);
+            }
+            line.transform.rotation = Quaternion.Euler(-90f, 0f, 0f);   // TransformZ 정렬 — 수면에 눕힌다
         }
 
         private Vector3 OnWater(Vector3 p, float lift) => new(p.x, waterLevel + lift, p.z);
