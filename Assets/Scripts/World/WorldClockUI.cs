@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Marea.World
 {
@@ -10,6 +11,10 @@ namespace Marea.World
     /// "A의 UI는 각자 자기 시스템 폴더 안에 둔다"로 정해 뒀다.
     ///
     /// 시간대의 한글 이름도 여기 있다. 표시용 문자열은 시계가 알 일이 아니다.
+    ///
+    /// (+10/12) 상단 중앙 텍스트에서 골드바 아래 둥근 시계로 바꿨다. 바늘은 하루에 한 바퀴 —
+    /// 정오가 위, 자정이 아래다. 가운데 아이콘은 낮·저녁엔 해, 밤·새벽엔 달.
+    /// 텍스트(label)는 시계 옆 보조 표시로 남겼다.
     /// </summary>
     public class WorldClockUI : MonoBehaviour
     {
@@ -17,6 +22,32 @@ namespace Marea.World
         [Tooltip("시각을 찍을 곳. 자동으로 못 찾으니 반드시 넣어야 한다 — "
                + "비면 OnEnable에서 에러를 내고 시각이 표시되지 않는다. (+9/8)")]
         [SerializeField] private TextMeshProUGUI label;
+
+        [Header("둥근 시계 (+10/12)")]
+        [Tooltip("하루에 한 바퀴 도는 바늘. 스프라이트는 위를 가리키고 피벗이 회전축이어야 한다.")]
+        [SerializeField] private RectTransform hand;
+        [Tooltip("해·달이 바뀌어 들어갈 자리.")]
+        [SerializeField] private Image slotIcon;
+        [SerializeField] private Sprite sunSprite;
+        [SerializeField] private Sprite moonSprite;
+
+        [Header("시계 안쪽 색 (+10/12)")]
+        [Tooltip("원판 안쪽에 까는 흰 원. 시간대 색으로 칠한다.")]
+        [SerializeField] private Image faceFill;
+        [Tooltip("눈금. 밝은 판에선 진하게, 어두운 판에선 밝게.")]
+        [SerializeField] private Image ticks;
+        [SerializeField] private Color dayFace = new Color(0.70f, 0.87f, 0.98f);
+        [SerializeField] private Color eveningFace = new Color(0.99f, 0.76f, 0.52f);
+        [SerializeField] private Color nightFace = new Color(0.12f, 0.15f, 0.30f);
+        [SerializeField] private Color dawnFace = new Color(0.36f, 0.33f, 0.55f);
+        [SerializeField] private Color ticksOnLight = new Color(0.36f, 0.21f, 0.10f);
+        [SerializeField] private Color ticksOnDark = new Color(0.95f, 0.85f, 0.64f);
+        [Tooltip("판 안의 구름들. 눈금처럼 판 밝기를 따라 색이 바뀐다.")]
+        [SerializeField] private Image[] clouds;
+        [SerializeField] private Color cloudsOnLight = new Color(1f, 1f, 1f, 0.95f);
+        [SerializeField] private Color cloudsOnDark = new Color(0.55f, 0.60f, 0.80f, 0.45f);
+        [Tooltip("시간대가 바뀔 때 색이 넘어가는 시간(초).")]
+        [SerializeField] private float fadeSeconds = 1.5f;
 
         [Header("읽어올 시계")]
         [Tooltip("비워두면 WorldClock.Instance 를 쓴다.")]
@@ -27,6 +58,8 @@ namespace Marea.World
         [SerializeField] private bool logSlotChange = true;
 
         private string _slotName = string.Empty;
+        private Color _faceFrom, _faceTo, _ticksFrom, _ticksTo, _cloudsFrom, _cloudsTo;
+        private float _fade = 1f;
 
         private void OnEnable()
         {
@@ -53,6 +86,8 @@ namespace Marea.World
 
             // 시계는 시작 이벤트를 쏘지 않는다. 초기 상태는 직접 읽어 맞춘다.
             _slotName = NameOf(clock.Slot);
+            ApplyIcon(clock.Slot);
+            ApplyColors(clock.Slot, instant: true);
         }
 
         private void OnDisable()
@@ -63,6 +98,17 @@ namespace Marea.World
         private void Update()
         {
             if (clock == null || label == null) return;
+
+            // 정오(0.5)에 0°로 위를 가리킨다. z가 줄어야 시계방향이다.
+            if (hand != null) hand.localRotation = Quaternion.Euler(0f, 0f, 180f - clock.NormalizedTime * 360f);
+
+            if (_fade < 1f)
+            {
+                _fade = fadeSeconds > 0f ? Mathf.Min(1f, _fade + Time.deltaTime / fadeSeconds) : 1f;
+                if (faceFill != null) faceFill.color = Color.Lerp(_faceFrom, _faceTo, _fade);
+                if (ticks != null) ticks.color = Color.Lerp(_ticksFrom, _ticksTo, _fade);
+                SetCloudColor(Color.Lerp(_cloudsFrom, _cloudsTo, _fade));
+            }
 
             float hour = clock.Hour;
             int h = Mathf.FloorToInt(hour);
@@ -77,8 +123,49 @@ namespace Marea.World
         private void HandleSlotChanged(TimeSlot slot)
         {
             _slotName = NameOf(slot);
+            ApplyIcon(slot);
+            ApplyColors(slot, instant: false);
 
             if (logSlotChange) Debug.Log($"[WorldClock] 시간대 전환 → {_slotName}", this);
+        }
+
+        private void ApplyIcon(TimeSlot slot)
+        {
+            if (slotIcon == null) return;
+            bool sun = slot == TimeSlot.Day || slot == TimeSlot.Evening;
+            slotIcon.sprite = sun ? sunSprite : moonSprite;
+        }
+
+        private void ApplyColors(TimeSlot slot, bool instant)
+        {
+            _faceTo = slot switch
+            {
+                TimeSlot.Day => dayFace,
+                TimeSlot.Evening => eveningFace,
+                TimeSlot.Night => nightFace,
+                _ => dawnFace,
+            };
+            // 밝기로 판단한다 — 색을 인스펙터에서 바꿔도 눈금이 따라간다.
+            bool light = _faceTo.grayscale > 0.5f;
+            _ticksTo = light ? ticksOnLight : ticksOnDark;
+            _cloudsTo = light ? cloudsOnLight : cloudsOnDark;
+            _faceFrom = faceFill != null ? faceFill.color : _faceTo;
+            _ticksFrom = ticks != null ? ticks.color : _ticksTo;
+            _cloudsFrom = clouds != null && clouds.Length > 0 && clouds[0] != null ? clouds[0].color : _cloudsTo;
+            _fade = 0f;
+
+            if (!instant) return;
+            _fade = 1f;
+            if (faceFill != null) faceFill.color = _faceTo;
+            if (ticks != null) ticks.color = _ticksTo;
+            SetCloudColor(_cloudsTo);
+        }
+
+        private void SetCloudColor(Color c)
+        {
+            if (clouds == null) return;
+            foreach (Image cloud in clouds)
+                if (cloud != null) cloud.color = c;
         }
 
         private static string NameOf(TimeSlot slot) => slot switch

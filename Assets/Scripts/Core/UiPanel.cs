@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -40,6 +41,27 @@ namespace Marea.Core
         // 가린 동안 IsOpen은 그대로 true다 — 논리상 열린 창이고, 화면에만 안 보인다.
         private bool _suspended;
 
+        // (+10/12) 떠 있는 창이 하나라도 있는지 — 창 뒤에 [E] 안내가 겹쳐 보여서 ProximityInteractor가 본다.
+        // 여닫을 때 수를 세지 않고 매번 실제 상태를 본다. 창이 열 개 남짓이라 싸고, 세다 어긋날 일이 없다.
+        private static readonly List<UiPanel> All = new();
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetRegistry() => All.Clear();   // 도메인 리로드를 끈 플레이에서 지난 판 창이 남지 않게
+
+        /// <summary>화면에 보이는 창이 하나라도 있는가. 가려진(Suspend) 창은 안 센다. (+10/12)</summary>
+        public static bool AnyVisible
+        {
+            get
+            {
+                // 파괴된 창은 여기서 걸러낸다. 하위 창들이 각자 OnDestroy를 갖고 있어
+                // 바닥에서 OnDestroy로 빼면 그쪽에서 가려져 안 불린다.
+                All.RemoveAll(p => p == null);
+                foreach (UiPanel p in All)
+                    if (p.IsVisible) return true;
+                return false;
+            }
+        }
+
         public bool IsOpen => panel != null && (panel.activeSelf || _suspended);
 
         /// <summary>지금 화면에 보이는가. 가려진 창은 열려 있어도 false. (+10/6)</summary>
@@ -50,6 +72,7 @@ namespace Marea.Core
 
         protected virtual void Awake()
         {
+            All.Add(this);
             if (panel == null)
                 Debug.LogError($"{name}: {GetType().Name}.panel이 비어 있다. 여닫을 대상이 없다.", this);
             if (closeButton != null) closeButton.onClick.AddListener(Close);

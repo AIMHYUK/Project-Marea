@@ -41,6 +41,23 @@ namespace Marea.Field
         private ExpeditionManager _manager;
         private ExpeditionAreaData _selected;
 
+        /// <summary>해역 지도 그림. 결과 창이 같은 지도를 쓴다. (+10/12)</summary>
+        public Sprite MapSprite => mapRoot != null && mapRoot.TryGetComponent(out Image image) ? image.sprite : null;
+
+        /// <summary>
+        /// areas[index] 해역 버튼이 지도의 어디에 있나 — 지도 가운데 0, 가장자리 ±0.5 비율. (+10/12)
+        /// 결과 창이 지도 크기가 달라도 같은 자리에 표시하려고 비율로 준다. 자리를 정해두지 않은 해역이면 false.
+        /// </summary>
+        public bool TryGetMapPoint(int index, out Vector2 normalized)
+        {
+            normalized = Vector2.zero;
+            if (mapRoot == null || nodePositions == null || index < 0 || index >= nodePositions.Length) return false;
+            Vector2 size = mapRoot.rect.size;
+            if (size.x <= 0f || size.y <= 0f) return false;
+            normalized = new Vector2(nodePositions[index].x / size.x, nodePositions[index].y / size.y);
+            return true;
+        }
+
         protected override void Awake()
         {
             base.Awake();

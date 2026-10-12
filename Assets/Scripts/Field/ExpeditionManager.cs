@@ -82,6 +82,8 @@ namespace Marea.Field
         private WorldLabelUI _labels;
         private ExpeditionAreaData _current;
         private float _returnAt;
+        private float _tripSeconds;
+        private string _story = string.Empty;
         private Vector3 _boatHome;      // 배의 제자리(로컬). 연출이 끝나거나 끊기면 여기로 돌린다.
         private Coroutine _depart;
 
@@ -93,6 +95,12 @@ namespace Marea.Field
 
         /// <summary>귀환까지 남은 초. 탐사 중이 아니면 0.</summary>
         public float RemainingSeconds => Current == State.Away ? Mathf.Max(0f, _returnAt - Time.time) : 0f;
+
+        /// <summary>이번 탐사에 걸린 초 — 파견할 때 정해진 값. 결과창 「소요 시간」. (+10/12)</summary>
+        public float TripSeconds => _tripSeconds;
+
+        /// <summary>귀환할 때 고른 짧은 탐사 이야기. 결과창이 그린다. 해역에 이야기가 없으면 빈 문자열. (+10/12)</summary>
+        public string PendingStory => _story;
 
         /// <summary>귀환해서 아직 안 받은 보상. 결과창이 그린다.</summary>
         public IReadOnlyList<(IngredientData item, int amount)> PendingReward => _pending;
@@ -202,7 +210,9 @@ namespace Marea.Field
             if (!IsAreaUnlocked(area, out _)) return false;
 
             _current = area;
-            _returnAt = Time.time + DurationOf(area);
+            // 업그레이드로 탐사 시간이 줄어도 이번 탐사의 소요 시간은 떠날 때 값이다.
+            _tripSeconds = DurationOf(area);
+            _returnAt = Time.time + _tripSeconds;
             Current = State.Away;
             Show();
             SoundManager.PlayAt(departClip, boat != null ? boat.transform.position : transform.position, clipVolume);   // (+10/6)
@@ -216,6 +226,11 @@ namespace Marea.Field
         private void RollReward()
         {
             _pending.Clear();
+
+            // (+10/12) 이야기도 보상처럼 귀환하는 순간 고른다 — 창을 여닫을 때마다 바뀌지 않게.
+            string[] stories = _current != null ? _current.Stories : System.Array.Empty<string>();
+            _story = stories.Length > 0 ? stories[UnityEngine.Random.Range(0, stories.Length)] ?? string.Empty : string.Empty;
+
             ExpeditionRewardData group = _current != null ? _current.RewardGroup : null;
             if (group != null && group.TryPick(UnityEngine.Random.value, out ExpeditionRewardEntry picked))
             {
@@ -246,6 +261,7 @@ namespace Marea.Field
                 if (item != null && amount > 0) warehouse.Add(item, amount);
 
             _pending.Clear();
+            _story = string.Empty;
             _current = null;
             Current = State.Idle;
             Show();
