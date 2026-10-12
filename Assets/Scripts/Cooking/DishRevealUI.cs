@@ -39,6 +39,12 @@ namespace Marea.Cooking
             new Color(0.55f, 0.55f, 0.55f), new Color(0.35f, 0.6f, 0.95f), new Color(0.35f, 0.8f, 0.35f), new Color(1f, 0.78f, 0.2f),
         };
 
+        [Header("랭크 글자 꾸밈 (+10/12)")]
+        [Tooltip("위쪽을 랭크 색에서 흰색 쪽으로 이만큼 밝힌다. 아래는 랭크 색 그대로 — 위가 밝은 그라데이션.")]
+        [SerializeField, Range(0f, 1f)] private float rankTopLighten = 0.55f;
+        [Tooltip("찍힐 때 시작 기울기(도). 0으로 돌아오며 찍힌다.")]
+        [SerializeField] private float rankStampTilt = -14f;
+
         [Header("타이밍(초)")]
         [SerializeField, Min(0.05f)] private float popTime = 0.28f;
         [SerializeField, Range(1f, 1.6f)] private float overshoot = 1.2f;
@@ -114,7 +120,13 @@ namespace Marea.Cooking
             int g = Mathf.Clamp((int)result.bestGrade, 0, rankTexts.Length - 1);
             if (!result.isSuccess) g = 0;
             rankLabel.text = rankTexts[g];
-            rankLabel.color = g < rankColors.Length ? rankColors[g] : Color.white;
+            // (+10/12) 단색 대신 위가 밝은 그라데이션. 외곽선 · 그림자는 재질(A2Z-Bold SDF Rank)이 한다.
+            // color는 흰색 — SetAlpha가 알파만 바꾸고, 실제 색은 그라데이션이 곱해져 나온다.
+            Color rc = g < rankColors.Length ? rankColors[g] : Color.white;
+            rankLabel.color = Color.white;
+            rankLabel.enableVertexGradient = true;
+            Color top = Color.Lerp(rc, Color.white, rankTopLighten);
+            rankLabel.colorGradient = new VertexGradient(top, top, rc, rc);
             if (priceLabel != null) priceLabel.text = result.isSuccess ? $"판매가 {result.finalPrice:N0} G" : "실패";
 
             // 처음 상태
@@ -161,10 +173,13 @@ namespace Marea.Cooking
                     nameRoot.anchoredPosition = nameHome + Vector2.down * (24f * (1f - n));
                 }
 
-                // 랭크: 크게 찍혔다가 줄어든다(도장)
+                // 랭크: 기울어진 채 크게 찍혔다가 → 살짝 눌리고(0.9) → 튕겨 1로 (도장). (+10/12) 눌림 · 기울기 추가
                 float r = Mathf.Clamp01((t - rankDelay) / 0.18f);
+                float settle = Mathf.Clamp01((t - rankDelay - 0.18f) / 0.22f);
                 SetAlpha(rankLabel.rectTransform, r);
-                rankLabel.rectTransform.localScale = Vector3.one * Mathf.Lerp(2.2f, 1f, r);
+                float rs = r < 1f ? Mathf.Lerp(2.2f, 0.9f, EaseOutCubic(r)) : Mathf.Lerp(0.9f, 1f, EaseOutBack(settle));
+                rankLabel.rectTransform.localScale = Vector3.one * rs;
+                rankLabel.rectTransform.localRotation = Quaternion.Euler(0f, 0f, rankStampTilt * (1f - EaseOutCubic(r)));
 
                 if (priceLabel != null) SetAlpha(priceLabel.rectTransform, Mathf.Clamp01((t - priceDelay) / 0.2f));
 
@@ -211,6 +226,13 @@ namespace Marea.Cooking
                 c.a = a;
                 gr.color = c;
             }
+        }
+
+        private static float EaseOutBack(float x)
+        {
+            x = Mathf.Clamp01(x);
+            const float c1 = 1.70158f, c3 = c1 + 1f;
+            return 1f + c3 * Mathf.Pow(x - 1f, 3f) + c1 * Mathf.Pow(x - 1f, 2f);
         }
 
         private static float EaseOutCubic(float x)
