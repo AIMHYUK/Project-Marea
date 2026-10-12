@@ -30,6 +30,8 @@ namespace Marea.Cooking
         [SerializeField] private TextMeshProUGUI guideLabel;
         [Tooltip("guideLabel을 담은 패널. 미니게임 중에만 켠다.")]
         [SerializeField] private GameObject guideRoot;
+        [Tooltip("(+10/13) 남은 시간 바의 채움. 가로 앵커(anchorMax.x)로 줄인다. 비우면 시간이 안 보인다.")]
+        [SerializeField] private RectTransform timeFill;
 
         [Header("굽기 연출 (+10/6, 이슈 117) — 기획 「화구 사용」 VFX_01 · 「굽기」 VFX_03 · 「기름 튐」 VFX_04")]
         [SerializeField] private VfxId grillFlameVfx = VfxId.Flame;
@@ -171,7 +173,9 @@ namespace Marea.Cooking
         private void SetGuide(string what, string progress, float timeLeft01)
         {
             if (guideLabel == null) return;
-            guideLabel.text = $"{what}\n<size=70%>{progress}   남은 시간 {Mathf.CeilToInt(timeLeft01 * 100f)}%</size>";
+            // (+10/13) 남은 시간은 글자(%) 대신 안내 판 위 시간 바로 보여 준다.
+            guideLabel.text = $"{what}\n<size=70%>{progress}</size>";
+            if (timeFill != null) timeFill.anchorMax = new Vector2(Mathf.Clamp01(timeLeft01), timeFill.anchorMax.y);
         }
 
         /// <summary>(+10/7) 영업이 끝나 요리를 버릴 때 — 그릴 불꽃 · 연기와 안내 글자를 끈다.</summary>

@@ -103,6 +103,8 @@ namespace Marea.Cooking
         [SerializeField, Min(0.01f)] private float stainDepth = 0.08f;
         [Tooltip("이보다 많으면 가장 오래된 것부터 지운다.")]
         [SerializeField, Min(1)] private int stainMax = 60;
+        [Tooltip("(+10/12) 켜면 조개 위(targetRadius 안)에 떨어질 때만 찍는다. 그릇 바닥에 겹겹이 남는 자국이 징그럽다는 피드백.")]
+        [SerializeField] private bool stainOnlyOnTargets = true;
 
         private readonly Queue<DecalProjector> _stains = new();
         private Vector3? _lastStain;
@@ -335,6 +337,7 @@ namespace Marea.Cooking
             Vector3 flat = at - surface.position;
             flat.y = 0f;
             if (flat.magnitude > stainRadius) return;
+            if (stainOnlyOnTargets && !OverTarget(at)) return;
             if (_lastStain.HasValue && (at - _lastStain.Value).magnitude < stainSpacing) return;
             _lastStain = at;
 
@@ -349,6 +352,18 @@ namespace Marea.Cooking
                 DecalProjector old = _stains.Dequeue();
                 if (old != null) Destroy(old.gameObject);
             }
+        }
+
+        /// <summary>at이 조개(타깃) 하나의 targetRadius 안인가. 다 묻은 조개도 센다 — 계속 뿌리면 더 묻는다. (+10/12)</summary>
+        private bool OverTarget(Vector3 at)
+        {
+            foreach (Target tg in _targets)
+            {
+                Vector3 d = tg.Anchor.position - at;
+                d.y = 0f;
+                if (d.magnitude <= targetRadius) return true;
+            }
+            return false;
         }
 
         private static GameObject Pick(GameObject[] perSlot, int index, GameObject fallback)
