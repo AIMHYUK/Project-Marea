@@ -827,6 +827,7 @@ MonoBehaviour:
   - {fileID: 8514605499306722058, guid: 8885f672e833cfe47a241045f76b14ed, type: 3}
   burstCount: 18
   burstSpeed: 10
+  burstMaterial: {fileID: 2100000, guid: beb4d137c152cdd488fc1679aa146cf7, type: 2}
   impulse: {fileID: 979726618579658834}
   shakeForce: 1.5
   runner: {fileID: 7039099564469890774}
@@ -1953,6 +1954,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7939202469020547202, guid: 8885f672e833cfe47a241045f76b14ed, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: beb4d137c152cdd488fc1679aa146cf7, type: 2}
     - target: {fileID: 8514605499306722058, guid: 8885f672e833cfe47a241045f76b14ed, type: 3}
       propertyPath: m_Name
       value: PF_LoosePlank_Short
@@ -2288,6 +2293,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7904532783785440632, guid: 42258e099f712664187caf0c5952995e, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: beb4d137c152cdd488fc1679aa146cf7, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2350,6 +2359,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7904532783785440632, guid: 42258e099f712664187caf0c5952995e, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: beb4d137c152cdd488fc1679aa146cf7, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

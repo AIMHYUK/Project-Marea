@@ -110,6 +110,9 @@ public static class OpeningCutsceneBuilder
         debris.transform.SetParent(content.transform, false);
         string[] pieces = { "PF_BrokenPlank_HoleLarge", "PF_BrokenPlank_HoleDouble", "PF_BrokenPlank_HoleSingle", "PF_BrokenPlank_Split",
                             "PF_LoosePlank_Long", "PF_LoosePlank_Short", "PF_WoodDamage_HoleLarge", "PF_WoodDamage_Crack", "PF_WoodDamage_HoleCrack" };
+        // (+10/12) 판자(Wood_01)가 데크보다 옅어 보였다 — 진하게 한 사본으로 맞춘다(데칼은 그대로).
+        var plankMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/M_LoosePlank_Deck.mat");
+        var deckWood = AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/BO/Shader/Wood_01.mat");
         var rng = new System.Random(7);
         for (int i = 0; i < 14; i++)
         {
@@ -120,6 +123,7 @@ public static class OpeningCutsceneBuilder
             float a = (float)rng.NextDouble() * Mathf.PI * 2f, r = 1f + (float)rng.NextDouble() * 7f;
             go.transform.position = Floor(impact + new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r * 0.8f), station.transform);
             go.transform.rotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f) * go.transform.rotation;
+            foreach (MeshRenderer mr in go.GetComponentsInChildren<MeshRenderer>()) if (mr.sharedMaterial == deckWood) mr.sharedMaterial = plankMat;
         }
 
         // --- 카메라 ---
@@ -229,6 +233,7 @@ public static class OpeningCutsceneBuilder
         bp.arraySize = burst.Length;
         for (int i = 0; i < burst.Length; i++)
             bp.GetArrayElementAtIndex(i).objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Art/Asset/Island/WoodDamage/{burst[i]}.prefab");
+        so.FindProperty("burstMaterial").objectReferenceValue = plankMat;
         SerializedProperty sp = so.FindProperty("smashPoints");
         sp.arraySize = smashPoints.Count;
         for (int i = 0; i < smashPoints.Count; i++) sp.GetArrayElementAtIndex(i).objectReferenceValue = smashPoints[i];

@@ -42,6 +42,8 @@ namespace Marea.Cutscene
         [SerializeField] private GameObject[] burstPieces;
         [SerializeField, Min(0)] private int burstCount = 18;
         [SerializeField, Min(0f)] private float burstSpeed = 10f;
+        [Tooltip("(+10/12) 튀는 조각에 입힐 재질. 판자 프리팹(Wood_01)이 데크보다 옅어 보여 진하게 한 사본(M_LoosePlank_Deck)을 입힌다. 비우면 프리팹 그대로.")]
+        [SerializeField] private Material burstMaterial;
         [Tooltip("(+10/12) 터질 때 카메라 흔들기. 카메라에 CinemachineImpulseListener가 있어야 흔들린다.")]
         [SerializeField] private CinemachineImpulseSource impulse;
         [SerializeField, Min(0f)] private float shakeForce = 1.5f;
@@ -173,6 +175,8 @@ namespace Marea.Cutscene
                 if (src == null) continue;
                 Vector2 flat = Random.insideUnitCircle;
                 GameObject piece = Instantiate(src, center + new Vector3(flat.x, 0f, flat.y) * 1.5f, Random.rotation, content.transform);
+                if (burstMaterial != null)
+                    foreach (MeshRenderer mr in piece.GetComponentsInChildren<MeshRenderer>()) mr.sharedMaterial = burstMaterial;
                 foreach (MeshFilter mf in piece.GetComponentsInChildren<MeshFilter>())
                     if (mf.GetComponent<Collider>() == null) mf.gameObject.AddComponent<MeshCollider>().convex = true;
                 Rigidbody body = piece.GetComponent<Rigidbody>();
