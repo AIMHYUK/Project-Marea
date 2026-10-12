@@ -1,0 +1,192 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8e6b1da1fd7a9c4c8d5a41bfe9a2b4c, type: 3}
+  m_Name: HelpBook
+  m_EditorClassIdentifier: Assembly-CSharp::Marea.Data.HelpBook
+  categories:
+  - "\uAE30\uBCF8"
+  - "\uC601\uC5C5"
+  - "\uC694\uB9AC"
+  - "\uB18D\uC0AC"
+  - "\uD0D0\uC0AC"
+  - "\uC2DC\uC124"
+  - "\uC774\uBCA4\uD2B8"
+  topics:
+  - title: "\uC774\uB3D9\uACFC \uC0C1\uD638\uC791\uC6A9"
+    category: "\uAE30\uBCF8"
+    pages:
+    - image: {fileID: 21300000, guid: ae423a3e68d324f4280eea6534fd3a7c, type: 3}
+      text: "WASD\uB85C \uAC77\uACE0, \uBC14\uB2E5\uC744 <color=#E8892B>\uC67C\uCABD
+        \uD074\uB9AD</color>\uD558\uBA74 \uADF8 \uC790\uB9AC\uB85C \uAC78\uC5B4\uAC11\uB2C8\uB2E4.\n\uC870\uB9AC\uB300
+        \xB7 \uC190\uB2D8 \xB7 \uBC2D\uCC98\uB7FC \uC4F8 \uC218 \uC788\uB294 \uAC83\uC744
+        \uD074\uB9AD\uD558\uBA74 \uC55E\uAE4C\uC9C0 \uAC78\uC5B4\uAC00\uC11C \uC0AC\uC6A9\uD569\uB2C8\uB2E4."
+    - image: {fileID: 0}
+      text: "\uAC00\uAE4C\uC774 \uC788\uB294 \uB300\uC0C1 \uC704\uC5D0 <color=#E8892B>[E]</color>
+        \uD45C\uC2DC\uAC00 \uB728\uBA74 E \uD0A4\uB85C \uADF8 \uC790\uB9AC\uC5D0\uC11C
+        \uBC14\uB85C \uC0AC\uC6A9\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\uB9C8\uC6B0\uC2A4
+        \uD720\uB85C \uCE74\uBA54\uB77C \uAC70\uB9AC\uB97C, \uC624\uB978\uCABD \uBC84\uD2BC\uC744
+        \uB04C\uC5B4 \uCE74\uBA54\uB77C \uBC29\uD5A5\uC744 \uBC14\uAFC9\uB2C8\uB2E4."
+  - title: "\uCC3D\uACFC \uB2E8\uCD95\uD0A4"
+    category: "\uAE30\uBCF8"
+    pages:
+    - image: {fileID: 21300000, guid: 3381f7faaddc8f94a9e7463aee767f95, type: 3}
+      text: "\uC67C\uCABD \uC544\uB798 [\uBA54\uB274]\uC5D0\uC11C \uD0D0\uC0AC\uC815
+        \xB7 \uCC3D\uACE0 \xB7 \uC131\uC7A5 \xB7 \uB3C4\uC6C0\uB9D0\uC744 \uC5FD\uB2C8\uB2E4.\n<color=#E8892B>Tab</color>
+        \uCC3D\uACE0   <color=#E8892B>U</color> \uC2DC\uC124 \uC131\uC7A5   <color=#E8892B>Esc</color>
+        \uCC3D \uB2EB\uAE30"
+  - title: "\uD558\uB8E8\uC758 \uD750\uB984"
+    category: "\uAE30\uBCF8"
+    pages:
+    - image: {fileID: 21300000, guid: 3381f7faaddc8f94a9e7463aee767f95, type: 3}
+      text: "\uD558\uB8E8\uB294 <color=#E8892B>\uC900\uBE44 \u2192 \uC601\uC5C5 \u2192
+        \uC815\uC0B0</color> \uC21C\uC11C\uB85C \uD758\uB7EC\uAC11\uB2C8\uB2E4.\n\uC815\uC0B0\uC744
+        \uD655\uC778\uD558\uBA74 \uB2E4\uC74C \uB0A0\uB85C \uB118\uC5B4\uAC00\uACE0,
+        \uADF8\uB54C \uC77C\uCC28 \xB7 \uACE8\uB4DC \xB7 \uC2DC\uC124 \uC0C1\uD0DC\uAC00
+        \uC800\uC7A5\uB429\uB2C8\uB2E4."
+  - title: "\uC601\uC5C5 \uC2DC\uC791"
+    category: "\uC601\uC5C5"
+    pages:
+    - image: {fileID: 21300000, guid: af016dd03054c654d98ba1e67cfbf658, type: 3}
+      text: "\uC2DD\uB2F9 \uAC04\uD310\uC744 \uB20C\uB7EC <color=#E8892B>\uC624\uB298\uC758
+        \uBA54\uB274</color>\uB97C 1\uAC1C \uC774\uC0C1 \uACE0\uB974\uACE0 [\uC601\uC5C5
+        \uC2DC\uC791]\uC744 \uB204\uB985\uB2C8\uB2E4.\n\uC601\uC5C5\uC740 \uAE30\uBCF8
+        <color=#E8892B>180\uCD08</color> \uB3D9\uC548 \uC774\uC5B4\uC9D1\uB2C8\uB2E4."
+  - title: "\uC190\uB2D8\uACFC \uC8FC\uBB38"
+    category: "\uC601\uC5C5"
+    pages:
+    - image: {fileID: 21300000, guid: af016dd03054c654d98ba1e67cfbf658, type: 3}
+      text: "\uC190\uB2D8\uC740 \uBC30\uB97C \uD0C0\uACE0 \uC635\uB2C8\uB2E4. \uC791\uC740
+        \uBC30 2\uBA85, \uC911\uAC04 \uBC30 5\uBA85, \uD070 \uBC30 10\uBA85\uC774
+        \uB0B4\uB9BD\uB2C8\uB2E4.\n\uC190\uB2D8\uC740 \uC624\uB298\uC758 \uBA54\uB274
+        \uC911\uC5D0\uC11C \uD558\uB098\uB97C \uC8FC\uBB38\uD569\uB2C8\uB2E4."
+    - image: {fileID: 0}
+      text: "<color=#E8892B>60\uCD08</color> \uC548\uC5D0 \uC74C\uC2DD\uC744 \uBC1B\uC9C0
+        \uBABB\uD558\uBA74 \uD654\uB97C \uB0B4\uBA70 \uB5A0\uB0A9\uB2C8\uB2E4.\n\uC8FC\uBB38\uACFC
+        \uB2E4\uB978 \uC74C\uC2DD\uC744 \uAC74\uB124\uB3C4 \uAC70\uC808\uD558\uACE0
+        \uB5A0\uB0A9\uB2C8\uB2E4."
+  - title: "\uC11C\uBE59"
+    category: "\uC601\uC5C5"
+    pages:
+    - image: {fileID: 21300000, guid: 0f5c1b75e9feef84aadeb0d04fdbadab, type: 3}
+      text: "\uC644\uC131\uB41C \uC694\uB9AC\uB294 \uC870\uB9AC\uB300\uC5D0\uC11C
+        <color=#E8892B>[E] \uC9D1\uAE30</color>\uB85C \uB4E4\uACE0,\n\uC190\uB2D8
+        \uADFC\uCC98\uC5D0\uC11C <color=#E8892B>[E] \uC804\uB2EC\uD558\uAE30</color>\uB85C
+        \uAC74\uB135\uB2C8\uB2E4."
+  - title: "\uC815\uC0B0"
+    category: "\uC601\uC5C5"
+    pages:
+    - image: {fileID: 21300000, guid: 3381f7faaddc8f94a9e7463aee767f95, type: 3}
+      text: "\uC601\uC5C5\uC774 \uB05D\uB098\uBA74 \uADF8\uB0A0 \uBC88 \uB3C8\uC774
+        \uC815\uC0B0\uB429\uB2C8\uB2E4.\n<color=#E8892B>\uCD5C\uC885 \uC218\uC775
+        = \uB9E4\uCD9C + \uC815\uC0B0 \uBC30\uC728 \uBCF4\uB108\uC2A4 \u2212 \uC9C1\uC6D0
+        \uC778\uAC74\uBE44</color>\n\uC9C1\uC6D0\uC744 \uACE0\uC6A9\uD588\uB2E4\uBA74
+        \uD558\uB8E8 20G\uC758 \uC778\uAC74\uBE44\uAC00 \uBE60\uC9D1\uB2C8\uB2E4."
+  - title: "\uC694\uB9AC\uD558\uAE30"
+    category: "\uC694\uB9AC"
+    pages:
+    - image: {fileID: 21300000, guid: 0f5c1b75e9feef84aadeb0d04fdbadab, type: 3}
+      text: "\uC870\uB9AC\uB300\uB97C \uD074\uB9AD\uD558\uAC70\uB098 \uAC00\uAE4C\uC774\uC5D0\uC11C
+        E\uB97C \uB20C\uB7EC \uC694\uB9AC\uB97C \uACE0\uB985\uB2C8\uB2E4.\n<color=#E8892B>\uCC3D\uACE0\uC5D0
+        \uC7AC\uB8CC\uAC00 \uC788\uC5B4\uC57C</color> \uC2DC\uC791\uD560 \uC218 \uC788\uACE0,
+        \uC7AC\uB8CC\uB294 \uC694\uB9AC\uAC00 \uC644\uC131\uB420 \uB54C \uC904\uC5B4\uB4ED\uB2C8\uB2E4."
+    - image: {fileID: 0}
+      text: "\uC694\uB9AC\uB9C8\uB2E4 \uBBF8\uB2C8\uAC8C\uC784\uC774 \uC5F4\uB9BD\uB2C8\uB2E4.\n<color=#E8892B>Space</color>\uB098
+        \uD074\uB9AD, \uB04C\uAE30\uB85C \uC9C4\uD589\uD569\uB2C8\uB2E4."
+  - title: "\uC694\uB9AC \uB4F1\uAE09"
+    category: "\uC694\uB9AC"
+    pages:
+    - image: {fileID: 21300000, guid: 0f5c1b75e9feef84aadeb0d04fdbadab, type: 3}
+      text: "\uBBF8\uB2C8\uAC8C\uC784 \uACB0\uACFC\uC5D0 \uB530\uB77C <color=#E8892B>S
+        \xB7 A \xB7 B \xB7 F</color> \uB4F1\uAE09\uC774 \uB9E4\uACA8\uC9D1\uB2C8\uB2E4.\n\uC2E4\uC81C
+        \uD310\uB9E4\uAC00\uB294 \uBA54\uB274 \uAE30\uBCF8\uAC00\uC5D0 \uBBF8\uB2C8\uAC8C\uC784
+        \uC810\uC218\uB97C \uACF1\uD55C \uAC12\uC785\uB2C8\uB2E4."
+  - title: "\uB18D\uC0AC"
+    category: "\uB18D\uC0AC"
+    pages:
+    - image: {fileID: 21300000, guid: 05918425cf18e0540b40e3cb4ebea303, type: 3}
+      text: "\uBE48 \uBC2D\uC744 \uD074\uB9AD\uD574 \uC528\uC557\uC744 \uACE0\uB974\uBA74
+        \uACE8\uB4DC\uB97C \uB0B4\uACE0 \uC2EC\uC2B5\uB2C8\uB2E4.\n\uB2E4 \uC790\uB77C\uBA74
+        \uBC2D \uC704\uC5D0 <color=#E8892B>\uC218\uD655 \uD45C\uC2DC</color>\uAC00
+        \uB728\uACE0, \uB204\uB974\uBA74 \uADF8 \uC790\uB9AC\uC5D0\uC11C \uBC14\uB85C
+        \uC218\uD655\uD569\uB2C8\uB2E4."
+    - image: {fileID: 0}
+      text: "\uC218\uD655\uBB3C\uC740 \uCC3D\uACE0\uB85C \uB4E4\uC5B4\uAC00 \uC694\uB9AC
+        \uC7AC\uB8CC\uAC00 \uB429\uB2C8\uB2E4.\n\uACE0\uAE09 \uC791\uBB3C\uC740 \uC2DC\uC124
+        \uC131\uC7A5\uC5D0\uC11C \uB4F1\uAE09\uC744 \uC5F4\uC5B4\uC57C \uC2EC\uC744
+        \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+  - title: "\uD0D0\uC0AC"
+    category: "\uD0D0\uC0AC"
+    pages:
+    - image: {fileID: 21300000, guid: 98a8b8933c6c4114baa541bfa4a7f1af, type: 3}
+      text: "\uD0D0\uC0AC \uC120\uCC29\uC7A5\uC744 \uD074\uB9AD\uD574 \uD574\uC5ED\uC744
+        \uACE0\uB974\uBA74 \uD0D0\uC0AC\uC815\uC774 \uCD9C\uBC1C\uD569\uB2C8\uB2E4.\n\uD0D0\uC0AC
+        \uC911\uC5D0 \uB204\uB974\uBA74 \uB0A8\uC740 \uC2DC\uAC04\uC744 \uBCFC \uC218
+        \uC788\uC2B5\uB2C8\uB2E4."
+    - image: {fileID: 0}
+      text: "\uB3CC\uC544\uC624\uBA74 \uD654\uBA74 \uC67C\uCABD\uC5D0 <color=#E8892B>\uADC0\uD658
+        \uC54C\uB78C</color>\uC774 \uB739\uB2C8\uB2E4.\n\uBC30 \uC55E\uC73C\uB85C
+        \uAC00\uC11C \uACB0\uACFC \uCC3D\uC758 [\uD655\uC778]\uC744 \uB20C\uB7EC\uC57C
+        \uBCF4\uC0C1\uC774 \uCC3D\uACE0\uC5D0 \uB4E4\uC5B4\uAC11\uB2C8\uB2E4."
+  - title: "\uC2DC\uC124 \uD574\uAE08"
+    category: "\uC2DC\uC124"
+    pages:
+    - image: {fileID: 21300000, guid: 18a5a72c006370a42bed47ffdabb6ec1, type: 3}
+      text: "\uBD80\uC11C\uC9C4 \uC2DC\uC124\uC744 \uD074\uB9AD\uD558\uBA74 \uD574\uAE08
+        \uCC3D\uC774 \uC5F4\uB9BD\uB2C8\uB2E4.\n\uD574\uAE08\uD558\uBA74 \uADF8 \uC790\uB9AC\uC5D0
+        \uC2DC\uC124\uC774 \uC9C0\uC5B4\uC9C0\uACE0 \uC0C8 \uAE30\uB2A5\uC744 \uC4F8
+        \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+  - title: "\uC2DC\uC124 \uC131\uC7A5"
+    category: "\uC2DC\uC124"
+    pages:
+    - image: {fileID: 21300000, guid: 3381f7faaddc8f94a9e7463aee767f95, type: 3}
+      text: "<color=#E8892B>U</color> \uD0A4\uB098 [\uBA54\uB274] \u2192 [\uC131\uC7A5]\uC5D0\uC11C
+        \uC2DC\uC124\uC744 \uD0A4\uC6C1\uB2C8\uB2E4.\n\uC601\uC5C5 \xB7 \uC8FC\uBC29
+        \xB7 \uC218\uAE09 \xB7 \uD0D0\uC0AC \xB7 \uC9C1\uC6D0 \uB2E4\uC12F \uAC08\uB798\uAC00
+        \uC788\uACE0, \uBC14\uB85C \uB2E4\uC74C \uB2E8\uACC4\uB9CC \uC0B4 \uC218
+        \uC788\uC2B5\uB2C8\uB2E4."
+    - image: {fileID: 0}
+      text: "\uB192\uC740 \uB2E8\uACC4\uB294 \uACE8\uB4DC\uC640 \uD568\uAED8 <color=#E8892B>\uAC15\uD654
+        \uAE08\uC18D</color>\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.\n\uD14C\uC774\uBE14
+        \uCD94\uAC00, \uBA54\uB274 \uC2AC\uB86F, \uC815\uC0B0 \uBC30\uC728, \uC791\uBB3C
+        \uC131\uC7A5 \uC2DC\uAC04 \uB2E8\uCD95, \uD0D0\uC0AC \uBCF4\uC0C1 \uC99D\uAC00
+        \uAC19\uC740 \uD6A8\uACFC\uAC00 \uBD99\uC2B5\uB2C8\uB2E4."
+  - title: "\uC11C\uBE59 \uC9C1\uC6D0"
+    category: "\uC2DC\uC124"
+    pages:
+    - image: {fileID: 21300000, guid: af016dd03054c654d98ba1e67cfbf658, type: 3}
+      text: "\uC2DC\uC124 \uC131\uC7A5\uC5D0\uC11C \uC9C1\uC6D0 \uACE0\uC6A9 \uB2E8\uACC4\uB97C
+        \uC0AC\uBA74 \uC11C\uBE59 \uC9C1\uC6D0\uC774 \uB098\uD0C0\uB098\n\uC644\uC131\uB41C
+        \uC694\uB9AC\uB97C \uC190\uB2D8\uC5D0\uAC8C \uB300\uC2E0 \uB098\uB985\uB2C8\uB2E4."
+  - title: "\uBD80\uC11C\uC9C4 \uBC14\uB2E5"
+    category: "\uC2DC\uC124"
+    pages:
+    - image: {fileID: 21300000, guid: d5f3aadbcf7b8534ea4e37c3df144bea, type: 3}
+      text: "\uBD80\uC11C\uC9C4 \uBC14\uB2E5\uC744 \uC74C\uC2DD\uC744 \uB4E0 \uCC44
+        \uBC1F\uC73C\uBA74 <color=#E8892B>25%</color> \uD655\uB960\uB85C \uB118\uC5B4\uC9D1\uB2C8\uB2E4.\n\uB118\uC5B4\uC9C0\uBA74
+        \uB4E4\uACE0 \uC788\uB358 \uC74C\uC2DD\uC744 \uC783\uACE0 \uADF8 \uAC12\uB9CC\uD07C
+        \uACE8\uB4DC\uB97C \uB0C5\uB2C8\uB2E4."
+    - image: {fileID: 0}
+      text: "\uBD80\uC11C\uC9C4 \uBC14\uB2E5\uC744 \uD074\uB9AD\uD558\uBA74 <color=#E8892B>1,000G</color>\uC5D0
+        \uACE0\uCE60 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\uD55C \uBC88 \uACE0\uCE58\uBA74
+        \uB2E4\uC2DC \uBD80\uC11C\uC9C0\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."
+  - title: "\uC120\uC7A5\uC758 \uBC29\uBB38"
+    category: "\uC774\uBCA4\uD2B8"
+    pages:
+    - image: {fileID: 21300000, guid: cb543514d722f714f9df2ae3e95b2c1f, type: 3}
+      text: "2\uC77C\uCC28 \uCCAB \uBC30\uB85C \uD574\uC801 \uC120\uC7A5 \uC77C\uD589\uC774
+        \uCC3E\uC544\uC635\uB2C8\uB2E4.\n\uC120\uC7A5\uC758 \uC8FC\uBB38\uC740 <color=#E8892B>\uCD5C\uC6B0\uC120</color>\uC785\uB2C8\uB2E4."
+    - image: {fileID: 0}
+      text: "<color=#E8892B>90\uCD08</color> \uC548\uC5D0 \uC8FC\uBB38\uD55C \uC694\uB9AC\uB97C
+        <color=#E8892B>S \uB4F1\uAE09</color>\uC73C\uB85C \uB0B4\uBA74 \uADF8\uB0A0
+        \uC218\uC775\uC774 \uB450 \uBC30\uAC00 \uB429\uB2C8\uB2E4.\n\uB2A6\uAC70\uB098
+        \uB4F1\uAE09\uC774 \uB0AE\uC73C\uBA74 \uC120\uC6D0\uB4E4\uC774 \uB370\uD06C\uB97C
+        \uBD80\uC218\uACE0 \uB5A0\uB0A9\uB2C8\uB2E4."
