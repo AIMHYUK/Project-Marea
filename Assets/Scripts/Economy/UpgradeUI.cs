@@ -248,7 +248,11 @@ namespace Marea.Economy
 
         private void RefreshDetail(FacilityData data, bool unlocked, int level)
         {
-            SetText(descriptionLabel, data != null ? data.Description : string.Empty);
+            // (+10/13) 고른 단계에 세부 설명이 있으면 그걸, 없으면 시설 설명
+            string detail = data != null ? data.Description : string.Empty;
+            if (data != null && unlocked && data.TryGetStep(_selectedLevel, out FacilityUpgradeStep picked) && !string.IsNullOrWhiteSpace(picked.detail))
+                detail = picked.detail;
+            SetText(descriptionLabel, detail);
 
             if (data == null)
             {
