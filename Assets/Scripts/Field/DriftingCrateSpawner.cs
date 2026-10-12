@@ -25,7 +25,7 @@ namespace Marea.Field
         [Header("주기")]
         [SerializeField, Min(0f)] private float firstDelay = 3f;
         [Tooltip("하나를 띄운 뒤(또는 주운 뒤) 다음 상자까지.")]
-        [SerializeField, Min(1f)] private float interval = 30f;
+        [SerializeField, Min(1f)] private float interval = 120f;
         [SerializeField, Min(1)] private int maxAlive = 2;
 
         private readonly Dictionary<Transform, DriftingCrate> _occupied = new();
