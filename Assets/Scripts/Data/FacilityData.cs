@@ -35,6 +35,9 @@ namespace Marea.Data
 
         [Tooltip("성장 창 단계 칸에 보일 그림. 비우면 그림 없이 글자만. (+10/8)")]
         public Sprite icon;
+
+        [Tooltip("(+10/13) 이 단계를 골랐을 때 성장 창 「세부 설명」에 보일 글. 비우면 시설 설명. 예: 해물꼬치 · 스튜 메뉴 해금")]
+        [TextArea(2, 4)] public string detail;
     }
 
     /// <summary>

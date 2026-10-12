@@ -27,8 +27,8 @@ namespace Marea.Field
         [Header("언제 · 누가")]
         [Tooltip("이 일차 영업의 첫 배로 온다. 하루 한 번.")]
         [SerializeField, Min(1)] private int eventDay = 2;
-        [Tooltip("GuestBoatArrival.boatTypes 중 몇 번 배로 오나. 2 = 큰 배(pirate_Ship).")]
-        [SerializeField, Min(0)] private int boatTypeIndex = 2;
+        [Tooltip("GuestBoatArrival.boatTypes 중 몇 번 배로 오나. (+10/13) 3 = 해적선(pirate_Ship) — 일반 손님 배와 따로 둔다.")]
+        [SerializeField, Min(0)] private int boatTypeIndex = 3;
         [Tooltip("선장 포함 일행 수. 빈자리만큼 앉고 나머지는 서 있는다.")]
         [SerializeField, Min(1)] private int partySize = 11;
 
