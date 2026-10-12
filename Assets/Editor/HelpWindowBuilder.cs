@@ -7,16 +7,16 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// 도움말 창 프리팹을 만들고 메인 HUD(PF_AUI)에 붙인다. (+10/12)
+/// 도움말 창 프리팹을 만들고 열린 씬 루트에 놓는다. (+10/12) 자체 캔버스 · F1로 연다.
+/// (+10/12) 아트가 PF_AUI를 고치는 중이라 HUD엔 붙이지 않는다.
 ///
 /// 모양은 붕괴: 스타레일 튜토리얼 창을 따랐다 — 어두운 바탕 · 왼쪽 탭 · 검색 · 목록, 오른쪽 밝은 판에 그림 · 제목 · 설명 · 페이지 넘김.
-/// 다시 돌리면 PF_HelpWindow를 덮어쓰고 PF_AUI의 도움말 버튼 · 창을 새로 놓는다. HelpBook 에셋(내용)은 있으면 안 건드린다.
+/// 다시 돌리면 PF_HelpWindow를 덮어쓰고 열린 씬의 인스턴스를 새로 놓는다. HelpBook 에셋(내용)은 있으면 안 건드린다.
 /// 기준 해상도 1920×1080(PF_AUI CanvasScaler와 같다).
 /// </summary>
 public static class HelpWindowBuilder
 {
     private const string PrefabPath = "Assets/Prefabs/UI/PF_HelpWindow.prefab";
-    private const string HudPath = "Assets/Prefabs/UI/PF_AUI.prefab";
     private const string BookPath = "Assets/Scripts/Data/HelpBook.asset";
 
     private static readonly Color Gold = new(0.85f, 0.72f, 0.48f, 1f);
@@ -50,8 +50,13 @@ public static class HelpWindowBuilder
         var window = root.AddComponent<HelpWindow>();
         // HUD의 시계 · 골드는 따로 된 캔버스라 같은 캔버스 맨 아래에 둬도 위에 그려진다 — 자체 정렬 순서로 덮는다.
         var canvas = root.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.overrideSorting = true;
         canvas.sortingOrder = 100;
+        var scaler = root.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.matchWidthOrHeight = 0.5f;
         root.AddComponent<GraphicRaycaster>();
         GameObject panel = Child(root, "Panel"); Stretch(panel);
         Img(panel, null, new Color(0.04f, 0.04f, 0.06f, 0.97f));   // 뒤 화면을 막는다
@@ -164,54 +169,11 @@ public static class HelpWindowBuilder
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         Object.DestroyImmediate(root);
 
-        AttachToHud(prefab.GetComponent<HelpWindow>());
+        foreach (HelpWindow old in Object.FindObjectsByType<HelpWindow>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            Object.DestroyImmediate(old.gameObject);
+        PrefabUtility.InstantiatePrefab(prefab);
         AssetDatabase.SaveAssets();
-        Debug.Log($"[도움말] {PrefabPath} 생성, {HudPath}에 버튼 · 창을 붙였다. 내용: {BookPath}");
-    }
-
-    // PF_AUI의 [메뉴] 묶음에 [도움말] 버튼(성장 버튼 복제)을 더하고, 캔버스 맨 위에 창을 놓아 MainHud에 잇는다.
-    private static void AttachToHud(HelpWindow prefab)
-    {
-        GameObject hud = PrefabUtility.LoadPrefabContents(HudPath);
-        try
-        {
-            var main = hud.GetComponentInChildren<MainHud>(true);
-            var so = new SerializedObject(main);
-            var growth = (Button)so.FindProperty("growthButton").objectReferenceValue;
-            Transform group = growth.transform.parent;
-
-            // 다시 돌리면 이전 것을 지운다. 묶음 높이는 처음 붙일 때만 늘린다.
-            Transform oldButton = group.Find("HelpButton");
-            if (oldButton != null) Object.DestroyImmediate(oldButton.gameObject);
-            else ((RectTransform)group).sizeDelta += new Vector2(0, 74);   // 버튼 60 + 간격 14
-            Transform backs = group.Find("Deco_Backs");
-            Transform oldBack = backs != null ? backs.Find("Back_Help") : null;
-            if (oldBack != null) Object.DestroyImmediate(oldBack.gameObject);
-            foreach (HelpWindow old in hud.GetComponentsInChildren<HelpWindow>(true)) Object.DestroyImmediate(old.gameObject);
-
-            GameObject help = Object.Instantiate(growth.gameObject, group);
-            help.name = "HelpButton";
-            help.GetComponentInChildren<TextMeshProUGUI>().text = "도움말";
-            help.transform.SetAsLastSibling();
-            Button helpButton = help.GetComponent<Button>();
-            helpButton.onClick = new Button.ButtonClickedEvent();
-            if (backs != null && backs.Find("Back_Growth") is Transform backGrowth)
-            {
-                GameObject back = Object.Instantiate(backGrowth.gameObject, backs);
-                back.name = "Back_Help";
-                ((RectTransform)back.transform).anchoredPosition += new Vector2(0, -74);
-            }
-
-            Canvas canvas = main.GetComponentInParent<Canvas>(true).rootCanvas;
-            var window = (HelpWindow)PrefabUtility.InstantiatePrefab(prefab, canvas.transform);
-            window.transform.SetAsLastSibling();
-
-            so.FindProperty("helpButton").objectReferenceValue = helpButton;
-            so.FindProperty("helpWindow").objectReferenceValue = window;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            PrefabUtility.SaveAsPrefabAsset(hud, HudPath);
-        }
-        finally { PrefabUtility.UnloadPrefabContents(hud); }
+        Debug.Log($"[도움말] {PrefabPath} 생성, 열린 씬에 놓았다(F1). 내용: {BookPath}");
     }
 
     // --- 만들기 도우미 ---

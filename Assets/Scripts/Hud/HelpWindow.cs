@@ -9,7 +9,8 @@ using UnityEngine.UI;
 namespace Marea.Hud
 {
     /// <summary>
-    /// 도움말 창. (+10/12) 왼쪽 분류 탭 · 검색 · 항목 목록, 오른쪽 그림 · 제목 · 설명 · 페이지 넘김. 메인 HUD [메뉴] → [도움말].
+    /// 도움말 창. (+10/12) 왼쪽 분류 탭 · 검색 · 항목 목록, 오른쪽 그림 · 제목 · 설명 · 페이지 넘김. F1로 여닫는다.
+    /// (+10/12) 아트가 PF_AUI를 고치는 중이라 HUD 밖 자체 캔버스로 씬에 따로 둔다. [메뉴] 버튼은 나중에 Toggle만 이으면 된다.
     ///
     /// 내용은 HelpBook 에셋이 든다. 탭 · 목록 · 페이지 점은 템플릿 오브젝트(꺼 둔 것)를 복제해 채운다 — 모양은 프리팹에서 고친다.
     /// 프리팹은 Marea/UI/도움말 창 만들기(HelpWindowBuilder)가 만든다.
@@ -19,6 +20,8 @@ namespace Marea.Hud
         private const string All = "전체";
 
         [SerializeField] private HelpBook book;
+        [Tooltip("여닫는 키.")]
+        [SerializeField] private Key toggleKey = Key.F1;
         [Tooltip("HUD의 시계(WorldClockCanvas 10) 등 따로 된 캔버스 위에 그린다. 토스트(500)보다는 아래.")]
         [SerializeField] private int sortingOrder = 100;
 
@@ -61,9 +64,10 @@ namespace Marea.Hud
         protected override void Awake()
         {
             base.Awake();
-            // 다른 캔버스 아래에 들어가면 프리팹의 정렬 덮어쓰기가 풀린다 — 여기서 건다.
+            // 자체 캔버스(씬 루트) — 다른 캔버스 아래에 넣어도 정렬 덮어쓰기로 HUD 위에 그린다.
             Canvas own = GetComponent<Canvas>();
             if (own == null) own = gameObject.AddComponent<Canvas>();
+            own.renderMode = RenderMode.ScreenSpaceOverlay;
             own.overrideSorting = true;
             own.sortingOrder = sortingOrder;
             if (GetComponent<GraphicRaycaster>() == null) gameObject.AddComponent<GraphicRaycaster>();
@@ -78,7 +82,10 @@ namespace Marea.Hud
 
         private void Update()
         {
-            if (IsVisible && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) Close();
+            Keyboard kb = Keyboard.current;
+            if (kb == null) return;
+            if (kb[toggleKey].wasPressedThisFrame) Toggle();
+            else if (IsVisible && kb.escapeKey.wasPressedThisFrame) Close();
         }
 
         protected override void OnOpened()
