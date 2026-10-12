@@ -38,6 +38,8 @@ namespace Marea.Cutscene
         [SerializeField] private VfxId smashImpactVfx = VfxId.Fail;
         [SerializeField] private VfxId smashSplashVfx = VfxId.Splash;
         [SerializeField, Min(0.1f)] private float smashVfxScale = 6f;
+        [Tooltip("(+10/13) 해수면 높이. 물튀김은 데크가 아니라 여기서 터뜨린다 — 부서지면서 바닥이 사라져 데크 높이면 물결 고리가 허공에 떴다.")]
+        [SerializeField] private float seaLevel = 6.9f;
         [Tooltip("(+10/12) 터질 때 첫 smashPoint에서 튀어 오르는 판자 조각 프리팹. 물리로 날아간다.")]
         [SerializeField] private GameObject[] burstPieces;
         [SerializeField, Min(0)] private int burstCount = 18;
@@ -156,7 +158,7 @@ namespace Marea.Cutscene
                     if (p == null) continue;
                     Vfx.Play(smashVfx, p.position, smashVfxScale);
                     Vfx.Play(smashImpactVfx, p.position + Vector3.up * 0.5f, smashVfxScale);
-                    Vfx.Play(smashSplashVfx, p.position + Vector3.up * 0.5f, smashVfxScale);
+                    Vfx.Play(smashSplashVfx, new Vector3(p.position.x, seaLevel, p.position.z), smashVfxScale);
                 }
             if (_sites != null)
                 foreach (FacilitySite s in _sites) if (s != null) s.ShowCurrent();

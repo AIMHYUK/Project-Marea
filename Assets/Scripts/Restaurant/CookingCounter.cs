@@ -9,7 +9,11 @@ namespace Marea.Restaurant
     /// <summary>
     /// (+10/9, A) 음식을 집는 건 근접 E 경로(ProximityInteractor)로 — 가까이 가면 "[E] 집기"가 뜬다.
     /// 예전엔 여기서 트리거 + E를 직접 읽어 표시가 없었다. 클릭은 안 받는다.
+    ///
+    /// (+10/13, A) 거치한 음식은 매 프레임 자기 슬롯 자리를 따라간다 — 카운터가 데크와 같이 출렁여서(DeckBob),
+    /// 놓을 때 자리에 그대로 두면 카운터만 움직이고 음식은 떠 있었다. DeckBob(기본 순서) 다음에 돌도록 순서를 늦춘다.
     /// </summary>
+    [DefaultExecutionOrder(100)]
     public class CookingCounter : InteractableBase
     {
         [Header("음식 거치 슬롯 위치 (최대 5개)")]
@@ -233,6 +237,11 @@ namespace Marea.Restaurant
                     _spawnedVisuals[i].transform.rotation = slotPoints[i].rotation;
                 }
             }
+        }
+
+        private void LateUpdate()
+        {
+            if (_spawnedVisuals.Count > 0 && slotPoints != null) RearrangeVisuals();   // (+10/13, A)
         }
 
         private void OnDestroy()

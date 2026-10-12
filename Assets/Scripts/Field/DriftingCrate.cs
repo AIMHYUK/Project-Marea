@@ -14,12 +14,16 @@ namespace Marea.Field
     ///
     /// 출렁임은 모델 자식의 FloatBob이 맡는다. 이건 위치만 옮긴다.
     ///
-    /// (+10/12) 다 흘러와 멈추면 줍기 전까지 이펙트(landedLoopVfx — 물 뿌리기)를 계속 튼다. 자식으로 붙여 주우면 상자와 같이 사라진다.
+    /// (+10/12) 다 흘러와 멈추면 줍기 전까지 이펙트(landedLoopVfx — 물 뿌리기, (+10/13) 불꽃놀이 Firework 1 반복)를 계속 튼다. 자식으로 붙여 주우면 상자와 같이 사라진다.
     /// </summary>
     public class DriftingCrate : InteractableBase
     {
-        [Tooltip("주우면 창고로 들어갈 재료와 수량.")]
+        [Tooltip("주우면 창고로 들어갈 재료. 수량은 amountRange가 정한다(0이면 여기 적힌 수량).")]
         [SerializeField] private RecipeEntry[] contents;
+        [Tooltip("(+10/13) 재료마다 이 범위(최소~최대, 둘 다 포함)에서 무작위로 준다. x가 0이면 contents의 수량 그대로.")]
+        [SerializeField] private Vector2Int amountRange = new(5, 10);
+        [Tooltip("(+10/13) contents 중 이 범위(최소~최대 종류)만 무작위로 골라 준다. x가 0이면 전부.")]
+        [SerializeField] private Vector2Int kindRange = new(1, 2);
 
         [Header("연출")]
         [Tooltip("다 흘러와 멈췄을 때 띄울 알림. 비우면 안 띄운다.")]
@@ -29,8 +33,8 @@ namespace Marea.Field
         [SerializeField] private GameObject landedLoopVfx;
         [Tooltip("상자 기준 이펙트 자리. 통 윗면이 0.76m쯤이라 그 위.")]
         [SerializeField] private Vector3 landedVfxOffset = new(0f, 0.8f, 0f);
-        [Tooltip("이펙트 크기 배율. 1이면 통에 비해 작아 잘 안 보였다.")]
-        [SerializeField, Min(0.01f)] private float landedVfxScale = 2.5f;
+        [Tooltip("이펙트 크기 배율. 1이면 통에 비해 작아 잘 안 보였고 2.5는 너무 컸다(+10/13). 바꾸면 PF_CrateSprinkler의 물결 고리 높이(-0.8m ÷ 배율)도 맞출 것.")]
+        [SerializeField, Min(0.01f)] private float landedVfxScale = 1.5f;
         [SerializeField] private AudioClip pickClip;
         [SerializeField, Range(0f, 1f)] private float pickVolume = 0.8f;
 
@@ -110,12 +114,23 @@ namespace Marea.Field
                 Debug.LogError($"{name}: 씬에 Warehouse가 없다. 주운 재료가 갈 곳이 없다.", this);
                 return;
             }
-            var got = new System.Collections.Generic.List<string>();
-            foreach (RecipeEntry entry in contents)
+            // (+10/13) contents를 섞어 앞에서 kindRange개만 준다
+            var pool = new System.Collections.Generic.List<RecipeEntry>(contents);
+            for (int i = pool.Count - 1; i > 0; i--)
             {
-                warehouse.Add(entry.ingredient, entry.requiredAmount);
-                if (entry.ingredient != null && entry.requiredAmount > 0)
-                    got.Add($"<b>{entry.ingredient.DisplayName}</b> {entry.requiredAmount}개");
+                int j = UnityEngine.Random.Range(0, i + 1);
+                (pool[i], pool[j]) = (pool[j], pool[i]);
+            }
+            int kinds = kindRange.x > 0 ? Mathf.Min(pool.Count, UnityEngine.Random.Range(kindRange.x, Mathf.Max(kindRange.x, kindRange.y) + 1)) : pool.Count;
+
+            var got = new System.Collections.Generic.List<string>();
+            for (int k = 0; k < kinds; k++)
+            {
+                RecipeEntry entry = pool[k];
+                int amount = amountRange.x > 0 ? UnityEngine.Random.Range(amountRange.x, Mathf.Max(amountRange.x, amountRange.y) + 1) : entry.requiredAmount;
+                warehouse.Add(entry.ingredient, amount);
+                if (entry.ingredient != null && amount > 0)
+                    got.Add($"<b>{entry.ingredient.DisplayName}</b> {amount}개");
             }
             // (+10/8) 알림 — "고기 2개를 획득했습니다!" (늘 "개"로 끝나 조사는 "를")
             if (got.Count > 0) Toast.Show(string.Join(", ", got) + "를 획득했습니다!");
