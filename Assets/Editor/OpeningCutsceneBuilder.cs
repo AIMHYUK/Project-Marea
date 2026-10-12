@@ -57,10 +57,10 @@ public static class OpeningCutsceneBuilder
         dadModel.name = "Dad";
         dadModel.transform.SetParent(content.transform, false);
         dadModel.transform.SetPositionAndRotation(dadPos, Quaternion.LookRotation(fwd));
-        dadModel.transform.localScale = Vector3.one * 2f;   // PF_Customer와 같다
+        dadModel.transform.localScale = Vector3.one * 3f;   // (+10/12) PF_Customer(2)의 1.5배
         if (!dadModel.TryGetComponent(out Animator dadAnim)) dadAnim = dadModel.AddComponent<Animator>();
         dadAnim.applyRootMotion = false;
-        Vector3 dadHead = dadPos + Vector3.up * 1.7f;
+        Vector3 dadHead = dadPos + Vector3.up * 2.55f;   // (+10/12) 1.5배 키
 
         // --- 고래: 경로는 Whale, 헤엄 · 점프는 Model ---
         // 경로를 Animator가 붙은 오브젝트 자신에 걸면 Timeline이 루트 모션(시작점 기준 이동량)으로 바꿔 버린다.
@@ -160,8 +160,8 @@ public static class OpeningCutsceneBuilder
         Shot(cmTrack, director, camImpact, ImpactAt, AfterAt);
         Shot(cmTrack, director, camAfter, AfterAt, End);
 
-        // (+10/12) 아빠는 조리대 앞에 서 있다가 RunAt에 뒤로 돌아 달아난다(달리기 클립의 루트 모션이 앞으로 초속 5m).
-        // 트랙 기준 자리 · 방향을 조리대 앞으로 두고, 달리기 클립만 180° 돌린다.
+        // (+10/12) 아빠는 조리대 앞에 서 있다가 RunAt에 고래 반대쪽(충돌 지점 → 아빠 방향, 동쪽)으로 달아난다(루트 모션 초속 5m).
+        // 트랙 기준 자리 · 방향을 조리대 앞으로 두고, 달리기 클립만 92° 돌린다.
         var dadTrack = timeline.CreateTrack<AnimationTrack>(null, "Dad");
         dadTrack.trackOffset = TrackOffset.ApplyTransformOffsets;
         dadTrack.position = dadPos;
@@ -169,7 +169,7 @@ public static class OpeningCutsceneBuilder
         Clip(dadTrack, Load<AnimationClip>("Assets/Art/Asset/Character/NPC_01/Animation/Npc01_Standing.fbx", "AN_Npc01_Standing"), 0f, RunAt);
         Clip(dadTrack, Load<AnimationClip>("Assets/Cutscene/Opening/Anim/XBot_FastRun.fbx", "AN_Dad_FastRun"), RunAt, End - RunAt);
         foreach (TimelineClip c in dadTrack.GetClips())
-            if (c.start >= RunAt) ((AnimationPlayableAsset)c.asset).rotation = Quaternion.Euler(0f, 180f, 0f);
+            if (c.start >= RunAt) ((AnimationPlayableAsset)c.asset).rotation = Quaternion.Euler(0f, 92f, 0f);   // (+10/12) 고래 반대쪽(동쪽)으로
         director.SetGenericBinding(dadTrack, dadAnim);
 
         var pathTrack = timeline.CreateTrack<AnimationTrack>(null, "Whale Path");
