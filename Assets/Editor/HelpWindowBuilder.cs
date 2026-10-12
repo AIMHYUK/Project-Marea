@@ -139,6 +139,7 @@ public static class HelpWindowBuilder
         // (+10/12) 아버지의 한마디 — 설명 아래 금빛 기울임
         TextMeshProUGUI quote = Text(Child(body, "Quote"), "한마디", 26, new Color(0.58f, 0.38f, 0.14f), Stretched, Vector2.zero, Vector2.zero, TextAlignmentOptions.Center, _semi);
         quote.fontStyle = FontStyles.Italic;
+        quote.margin = new Vector4(0, 48, 0, 0);   // (+10/13) 설명과 띄운다 — 한마디가 따로 놓이게
 
         GameObject dots = Child(sheet, "Dots"); Place(dots, new Anchor(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0)), new Vector2(0, 128), new Vector2(200, 14));
         var dl = dots.AddComponent<HorizontalLayoutGroup>(); dl.spacing = 10; dl.childAlignment = TextAnchor.MiddleCenter; dl.childControlWidth = false; dl.childControlHeight = false; dl.childForceExpandWidth = false;
