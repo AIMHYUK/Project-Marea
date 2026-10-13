@@ -35,6 +35,16 @@ namespace Marea.Core
         /// <summary>(+10/10) 클릭하면 걸어가지 않고 그 자리에서 바로 받나 — 다 자란 밭 위 수확 마커.</summary>
         public virtual bool ClickFromAfar => false;
 
+        /// <summary>
+        /// (+10/13) [E] 표시를 띄울 자리(월드). false면 물건 몸통 위 — 조리대처럼 여러 개 중 하나를 집는 곳은
+        /// 집을 그 하나 위에 띄우려고 override한다.
+        /// </summary>
+        public virtual bool TryGetPromptPoint(IInteractor actor, out Vector3 world)
+        {
+            world = default;
+            return false;
+        }
+
         public abstract void Interact(IInteractor actor);
 
         /// <summary>마우스가 올라왔을 때. 아웃라인 같은 걸 켜고 싶으면 override.</summary>
