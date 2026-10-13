@@ -100,7 +100,9 @@ namespace Marea.Player
                 return;
             }
 
-            Vector3 world = new Vector3(_targetBounds.center.x, _targetBounds.max.y + heightOffset, _targetBounds.center.z);
+            Vector3 world = _target.TryGetPromptPoint(_player, out Vector3 point)   // (+10/13) 조리대 — 집을 그릇 위
+                ? point + Vector3.up * heightOffset
+                : new Vector3(_targetBounds.center.x, _targetBounds.max.y + heightOffset, _targetBounds.center.z);
             Vector3 screen = _cam.WorldToScreenPoint(world);
             if (screen.z < 0f)   // 카메라 뒤
             {

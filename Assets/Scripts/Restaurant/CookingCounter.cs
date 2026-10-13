@@ -73,6 +73,32 @@ namespace Marea.Restaurant
 
         public override bool AllowClick => false;
 
+        /// <summary>
+        /// (+10/13, A) [E]를 조리대 몸통 가운데가 아니라 — 빈손이면 집게 될 그릇 위, 들고 있으면 내려놓을 빈 슬롯 위에 띄운다.
+        /// </summary>
+        public override bool TryGetPromptPoint(IInteractor actor, out Vector3 world)
+        {
+            world = default;
+            PlayerServingController serving = PlayerServingController.Of(actor);
+            if (serving == null || slotPoints == null) return false;
+
+            int index = serving.IsHoldingFood ? CurrentCount : FindPlayerPickIndex();
+            if (index < 0 || index >= slotPoints.Length || slotPoints[index] == null) return false;
+
+            GameObject visual = !serving.IsHoldingFood && index < _spawnedVisuals.Count ? _spawnedVisuals[index] : null;
+            Bounds? body = null;
+            if (visual != null)
+                foreach (Renderer r in visual.GetComponentsInChildren<Renderer>())
+                {
+                    if (body == null) body = r.bounds;
+                    else { Bounds b = body.Value; b.Encapsulate(r.bounds); body = b; }
+                }
+            world = body != null
+                ? new Vector3(body.Value.center.x, body.Value.max.y, body.Value.center.z)
+                : slotPoints[index].position;
+            return true;
+        }
+
         public override string InteractLabel(IInteractor actor)
         {
             PlayerServingController serving = PlayerServingController.Of(actor);
