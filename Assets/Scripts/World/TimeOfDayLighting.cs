@@ -99,6 +99,7 @@ namespace Marea.World
         private Color _skyTint0;
         private float _skyExposure0;
         private float[] _lamp0;
+        private bool _started, _envCaptured;
         private readonly System.Collections.Generic.List<WaterCopy> _water = new System.Collections.Generic.List<WaterCopy>();
 
         private class WaterCopy
@@ -137,9 +138,32 @@ namespace Marea.World
                 _sunRotation0 = sun.transform.rotation;
             }
 
+            if (_started) CaptureEnvironment();   // 처음 켤 땐 Start에서 — 아래 주석
+
+            HookWater();
+
+            if (lamps == null) lamps = new Light[0];
+            _lamp0 = new float[lamps.Length];
+            for (int i = 0; i < lamps.Length; i++)
+                if (lamps[i] != null) _lamp0[i] = lamps[i].intensity;
+        }
+
+        // (+10/13) 환경광 · 안개 · 반사 · 하늘 기준값은 Start에서 읽는다. 빌드에서 Title → Main을 비동기로 불러오면
+        // OnEnable 시점의 RenderSettings.ambientProbe가 0이었다(에디터는 정상). 0을 기준으로 시간대 색을 곱해
+        // 하루 종일 그늘이 시커멨다. Start는 씬 활성화가 끝난 뒤라 Main의 구운 환경광이 들어와 있다.
+        private void Start()
+        {
+            _started = true;
+            if (enabled) CaptureEnvironment();
+        }
+
+        private void CaptureEnvironment()
+        {
             _ambient0 = RenderSettings.ambientProbe;
             _fog0 = RenderSettings.fogColor;
             _reflection0 = RenderSettings.reflectionIntensity;
+            if (_ambient0[0, 0] + _ambient0[1, 0] + _ambient0[2, 0] <= 0f)
+                Debug.LogError("[TimeOfDayLighting] 기준 환경광이 0입니다. 그늘이 시커멓게 나옵니다 — 씬에 Generate Lighting을 했는지 확인하세요.", this);
 
             _sky0 = RenderSettings.skybox;
             if (_sky0 != null && _sky0.HasProperty(TintId) && _sky0.HasProperty(ExposureId))
@@ -149,13 +173,7 @@ namespace Marea.World
                 _skyExposure0 = _sky0.GetFloat(ExposureId);
                 RenderSettings.skybox = _sky;
             }
-
-            HookWater();
-
-            if (lamps == null) lamps = new Light[0];
-            _lamp0 = new float[lamps.Length];
-            for (int i = 0; i < lamps.Length; i++)
-                if (lamps[i] != null) _lamp0[i] = lamps[i].intensity;
+            _envCaptured = true;
         }
 
         private void OnDisable()
@@ -167,9 +185,13 @@ namespace Marea.World
                 sun.transform.rotation = _sunRotation0;
             }
 
-            RenderSettings.ambientProbe = _ambient0;
-            RenderSettings.fogColor = _fog0;
-            RenderSettings.reflectionIntensity = _reflection0;
+            if (_envCaptured)
+            {
+                RenderSettings.ambientProbe = _ambient0;
+                RenderSettings.fogColor = _fog0;
+                RenderSettings.reflectionIntensity = _reflection0;
+                _envCaptured = false;
+            }
 
             if (_sky != null)
             {
