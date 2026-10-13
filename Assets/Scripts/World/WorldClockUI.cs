@@ -12,8 +12,9 @@ namespace Marea.World
     ///
     /// 시간대의 한글 이름도 여기 있다. 표시용 문자열은 시계가 알 일이 아니다.
     ///
-    /// (+10/12) 상단 중앙 텍스트에서 골드바 아래 둥근 시계로 바꿨다. 바늘은 하루에 한 바퀴 —
-    /// 정오가 위, 자정이 아래다. 가운데 아이콘은 낮·저녁엔 해, 밤·새벽엔 달.
+    /// (+10/12) 상단 중앙 텍스트에서 골드바 아래 둥근 시계로 바꿨다. 가운데 아이콘은 낮·저녁엔 해, 밤·새벽엔 달.
+    /// (+10/13) 바늘은 12시간에 한 바퀴(하루 두 바퀴) — 판 눈금이 12칸이라 하루 한 바퀴면 06:00에 9시를 가리켜
+    /// 아래 글자와 어긋났다. 오전·오후는 해·달 아이콘과 글자가 가른다.
     /// 텍스트(label)는 시계 옆 보조 표시로 남겼다.
     /// </summary>
     public class WorldClockUI : MonoBehaviour
@@ -99,8 +100,8 @@ namespace Marea.World
         {
             if (clock == null || label == null) return;
 
-            // 정오(0.5)에 0°로 위를 가리킨다. z가 줄어야 시계방향이다.
-            if (hand != null) hand.localRotation = Quaternion.Euler(0f, 0f, 180f - clock.NormalizedTime * 360f);
+            // 0시 · 12시에 0°로 위를 가리킨다. z가 줄어야 시계방향이다. (+10/13) 12시간에 한 바퀴.
+            if (hand != null) hand.localRotation = Quaternion.Euler(0f, 0f, -(clock.Hour % 12f) / 12f * 360f);
 
             if (_fade < 1f)
             {
