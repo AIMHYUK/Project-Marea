@@ -73,6 +73,8 @@ namespace Marea.Field
         [SerializeField, Min(0.05f)] private float unloadInterval = 0.5f;
         [Tooltip("(+10/9) 손님이 다 탄 뒤(마지막 손님이 돌아와 사라진 뒤) 출항까지 기다리는 초.")]
         [SerializeField, Min(0f)] private float dockHoldSeconds = 1.5f;
+        [Tooltip("(+10/13) 내린 손님이 다 먹고 탈 때까지 정박해 기다린다. 끄면 내려 주고 바로 떠난다 — 연출 씬(Main_Showcase)에서 배를 자주 오게.")]
+        [SerializeField] private bool waitForPassengers = true;
         [Tooltip("빈자리가 하나도 없을 때 다시 볼 때까지 초.")]
         [SerializeField, Min(0.1f)] private float noSeatRetrySeconds = 2f;
 
@@ -334,7 +336,7 @@ namespace Marea.Field
             // (+10/9) 내린 손님이 다 먹고 선착장 출구로 돌아와 사라질 때(= 배에 탐)까지 정박해 기다린다.
             // 음식을 잘못 받아 일찍 떠난 손님도 사라지면 탄 것으로 친다. 영업이 끝나면 BusinessManager가
             // 손님을 한꺼번에 지우니 그때 바로 떠난다.
-            while (HasPassengersAshore()) yield return null;
+            while (waitForPassengers && HasPassengersAshore()) yield return null;
 
             for (float t = 0f; t < dockHoldSeconds; t += Time.deltaTime) yield return null;
 
