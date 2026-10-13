@@ -134,10 +134,12 @@ namespace Marea.Field
             BusinessManager.Instance.OnDayChanged -= Save;
         }
 
+#if UNITY_EDITOR || MAREA_DEV_KEYS   // (+10/13) 제출용 빌드엔 디버그 키를 넣지 않는다
         private void Update()
         {
             if (Keyboard.current != null && Keyboard.current[testKey].wasPressedThisFrame) RunNow();
         }
+#endif
 
         /// <summary>테스트: 영업 · 날짜와 상관없이 지금 부딪치게 한다. 플레이 중 testKey 또는 인스펙터 메뉴.</summary>
         [ContextMenu("지금 충돌 (테스트)")]
