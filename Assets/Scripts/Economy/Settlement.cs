@@ -13,7 +13,7 @@ namespace Marea.Economy
     public static class Settlement
     {
         /// <summary>직원(서빙) 하루 인건비. 직원 운영 Lv1(AUTO_SERVE)부터 붙는다.</summary>
-        public const int StaffDailyWage = 20;
+        public const int StaffDailyWage = 500;
 
         public readonly struct Result
         {
