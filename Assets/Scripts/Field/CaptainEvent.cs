@@ -390,12 +390,17 @@ namespace Marea.Field
             foreach (GameObject x in crew)
                 if (x != null && x.TryGetComponent(out CustomerController c)) waiting.Add(c);
 
+            // (+10/13) 선장 테이블 쪽에 뭉쳐 선 선원 사이로 자리 받은 선원이 하나씩밖에 못 빠져나왔다 —
+            // 서서 기다리는 선원은 비켜서고(낮은 우선순위), 자리로 가는 선원은 밀고 지나가게(높은 우선순위) 한다.
+            foreach (CustomerController c in waiting) SetAvoidance(c, WaitingAvoidance);
+
             while (IsOpen && waiting.Count > 0)
             {
                 waiting.RemoveAll(c => c == null);
                 for (int i = 0; i < waiting.Count; i++)
                 {
                     if (manager == null || !manager.SeatHeld(waiting[i])) break;   // 자리가 없다 — 다음에
+                    SetAvoidance(waiting[i], SeatingAvoidance);
                     waiting.RemoveAt(i--);
                 }
                 if (waiting.Count > 0) yield return new WaitForSeconds(0.5f);
@@ -403,6 +408,15 @@ namespace Marea.Field
 
             while (IsOpen && crew.Exists(x => x != null)) yield return null;
             crew.Clear();
+        }
+
+        // NavMeshAgent.avoidancePriority — 숫자가 작을수록 우선(기본 50). 큰 쪽이 길을 비킨다.
+        private const int SeatingAvoidance = 20;
+        private const int WaitingAvoidance = 90;
+
+        private static void SetAvoidance(CustomerController c, int priority)
+        {
+            if (c != null && c.TryGetComponent(out NavMeshAgent agent)) agent.avoidancePriority = priority;
         }
 
         // --- 서 있는 선원 ---
