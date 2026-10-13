@@ -19696,6 +19696,9 @@ MonoBehaviour:
   panInsideTransform: {fileID: 6474355359585716280}
   spatulaTransform: {fileID: 5895154692685882331}
   veggieClickPadding: 48
+  minIngredientsPerClick: 1
+  maxIngredientsPerClick: 1
+  nearbyIngredientClickRadius: 160
   ingredientInsertDuration: 0.45
   ingredientInsertArcHeight: 0.25
   ingredientPanHeightOffset: 0.08499999
@@ -31009,7 +31012,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0.15, z: 0}
-  m_LocalScale: {x: 0.35, y: 0.35, z: 0.35}
+  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7668323452488611331}
@@ -50404,6 +50407,7 @@ MonoBehaviour:
   sauceGame: {fileID: 7404134618522493232}
   guideLabel: {fileID: 925087572540154128}
   guideRoot: {fileID: 8956331849590607386}
+  timeFill: {fileID: 0}
   grillFlameVfx: 1
   grillSteamVfx: 3
   oilSplashVfx: 4
@@ -66897,6 +66901,7 @@ MonoBehaviour:
   sauceSplashVfx: 4
   sauceTint: {r: 0.75, g: 0.12, b: 0.05, a: 1}
   splashInterval: 0.2
+  plateSplashScale: 0.25
   coatedSplashScale: 1.1
   coatedSparkleVfx: 12
   coatedSparkleScale: 0.7
@@ -66907,10 +66912,8 @@ MonoBehaviour:
   coatedVolume: 0.7
   stainDecal: {fileID: 0}
   stainRadius: 0.3
-  stainSpacing: 0.03
-  stainSize: {x: 0.06, y: 0.1}
-  stainDepth: 0.08
-  stainMax: 60
+  coatStainSize: 0.16
+  coatStainDepth: 0.2
   squeezeLoop: {fileID: 0}
   squeezeVolume: 0.7
   timeLimit: 8
@@ -68733,6 +68736,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Marea.Cooking.SkewerSauceBrush
   controller: {fileID: 1537754881898205504}
   brushTip: {fileID: 8550361866317124829}
+  idleBobEnabled: 1
+  idleBobHeight: 0.025
+  idleBobFrequency: 1.25
   cameraFacingEuler: {x: 180, y: -40, z: 0}
   rotationSpeed: 12
   strokeTiltAngle: 20
