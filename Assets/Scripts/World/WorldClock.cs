@@ -107,6 +107,18 @@ namespace Marea.World
         }
 
         /// <summary>
+        /// (+10/13) 시간을 건너뛴다(F7 — DebugHotkeys). 시간대가 바뀌면 이벤트도 낸다.
+        /// </summary>
+        public void AddHours(float hours)
+        {
+            NormalizedTime = Mathf.Repeat(NormalizedTime + hours / 24f, 1f);
+            TimeSlot next = SlotOf(Hour);
+            if (next == Slot) return;
+            Slot = next;
+            OnSlotChanged?.Invoke(next);
+        }
+
+        /// <summary>
         /// 시각을 시간대로 바꾼다.
         ///
         /// 밤만 자정을 넘어가므로(20시 → 다음날 4시) 앞의 셋을 먼저 걸러내고

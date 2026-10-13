@@ -123,10 +123,12 @@ namespace Marea.Field
                 BusinessManager.Instance.StartBusiness();
         }
 
+#if UNITY_EDITOR || MAREA_DEV_KEYS   // (+10/13) 제출용 빌드엔 디버그 키를 넣지 않는다 — 시연용 빌드만 MAREA_DEV_KEYS로 뽑는다
         private void Update()
         {
             if (UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.f10Key.wasPressedThisFrame) RunNow();
         }
+#endif
 
         private static bool IsOpen => BusinessManager.Instance != null && BusinessManager.Instance.CurrentState == BusinessState.Open;
 
