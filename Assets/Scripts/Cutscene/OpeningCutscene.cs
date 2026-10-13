@@ -4,6 +4,7 @@ using Marea.Core;
 using Marea.Data;
 using Marea.Field;
 using Marea.Player;
+using TMPro;
 using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -16,7 +17,7 @@ namespace Marea.Cutscene
     ///
     /// 새 게임에서 한 번만 튼다(저장 키 savedKey). 에디터는 저장을 안 읽어 매번 새 게임이라 playInEditor로 정한다.
     /// 흐름: 시설을 다 지은 모습으로 → 타임라인(Cinemachine 카메라 · 아빠 · 고래) → Smash 신호에서 시설을 지금 레벨(폐허)로
-    /// → 끝나면 암전 → 원래 카메라 · HUD · 플레이어로 돌려놓고 밝힌다. Esc로 건너뛴다.
+    /// → 끝나면 암전 → (+10/13) 검은 화면에 아빠의 한마디 → 원래 카메라 · HUD · 플레이어로 돌려놓고 밝힌다. Esc로 건너뛴다.
     ///
     /// 메인 카메라엔 CinemachineBrain이 없다 — 평소엔 CameraFollow가 움직인다. 컷신 동안만 Brain을 붙이고 CameraFollow를 끈다.
     /// </summary>
@@ -62,6 +63,14 @@ namespace Marea.Cutscene
         [SerializeField, Min(0f)] private float blackSeconds = 0.6f;
         [SerializeField, Min(0f)] private float fadeInSeconds = 1f;
 
+        [Header("암전 글씨 (+10/13)")]
+        [TextArea, SerializeField] private string blackMessage = "아들아. 식당을 잘 부탁한다";
+        [Tooltip("한글이 든 폰트. 비면 TMP 기본 폰트라 한글이 네모로 나온다.")]
+        [SerializeField] private TMP_FontAsset messageFont;
+        [SerializeField, Min(1f)] private float messageSize = 56f;
+        [SerializeField, Min(0f)] private float messageFadeSeconds = 0.7f;
+        [SerializeField, Min(0f)] private float messageHoldSeconds = 2.2f;
+
         private readonly List<Canvas> _hiddenCanvases = new();
         private readonly List<Renderer> _hiddenPlayer = new();
         private readonly List<Renderer> _hiddenWalls = new();
@@ -76,6 +85,8 @@ namespace Marea.Cutscene
             if (director == null || content == null)
                 Debug.LogError($"{name}: OpeningCutscene의 director · content가 비어 있다. 컷신이 안 돈다.", this);
             if (content != null) content.SetActive(false);
+            if (!string.IsNullOrEmpty(blackMessage) && messageFont == null)
+                Debug.LogError($"{name}: OpeningCutscene.messageFont가 비어 있다. 암전 글씨의 한글이 깨진다.", this);
         }
 
         private IEnumerator Start()
@@ -213,8 +224,42 @@ namespace Marea.Cutscene
             SaveFile.Set(savedKey, 1);
 
             yield return new WaitForSecondsRealtime(blackSeconds);
+            if (!string.IsNullOrEmpty(blackMessage)) yield return ShowMessage(fade.transform);
             yield return fade.FadeTo(0f, fadeInSeconds);
             Destroy(fade.gameObject);
+        }
+
+        // (+10/13) 암전막 캔버스 위에 글씨를 띄웠다 지운다. 암전막과 같이 파괴된다.
+        private IEnumerator ShowMessage(Transform curtainCanvas)
+        {
+            var go = new GameObject("BlackMessage", typeof(RectTransform));
+            go.transform.SetParent(curtainCanvas, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            var text = go.AddComponent<TextMeshProUGUI>();
+            if (messageFont != null) text.font = messageFont;
+            text.text = blackMessage;
+            text.fontSize = messageSize;
+            text.alignment = TextAlignmentOptions.Center;
+            text.color = new Color(1f, 1f, 1f, 0f);
+
+            yield return FadeText(text, 1f);
+            yield return new WaitForSecondsRealtime(messageHoldSeconds);
+            yield return FadeText(text, 0f);
+            Destroy(go);
+        }
+
+        private IEnumerator FadeText(TextMeshProUGUI text, float to)
+        {
+            float from = text.alpha;
+            for (float t = 0f; t < messageFadeSeconds; t += Time.unscaledDeltaTime)
+            {
+                text.alpha = Mathf.Lerp(from, to, t / messageFadeSeconds);
+                yield return null;
+            }
+            text.alpha = to;
         }
     }
 }
