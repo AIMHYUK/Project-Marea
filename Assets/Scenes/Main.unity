@@ -47147,6 +47147,10 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: -0.09405618
       objectReference: {fileID: 0}
+    - target: {fileID: 1319056249558448222, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1348575654989284366, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.15306091
@@ -47697,6 +47701,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3330684699529211655, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.2840004
+      objectReference: {fileID: 0}
     - target: {fileID: 3332517802270930017, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 1.502
@@ -47933,6 +47941,10 @@ PrefabInstance:
       propertyPath: m_LocalPosition.z
       value: 44.41
       objectReference: {fileID: 0}
+    - target: {fileID: 4067946262760807944, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.284
+      objectReference: {fileID: 0}
     - target: {fileID: 4068820380569566973, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
       propertyPath: m_Name
       value: PF_Kitchen
@@ -47968,6 +47980,10 @@ PrefabInstance:
     - target: {fileID: 4134772285017470266, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
       propertyPath: m_LocalRotation.y
       value: 0.42261833
+      objectReference: {fileID: 0}
+    - target: {fileID: 4242334127488156786, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.127
       objectReference: {fileID: 0}
     - target: {fileID: 4361065701369883813, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
       propertyPath: m_IsActive
@@ -48092,6 +48108,14 @@ PrefabInstance:
     - target: {fileID: 4658920906450070267, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
       propertyPath: m_LocalRotation.z
       value: -0.14424834
+      objectReference: {fileID: 0}
+    - target: {fileID: 4721206534313526158, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
+      propertyPath: burstVfx
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4721206534313526158, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
+      propertyPath: perfectVfx
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 4822868138607474034, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
       propertyPath: m_IsActive
@@ -48417,6 +48441,10 @@ PrefabInstance:
       propertyPath: stageGrillScaleX
       value: 2.72
       objectReference: {fileID: 0}
+    - target: {fileID: 6220285898180901981, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.054000854
+      objectReference: {fileID: 0}
     - target: {fileID: 6221881165060246107, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
       propertyPath: edgeBlur
       value: 0.5
@@ -48527,11 +48555,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6458435519921950748, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 11.310506
+      value: 11.29
       objectReference: {fileID: 0}
     - target: {fileID: 6458435519921950748, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 44.549053
+      value: 44.65
       objectReference: {fileID: 0}
     - target: {fileID: 6458435519921950748, guid: 437c99d3088b46a4abe3e6fe3d12ec1c, type: 3}
       propertyPath: m_LocalRotation.w
@@ -110619,6 +110647,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1628137939}
   - component: {fileID: 1628137940}
+  - component: {fileID: 1628137941}
   m_Layer: 0
   m_Name: FoodWarmLight
   m_TagString: Untagged
@@ -110706,6 +110735,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &1628137941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1628137938}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &1631663715
 GameObject:
   m_ObjectHideFlags: 0
