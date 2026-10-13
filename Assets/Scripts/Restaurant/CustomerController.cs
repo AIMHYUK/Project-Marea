@@ -277,7 +277,8 @@ namespace Marea.Restaurant
 
             SpawnFoodVisual(food.menuData);
 
-            if (animator != null)
+            // (+10/13, A) 선장(IsPriority)은 S랭크(Perfect)일 때만 박수 — A랭크를 받고도 박수치며 화를 냈다.
+            if (animator != null && (!IsPriority || food.bestGrade == HitGrade.Perfect))
             {
                 animator.SetTrigger(ParamTriggerClap);
             }
