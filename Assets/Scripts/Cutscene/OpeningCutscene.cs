@@ -4,6 +4,7 @@ using Marea.Core;
 using Marea.Data;
 using Marea.Field;
 using Marea.Player;
+using TMPro;
 using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -16,7 +17,7 @@ namespace Marea.Cutscene
     ///
     /// 새 게임에서 한 번만 튼다(저장 키 savedKey). 에디터는 저장을 안 읽어 매번 새 게임이라 playInEditor로 정한다.
     /// 흐름: 시설을 다 지은 모습으로 → 타임라인(Cinemachine 카메라 · 아빠 · 고래) → Smash 신호에서 시설을 지금 레벨(폐허)로
-    /// → 끝나면 암전 → 원래 카메라 · HUD · 플레이어로 돌려놓고 밝힌다. Esc로 건너뛴다.
+    /// → 끝나면 암전 → (+10/13) 검은 화면에 아빠의 한마디 → 원래 카메라 · HUD · 플레이어로 돌려놓고 밝힌다. Esc로 건너뛴다.
     ///
     /// 메인 카메라엔 CinemachineBrain이 없다 — 평소엔 CameraFollow가 움직인다. 컷신 동안만 Brain을 붙이고 CameraFollow를 끈다.
     /// </summary>
@@ -62,12 +63,26 @@ namespace Marea.Cutscene
         [SerializeField, Min(0f)] private float blackSeconds = 0.6f;
         [SerializeField, Min(0f)] private float fadeInSeconds = 1f;
 
+        [Header("암전 글씨 (+10/13)")]
+        [TextArea, SerializeField] private string blackMessage = "아들아. 식당을 잘 부탁한다";
+        [Tooltip("한글이 든 폰트. 비면 TMP 기본 폰트라 한글이 네모로 나온다.")]
+        [SerializeField] private TMP_FontAsset messageFont;
+        [SerializeField, Min(1f)] private float messageSize = 56f;
+        [SerializeField, Min(0f)] private float messageFadeSeconds = 0.7f;
+        [SerializeField, Min(0f)] private float messageHoldSeconds = 2.2f;
+
+        [Header("끝나고 (+10/13)")]
+        [Tooltip("밝아진 뒤 주인공 머리 위에 띄울 이모트(?). 주인공의 EmotePopup으로 띄운다.")]
+        [SerializeField] private Sprite endEmote;
+        [SerializeField, Min(0.1f)] private float endEmoteSeconds = 2f;
+
         private readonly List<Canvas> _hiddenCanvases = new();
         private readonly List<Renderer> _hiddenPlayer = new();
         private readonly List<Renderer> _hiddenWalls = new();
         private FacilitySite[] _sites;
         private CameraFollow _follow;
         private PlayerController _player;
+        private PlayerInputReader _input;
         private CinemachineBrain _brain;
         private bool _addedBrain, _smashed, _finishing;
 
@@ -76,6 +91,9 @@ namespace Marea.Cutscene
             if (director == null || content == null)
                 Debug.LogError($"{name}: OpeningCutscene의 director · content가 비어 있다. 컷신이 안 돈다.", this);
             if (content != null) content.SetActive(false);
+            if (!string.IsNullOrEmpty(blackMessage) && messageFont == null)
+                Debug.LogError($"{name}: OpeningCutscene.messageFont가 비어 있다. 암전 글씨의 한글이 깨진다.", this);
+            if (endEmote == null) Debug.LogError($"{name}: OpeningCutscene.endEmote가 비어 있다. 끝나고 ?가 안 뜬다.", this);
         }
 
         private IEnumerator Start()
@@ -105,6 +123,9 @@ namespace Marea.Cutscene
             foreach (PlayableBinding output in director.playableAsset.outputs)
                 if (output.sourceObject is CinemachineTrack) director.SetGenericBinding(output.sourceObject, _brain);
 
+            // (+10/13) 이동 · E · 창 단축키(Tab · U)가 다 이 입력에서 나온다 — 암전 글씨가 끝날 때까지 끈다.
+            _input = FindAnyObjectByType<PlayerInputReader>();
+            if (_input != null) _input.enabled = false;
             _player = FindAnyObjectByType<PlayerController>();
             if (_player != null)
             {
@@ -207,14 +228,54 @@ namespace Marea.Cutscene
             _hiddenWalls.Clear();
             if (_addedBrain && _brain != null) Destroy(_brain);
             if (_follow != null) _follow.enabled = true;
-            if (_player != null) _player.enabled = true;
             foreach (Renderer r in _hiddenPlayer) if (r != null) r.enabled = true;
             foreach (Canvas c in _hiddenCanvases) if (c != null) c.enabled = true;
             SaveFile.Set(savedKey, 1);
 
             yield return new WaitForSecondsRealtime(blackSeconds);
+            if (!string.IsNullOrEmpty(blackMessage)) yield return ShowMessage(fade.transform);
             yield return fade.FadeTo(0f, fadeInSeconds);
             Destroy(fade.gameObject);
+            // (+10/13) 다 밝아진 뒤에야 조작을 돌려준다 — 전에는 암전 글씨 중에도 움직일 수 있었다.
+            if (_player != null) _player.enabled = true;
+            if (_input != null) _input.enabled = true;
+
+            EmotePopup emote = _player != null ? _player.GetComponentInChildren<EmotePopup>() : null;
+            if (emote == null) Debug.LogError($"{name}: 주인공에게 EmotePopup이 없다. 끝나고 ?가 안 뜬다.", this);
+            else emote.Show(endEmote, endEmoteSeconds);
+        }
+
+        // (+10/13) 암전막 캔버스 위에 글씨를 띄웠다 지운다. 암전막과 같이 파괴된다.
+        private IEnumerator ShowMessage(Transform curtainCanvas)
+        {
+            var go = new GameObject("BlackMessage", typeof(RectTransform));
+            go.transform.SetParent(curtainCanvas, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            var text = go.AddComponent<TextMeshProUGUI>();
+            if (messageFont != null) text.font = messageFont;
+            text.text = blackMessage;
+            text.fontSize = messageSize;
+            text.alignment = TextAlignmentOptions.Center;
+            text.color = new Color(1f, 1f, 1f, 0f);
+
+            yield return FadeText(text, 1f);
+            yield return new WaitForSecondsRealtime(messageHoldSeconds);
+            yield return FadeText(text, 0f);
+            Destroy(go);
+        }
+
+        private IEnumerator FadeText(TextMeshProUGUI text, float to)
+        {
+            float from = text.alpha;
+            for (float t = 0f; t < messageFadeSeconds; t += Time.unscaledDeltaTime)
+            {
+                text.alpha = Mathf.Lerp(from, to, t / messageFadeSeconds);
+                yield return null;
+            }
+            text.alpha = to;
         }
     }
 }

@@ -277,7 +277,8 @@ namespace Marea.Restaurant
 
             SpawnFoodVisual(food.menuData);
 
-            if (animator != null)
+            // (+10/13, A) 박수는 A랭크(Good) 이상, 선장(IsPriority)은 S랭크(Perfect)만 — 전엔 등급과 상관없이 쳤다.
+            if (animator != null && food.bestGrade >= (IsPriority ? HitGrade.Perfect : HitGrade.Good))
             {
                 animator.SetTrigger(ParamTriggerClap);
             }
@@ -378,7 +379,10 @@ namespace Marea.Restaurant
             if (imgOrderIcon != null) imgOrderIcon.gameObject.SetActive(false);
             if (imgAngryFeedback != null) imgAngryFeedback.gameObject.SetActive(false);
             if (imgCoinFeedback != null) imgCoinFeedback.gameObject.SetActive(false);
-            if (imgHappyFeedback != null) imgHappyFeedback.gameObject.SetActive(true);
+            // (+10/13, A) 선장(IsPriority)은 S랭크(Perfect)일 때만 하트 — 일반 손님은 그대로 늘 띄운다.
+            bool happy = !IsPriority || ReceivedGrade == HitGrade.Perfect;
+            if (imgHappyFeedback != null) imgHappyFeedback.gameObject.SetActive(happy);
+            if (!happy && orderBubble != null) orderBubble.SetActive(false);   // 빈 말풍선 틀만 남지 않게
 
             yield return new WaitForSeconds(1.5f);
 

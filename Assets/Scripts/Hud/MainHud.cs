@@ -1,3 +1,4 @@
+using Marea.Core;
 using Marea.Economy;
 using Marea.Field;
 using TMPro;
@@ -10,7 +11,7 @@ namespace Marea.Hud
     /// 메인 플레이 화면의 A 몫 HUD. (+10/2, 이슈 92 — 와이어프레임 01)
     ///
     /// - 우상단 재화(골드)
-    /// - 좌하단 [메뉴] → 탐사정 / 창고 / 성장 펼침
+    /// - 좌하단 [메뉴] → 탐사정 / 창고 / 성장 / 도움말 펼침 (+10/13 도움말)
     /// - 좌측 알람 (지금은 탐사정 귀환 하나)
     ///
     /// 와이어프레임의 접수된 주문 · 남은 영업 시간 · [영업 시작]은 B 몫(BusinessUIController)
@@ -31,26 +32,35 @@ namespace Marea.Hud
         [SerializeField] private Button expeditionButton;
         [SerializeField] private Button warehouseButton;
         [SerializeField] private Button growthButton;
+        [Tooltip("(+10/13) 도움말 창(F1)을 연다.")]
+        [SerializeField] private Button helpButton;
 
         [Header("알림 표식 (!)")]
         [Tooltip("탐사정이 돌아왔을 때 [메뉴] 버튼에 붙는 표식. 접혀 있어도 보이게.")]
         [SerializeField] private GameObject menuBadge;
         [SerializeField] private GameObject expeditionBadge;
+        [Tooltip("(+10/13) 새 게임에서 도움말을 한 번도 안 열었으면 [도움말]에 붙는 표식. [메뉴] 표식도 같이 켠다.")]
+        [SerializeField] private GameObject helpBadge;
+        [Tooltip("(+10/13) 도움말을 열어 봤는지 남기는 저장 키.")]
+        [SerializeField] private string helpSeenKey = "helpSeen";
         [SerializeField] private HudAlarm alarm;
 
         [Header("여는 대상 (비우면 씬에서 찾는다)")]
         [SerializeField] private WarehouseUI warehouseUI;
         [SerializeField] private UpgradeUI upgradeUI;
         [SerializeField] private ExpeditionManager expedition;
+        [SerializeField] private HelpWindow helpWindow;
 
         private Wallet _wallet;
         private FacilityLevels _levels;
+        private bool _returned, _helpPending;
 
         private void Awake()
         {
             if (warehouseUI == null) warehouseUI = FindAnyObjectByType<WarehouseUI>(FindObjectsInactive.Include);
             if (upgradeUI == null) upgradeUI = FindAnyObjectByType<UpgradeUI>(FindObjectsInactive.Include);
             if (expedition == null) expedition = FindAnyObjectByType<ExpeditionManager>(FindObjectsInactive.Include);
+            if (helpWindow == null) helpWindow = FindAnyObjectByType<HelpWindow>(FindObjectsInactive.Include);
 
             if (goldLabel == null) Debug.LogError($"{name}: MainHud.goldLabel이 비어 있다. 골드가 안 보인다.", this);
             if (menuButton == null || menuGroup == null)
@@ -59,12 +69,20 @@ namespace Marea.Hud
             if (upgradeUI == null) Debug.LogError($"{name}: 씬에 UpgradeUI가 없다. [성장]이 아무것도 안 연다.", this);
             if (expedition == null)
                 Debug.LogError($"{name}: 씬에 ExpeditionManager가 없다. [탐사정]이 아무것도 안 연다.", this);
+            if (helpWindow == null) Debug.LogError($"{name}: 씬에 HelpWindow가 없다. [도움말]이 아무것도 안 연다.", this);
+            if (helpButton == null || helpBadge == null)
+                Debug.LogError($"{name}: MainHud.helpButton/helpBadge가 비어 있다. [도움말] 유도가 안 뜬다.", this);
 
             if (menuButton != null) menuButton.onClick.AddListener(ToggleMenu);
             // ?. 를 쓰지 않는다 — 파괴된 UnityEngine.Object는 ?. 로는 null로 안 걸린다.
             if (warehouseButton != null && warehouseUI != null) warehouseButton.onClick.AddListener(warehouseUI.Toggle);
             if (growthButton != null && upgradeUI != null) growthButton.onClick.AddListener(upgradeUI.Toggle);
             if (expeditionButton != null) expeditionButton.onClick.AddListener(OpenExpedition);
+            if (helpButton != null && helpWindow != null) helpButton.onClick.AddListener(helpWindow.Toggle);
+            if (helpWindow != null) helpWindow.OnOpenChanged += HandleHelpOpenChanged;   // F1로 열어도 본 것으로 친다
+
+            _helpPending = SaveFile.GetInt(helpSeenKey, 0) == 0;
+            RefreshBadges();
 
             if (menuGroup != null) menuGroup.SetActive(false);
         }
@@ -108,6 +126,24 @@ namespace Marea.Hud
             if (_wallet != null) _wallet.OnGoldChanged -= HandleGoldChanged;
             if (expedition != null) expedition.OnStateChanged -= HandleExpeditionChanged;
             if (_levels != null) _levels.OnUnlocked -= HandleUnlocked;
+            if (helpWindow != null) helpWindow.OnOpenChanged -= HandleHelpOpenChanged;
+        }
+
+        // (+10/13) 도움말을 처음 열면 유도 표식을 내리고 저장한다. 다시 안 뜬다.
+        private void HandleHelpOpenChanged(bool open)
+        {
+            if (!open || !_helpPending) return;
+            _helpPending = false;
+            SaveFile.Set(helpSeenKey, 1);
+            RefreshBadges();
+        }
+
+        // [메뉴] 표식은 탐사정 귀환 · 도움말 유도 둘 중 하나라도 있으면 켠다.
+        private void RefreshBadges()
+        {
+            if (menuBadge != null) menuBadge.SetActive(_returned || _helpPending);
+            if (expeditionBadge != null) expeditionBadge.SetActive(_returned);
+            if (helpBadge != null) helpBadge.SetActive(_helpPending);
         }
 
         private void ToggleMenu()
@@ -134,9 +170,8 @@ namespace Marea.Hud
         private void HandleExpeditionChanged(ExpeditionManager.State state)
         {
             bool returned = state == ExpeditionManager.State.Returned;
-
-            if (menuBadge != null) menuBadge.SetActive(returned);
-            if (expeditionBadge != null) expeditionBadge.SetActive(returned);
+            _returned = returned;
+            RefreshBadges();
             if (expeditionButton != null)
                 expeditionButton.interactable = ExplorerUnlocked;
 

@@ -156,8 +156,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1522765478148168821}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23548183, y: -0.18358897, z: 0.04534955, w: 0.95330316}
-  m_LocalPosition: {x: 68.07, y: 12.99, z: 40.28}
+  m_LocalRotation: {x: 0.3033294, y: -0.24873506, z: 0.0823536, w: 0.91615504}
+  m_LocalPosition: {x: 68.3, y: 13.5, z: 41.6}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -187,7 +187,7 @@ MonoBehaviour:
     LookAtTarget: {fileID: 0}
     CustomLookAtTarget: 0
   Lens:
-    FieldOfView: 42
+    FieldOfView: 34
     OrthographicSize: 10
     NearClipPlane: 0.1
     FarClipPlane: 5000
@@ -822,6 +822,7 @@ MonoBehaviour:
   smashImpactVfx: 13
   smashSplashVfx: 4
   smashVfxScale: 6
+  seaLevel: 6.9
   burstPieces:
   - {fileID: 305192240274834667, guid: 42258e099f712664187caf0c5952995e, type: 3}
   - {fileID: 8514605499306722058, guid: 8885f672e833cfe47a241045f76b14ed, type: 3}
@@ -836,6 +837,13 @@ MonoBehaviour:
   fadeOutSeconds: 0.8
   blackSeconds: 0.6
   fadeInSeconds: 1
+  blackMessage: "\uC544\uB4E4\uC544. \uC2DD\uB2F9\uC744 \uC798 \uBD80\uD0C1\uD55C\uB2E4"
+  messageFont: {fileID: 11400000, guid: 147d57a14210264468d8f56acedb6dfc, type: 2}
+  messageSize: 56
+  messageFadeSeconds: 0.7
+  messageHoldSeconds: 2.2
+  endEmote: {fileID: 21300000, guid: fae172cd6ff77be428079aca5b6d543d, type: 3}
+  endEmoteSeconds: 2
 --- !u!114 &1341780714630013222
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -78,8 +78,8 @@ namespace Marea.Field
 
         [Header("글 — {0}은 선장 주문 메뉴(강조), {1}은 이/가")]
         [SerializeField] private string priorityLabel = "최우선!";
-        [Tooltip("(+10/9) 메인 화면 왼쪽 알람(HudAlarm — 탐사정 귀환 알람과 같은 칸). 선장이 주문하면 뜨고 판정이 나면 내린다. {0}은 메뉴 이름.")]
-        [SerializeField] private string alarmText = "선장의 요리를 최우선으로 만들어야 한다! ({0})";
+        [Tooltip("(+10/9) 메인 화면 왼쪽 알람(HudAlarm — 탐사정 귀환 알람과 같은 칸). (+10/13) 선장 일행이 배에서 다 내리면 뜨고 판정이 나면 내린다.")]
+        [SerializeField] private string alarmText = "특별 손님 등장 (선장)";
         [SerializeField] private string successToast = "선장이 크게 만족했다! 오늘 수익이 두 배가 된다";
         [SerializeField] private string failToast = "선원들이 데크를 부수고 떠났다…";
         [SerializeField] private string[] captainOrderLines = { "{0}. 이 가게 최고의 솜씨로 가져와라.", "{0}. 최고의 솜씨로 부탁하지." };
@@ -197,6 +197,7 @@ namespace Marea.Field
                 yield break;
             }
             captain.IsPriority = true;
+            if (_alarm != null) _alarm.Post(this, alarmText);   // (+10/13) 주문할 때가 아니라 도착했을 때
             captain.SetPatience(patienceSeconds);
             if (captain.TryGetComponent(out CustomerSpeech captainSpeech)) captainSpeech.SetImpatientLines(captainWaitLines);
             // (+10/10) 선원은 내리면서 이미 선장 뒤 줄로 가고 있다(LineUp). 예전엔 여기서 입구 근처로 보냈다.
@@ -210,8 +211,6 @@ namespace Marea.Field
                 if (captain != null)
                 {
                     Say(captain.gameObject, captainOrderLines);
-                    string menu = captain.OrderedMenu != null ? captain.OrderedMenu.DisplayName : "";
-                    if (_alarm != null) _alarm.Post(this, string.Format(alarmText, menu));
                 }
             }
 
